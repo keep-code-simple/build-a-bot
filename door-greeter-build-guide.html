@@ -1,0 +1,1274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Door Greeter Bot</title>
+<style>
+  :root {
+    --bg: #fff7e8;
+    --dots: #f6e3bd;
+    --card: #ffffff;
+    --text: #1f2340;
+    --muted: #5d6180;
+    --line: #e7dcc6;
+    --accent: #2563eb;
+    --accent-soft: #e3edff;
+    --good: #15803d;
+    --good-soft: #dcfce7;
+    --warn: #a16207;
+    --warn-soft: #fef3c7;
+    --code-bg: #1b1f3a;
+    --code-text: #e8eaff;
+    --s1: #2563eb;
+    --s2: #ea580c;
+    --s3: #7c3aed;
+    --s4: #db2777;
+    --s5: #15803d;
+    --s6: #f59e0b;
+    --round: ui-rounded, "SF Pro Rounded", "Arial Rounded MT Bold", "Chalkboard SE", system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14162b;
+      --dots: #1d2040;
+      --card: #20244a;
+      --text: #f1f2ff;
+      --muted: #b3b7da;
+      --line: #383d6e;
+      --accent: #8fb4ff;
+      --accent-soft: #263463;
+      --good: #6ee7a0;
+      --good-soft: #17402b;
+      --warn: #fcd34d;
+      --warn-soft: #453712;
+      --code-bg: #0e1024;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background-color: var(--bg);
+    background-image: radial-gradient(var(--dots) 2px, transparent 2.5px);
+    background-size: 26px 26px;
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 17px;
+    line-height: 1.6;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 0 16px 80px; }
+  h1, h2, h3, .step-num, .done-label, .stop .lbl, .role b, .key { font-family: var(--round); }
+  h1 { font-size: 2.6rem; line-height: 1.1; margin: 0 0 10px; }
+  h2 { font-size: 1.55rem; line-height: 1.2; margin: 0 0 10px; }
+  h3 { font-size: 1.1rem; margin: 24px 0 8px; }
+  a { color: var(--accent); }
+
+  /* ---------- hero ---------- */
+  .hero {
+    margin-top: 16px;
+    border-radius: 28px;
+    padding: 28px 28px 22px;
+    color: #fff;
+    background: linear-gradient(135deg, #2563eb 0%, #7c3aed 55%, #db2777 100%);
+    display: flex; align-items: center; gap: 20px;
+    box-shadow: 0 8px 0 rgba(31, 35, 64, 0.18);
+  }
+  .hero-text { flex: 1; min-width: 0; }
+  .hero .subtitle { font-size: 1.15rem; margin: 0 0 14px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { background: rgba(255,255,255,0.22); border-radius: 99px; padding: 3px 12px; font-size: 0.9rem; font-weight: 600; }
+  .chip-link { color: #fff; text-decoration: none; background: rgba(31,35,64,0.35); }
+  .chip-link:hover { background: rgba(31,35,64,0.55); }
+  .robot { width: 190px; flex-shrink: 0; }
+  .robot .arm { transform-origin: 160px 124px; animation: wave 1.4s ease-in-out infinite alternate; }
+  .robot .pupil { transform-origin: center; transform-box: fill-box; animation: blink 4s infinite; }
+  .robot .antenna { animation: glow 1.2s ease-in-out infinite alternate; }
+  @keyframes wave { from { transform: rotate(-14deg); } to { transform: rotate(22deg); } }
+  @keyframes blink { 0%, 92%, 100% { transform: scaleY(1); } 96% { transform: scaleY(0.1); } }
+  @keyframes glow { from { fill: #fda4af; } to { fill: #fff; } }
+
+  /* ---------- mission map ---------- */
+  .progress {
+    position: sticky; top: 0; z-index: 5;
+    background: var(--bg);
+    padding: 10px 0 12px;
+    border-bottom: 3px dashed var(--line);
+    margin: 14px 0 20px;
+  }
+  .progress-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 0.95rem; font-weight: 600; }
+  .reset-btn { background: none; border: 2px solid var(--line); color: var(--muted); border-radius: 99px; padding: 2px 12px; cursor: pointer; font-size: 0.85rem; }
+  .map { list-style: none; display: flex; justify-content: space-between; padding: 0; margin: 8px 0 8px; }
+  .map li { flex: 1; margin: 0; text-align: center; }
+  .stop { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; text-decoration: none; color: var(--muted); }
+  .stop .dot {
+    width: 44px; height: 44px; border-radius: 50%;
+    display: grid; place-items: center; font-size: 1.3rem;
+    background: var(--card); border: 3px solid var(--line);
+    filter: grayscale(1); opacity: 0.75;
+    transition: transform 0.25s, background 0.25s;
+  }
+  .stop .lbl { font-size: 0.8rem; font-weight: 700; }
+  .stop.is-done { color: var(--text); }
+  .stop.is-done .dot { background: var(--c); border-color: var(--c); filter: none; opacity: 1; transform: scale(1.12) rotate(-6deg); box-shadow: 0 3px 0 rgba(31,35,64,0.25); }
+  .bar { height: 12px; background: var(--line); border-radius: 99px; overflow: hidden; }
+  .bar-fill { height: 100%; width: 0; border-radius: 99px; background: linear-gradient(90deg, var(--s1), var(--s2), var(--s3), var(--s4), var(--s5), var(--s6)); background-size: 860px 100%; transition: width 0.4s; }
+
+  /* ---------- cards ---------- */
+  .card {
+    background: var(--card);
+    border: 2px solid var(--line);
+    border-radius: 22px;
+    padding: 22px 24px;
+    margin: 22px 0;
+    box-shadow: 0 5px 0 var(--line);
+    --c: var(--accent);
+  }
+  .card > h2 { display: flex; align-items: center; gap: 10px; }
+  .step { border-top: 10px solid var(--c); scroll-margin-top: 150px; --on: #fff; }
+  .step.is-done { border-color: var(--c); box-shadow: 0 5px 0 var(--c); }
+  .step-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+  .step-title { display: flex; gap: 14px; align-items: center; }
+  .step-emoji {
+    width: 64px; height: 64px; flex-shrink: 0; border-radius: 20px;
+    display: grid; place-items: center; font-size: 2rem;
+    background: color-mix(in srgb, var(--c) 18%, var(--card));
+    transform: rotate(-4deg);
+  }
+  .step-title h2 { margin: 2px 0 0; }
+  .step-num {
+    display: inline-block; background: var(--c); color: var(--on);
+    font-weight: 800; font-size: 0.85rem; letter-spacing: 0.04em; text-transform: uppercase;
+    border-radius: 99px; padding: 1px 12px;
+  }
+  .time { color: var(--muted); font-size: 0.92rem; }
+  .done-label {
+    display: flex; align-items: center; gap: 8px; white-space: nowrap;
+    border: 3px solid var(--c); border-radius: 99px; padding: 6px 16px; cursor: pointer;
+    font-size: 1rem; font-weight: 700;
+  }
+  .step.is-done .done-label { background: var(--c); color: var(--on); }
+  .done-label input { width: 20px; height: 20px; cursor: pointer; accent-color: var(--good); }
+
+  .roles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 10px 0; }
+  .role { border-radius: 16px; padding: 14px 16px; display: flex; gap: 12px; align-items: center; }
+  .role span { font-size: 2.2rem; }
+  .role b { display: block; font-size: 1.15rem; }
+  .role.builder { background: color-mix(in srgb, var(--s2) 16%, var(--card)); }
+  .role.coder { background: color-mix(in srgb, var(--s3) 16%, var(--card)); }
+  .swap { text-align: center; font-weight: 700; margin: 4px 0 0; }
+
+  table { border-collapse: collapse; width: 100%; margin: 8px 0 14px; font-size: 0.95rem; }
+  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 0.85rem; }
+  .pin { font-family: ui-monospace, Menlo, Consolas, monospace; font-weight: 700; }
+  td .pin, td.pin { color: var(--c); }
+  .table-scroll { overflow-x: auto; }
+
+  .tip, .kid, .warn { border-radius: 16px; padding: 14px 16px; margin: 16px 0; font-size: 0.97rem; border-left: 8px solid; }
+  .tip { background: var(--accent-soft); border-color: var(--accent); }
+  .kid { background: var(--good-soft); border-color: var(--good); }
+  .warn { background: var(--warn-soft); border-color: var(--warn); }
+  .tip strong, .kid strong, .warn strong { display: block; margin-bottom: 2px; font-family: var(--round); font-size: 1.05rem; }
+
+  .code-wrap { position: relative; margin: 12px 0; }
+  pre {
+    background: var(--code-bg); color: var(--code-text);
+    padding: 16px; border-radius: 16px; overflow-x: auto;
+    font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.85rem; line-height: 1.5;
+    margin: 0; border: 3px solid var(--c);
+  }
+  .copy-btn {
+    position: absolute; top: 10px; right: 10px;
+    background: var(--c); color: var(--on, #fff); border: none; border-radius: 99px;
+    padding: 6px 14px; cursor: pointer; font-size: 0.85rem; font-weight: 700;
+  }
+  .copy-btn:hover { filter: brightness(1.15); }
+  code.inline { font-family: ui-monospace, Menlo, Consolas, monospace; background: var(--accent-soft); padding: 1px 6px; border-radius: 6px; font-size: 0.9em; }
+
+  ol, ul { padding-left: 22px; }
+  li { margin: 4px 0; }
+
+  /* ---------- parts ---------- */
+  .parts { list-style: none; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .parts li { margin: 0; }
+  .parts label {
+    display: flex; gap: 12px; align-items: center; height: 100%;
+    border: 2px solid var(--line); border-radius: 16px; padding: 10px 12px; cursor: pointer;
+  }
+  .parts label:has(input:checked) { background: var(--good-soft); border-color: var(--good); }
+  .parts svg { width: 56px; height: 56px; flex-shrink: 0; background: #fffdf6; border-radius: 14px; padding: 4px; }
+  .parts .txt { flex: 1; min-width: 0; font-weight: 600; line-height: 1.35; }
+  .parts .hint { color: var(--muted); font-size: 0.86rem; display: block; font-weight: 400; }
+  .parts input { width: 20px; height: 20px; flex-shrink: 0; accent-color: var(--good); }
+
+  /* ---------- diagrams (always on light "paper") ---------- */
+  .diagram {
+    background: #fffdf6; border: 2px dashed #d9cba8; border-radius: 16px;
+    padding: 8px; margin: 12px 0; overflow-x: auto;
+  }
+  .diagram svg { display: block; width: 100%; min-width: 540px; height: auto; font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
+  .diagram text { fill: #1f2340; font-size: 13px; }
+  .diagram .w, .diagram .w text { fill: #fff; font-weight: 700; }
+  .diagram .sm { font-size: 10px; }
+  .diagram .wire { fill: none; stroke-width: 5; stroke-linecap: round; }
+  .diagram figcaption, .cap { color: #5d6180; font-size: 0.88rem; padding: 4px 6px 2px; }
+  figure { margin: 0; }
+
+  /* ---------- echo demo ---------- */
+  .echo-demo input[type=range] { width: 100%; accent-color: var(--s2); height: 28px; }
+  .echo-readout { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; }
+  .echo-readout div { background: var(--accent-soft); border-radius: 14px; padding: 8px 14px; flex: 1; min-width: 150px; }
+  .echo-readout b { display: block; font-size: 1.4rem; color: var(--accent); font-family: var(--round); }
+  #echo-pulse path { fill: none; stroke: #2563eb; stroke-width: 4; stroke-linecap: round; }
+  #echo-pulse.back path { stroke: #ea580c; }
+  #echo-bubble { opacity: 0; transition: opacity 0.2s; }
+  .is-greeting #echo-bubble { opacity: 1; }
+
+  /* ---------- LCD lab ---------- */
+  .lcd-lab input[type=text] {
+    width: 100%; font: inherit; padding: 9px 14px; border-radius: 12px;
+    border: 2px solid var(--line); background: var(--card); color: var(--text);
+  }
+  .lcd {
+    display: inline-block; max-width: 100%; margin-top: 10px; padding: 12px 14px; border-radius: 10px;
+    background: #14532d; border: 4px solid #0b3a1e;
+  }
+  .lcd-screen { background: #bef264; padding: 6px; border-radius: 4px; display: grid; grid-template-columns: repeat(16, 1fr); gap: 2px; }
+  .lcd-screen span {
+    width: 1.05em; height: 1.5em; display: grid; place-items: center;
+    background: rgba(63, 98, 18, 0.14); color: #1a2e05;
+    font-family: ui-monospace, Menlo, Consolas, monospace; font-weight: 700; font-size: clamp(0.8rem, 3.6vw, 1.25rem);
+  }
+  .lcd-count { font-weight: 700; margin: 8px 0 0; }
+  .lcd-count.bad { color: #dc2626; }
+  .lcd-count.ok { color: var(--good); }
+
+  /* ---------- tune maker ---------- */
+  .keys { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; margin: 10px 0; }
+  .key {
+    border: none; border-radius: 12px 12px 18px 18px; padding: 14px 2px 10px; cursor: pointer;
+    background: var(--k); color: #fff; font-weight: 800; font-size: 1.1rem;
+    box-shadow: 0 5px 0 rgba(31,35,64,0.3);
+  }
+  .key small { display: block; font-family: ui-monospace, Menlo, monospace; font-size: 0.78rem; font-weight: 700; }
+  .key:active { transform: translateY(4px); box-shadow: 0 1px 0 rgba(31,35,64,0.3); }
+  .tune-out { background: var(--code-bg); color: var(--code-text); border-radius: 12px; padding: 10px 14px; font-family: ui-monospace, Menlo, monospace; font-size: 0.88rem; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .tune-out input { flex: 1; min-width: 0; font: inherit; color: inherit; background: rgba(255,255,255,0.12); border: 2px solid var(--c); border-radius: 8px; padding: 5px 8px; }
+  .tune-controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
+  .btn { border: none; border-radius: 99px; padding: 7px 16px; font: inherit; font-weight: 700; cursor: pointer; background: var(--c); color: #fff; }
+  .btn.ghost { background: none; border: 2px solid var(--line); color: var(--muted); }
+
+  details { border: 2px solid var(--line); border-radius: 14px; padding: 10px 14px; margin: 8px 0; background: var(--card); }
+  details[open] { border-color: var(--s2); }
+  summary { cursor: pointer; font-weight: 600; }
+  details p { margin: 8px 0 2px; }
+
+  .ideas { list-style: none; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .ideas li { margin: 0; border-radius: 16px; padding: 12px 14px; background: color-mix(in srgb, var(--k) 14%, var(--card)); border: 2px solid color-mix(in srgb, var(--k) 45%, var(--card)); }
+  .ideas .big { font-size: 1.7rem; display: block; }
+
+  .celebrate {
+    display: none; text-align: center; border-radius: 20px; padding: 22px; margin-top: 20px; color: #fff;
+    background: linear-gradient(135deg, #f59e0b, #db2777 60%, #7c3aed);
+  }
+  .celebrate.show { display: block; animation: pop 0.5s; }
+  .celebrate .trophy { font-size: 3rem; display: block; }
+  .celebrate b { font-family: var(--round); font-size: 1.5rem; display: block; }
+  @keyframes pop { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .confetti { position: fixed; top: -16px; width: 10px; height: 16px; z-index: 50; pointer-events: none; animation: fall linear forwards; }
+  @keyframes fall { to { transform: translateY(110vh) rotate(720deg); } }
+
+  @media (max-width: 620px) {
+    .hero { flex-direction: column-reverse; text-align: center; padding: 20px; }
+    .chips { justify-content: center; }
+    .robot { width: 130px; }
+    h1 { font-size: 2rem; }
+    .step-head { flex-direction: column; }
+    .roles, .parts, .ideas { grid-template-columns: 1fr; }
+    .stop .lbl { display: none; }
+    .stop .dot { width: 38px; height: 38px; font-size: 1.1rem; }
+    .keys { grid-template-columns: repeat(4, 1fr); }
+    .card { padding: 18px 16px; }
+    .step { scroll-margin-top: 120px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .robot .arm, .robot .pupil, .robot .antenna, .celebrate.show { animation: none; }
+    #echo-pulse { display: none; }
+  }
+  @media print {
+    body { background: #fff; }
+    .progress, .copy-btn, .reset-btn, .echo-demo, .lcd-lab, .tune-controls, .robot { display: none; }
+    .card { break-inside: avoid; box-shadow: none; }
+    .hero { color: #000; background: none; box-shadow: none; padding: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <div class="hero-text">
+    <h1>Door Greeter Bot</h1>
+    <p class="subtitle">An afternoon build: a gadget by the bedroom door that sees you coming, plays a tune, and greets you on a little screen.</p>
+    <div class="chips">
+      <a class="chip chip-link" href="index.html">🏠 Home</a>
+      <span class="chip">📖 Chapter 1</span>
+      <span class="chip">⏱ 2 to 2½ hours</span>
+      <span class="chip">👥 2 builders</span>
+      <span class="chip">🏅 6 badges to earn</span>
+      <a class="chip chip-link" href="chapter-2-secret-code-bot.html">Chapter 2: Secret Code Bot →</a>
+    </div>
+  </div>
+  <svg class="robot" viewBox="0 0 200 222" role="img" aria-label="A friendly robot waving hello">
+    <line x1="100" y1="16" x2="100" y2="38" stroke="#fff" stroke-width="4"/>
+    <circle class="antenna" cx="100" cy="12" r="8" fill="#fda4af"/>
+    <rect x="22" y="112" width="20" height="58" rx="10" fill="#fcd34d"/>
+    <g class="arm">
+      <rect x="158" y="62" width="20" height="66" rx="10" fill="#fcd34d"/>
+      <circle cx="168" cy="58" r="13" fill="#fde68a"/>
+    </g>
+    <rect x="48" y="36" width="104" height="66" rx="14" fill="#38bdf8" stroke="#fff" stroke-width="3"/>
+    <circle cx="78" cy="69" r="18" fill="#e5e7eb" stroke="#64748b" stroke-width="3"/>
+    <circle cx="122" cy="69" r="18" fill="#e5e7eb" stroke="#64748b" stroke-width="3"/>
+    <circle class="pupil" cx="78" cy="69" r="7" fill="#1f2340"/>
+    <circle class="pupil" cx="122" cy="69" r="7" fill="#1f2340"/>
+    <rect x="40" y="108" width="120" height="86" rx="16" fill="#fbbf24" stroke="#fff" stroke-width="3"/>
+    <rect x="56" y="122" width="88" height="34" rx="5" fill="#bef264" stroke="#3f6212" stroke-width="3"/>
+    <text x="100" y="145" text-anchor="middle" font-family="ui-monospace, Menlo, monospace" font-weight="700" font-size="16" fill="#1a2e05">HELLO!</text>
+    <circle cx="70" cy="175" r="7" fill="#ef4444" stroke="#fff" stroke-width="2"/>
+    <circle cx="130" cy="175" r="9" fill="#1f2340"/>
+    <circle cx="130" cy="175" r="3" fill="#94a3b8"/>
+    <rect x="58" y="196" width="30" height="20" rx="8" fill="#38bdf8"/>
+    <rect x="112" y="196" width="30" height="20" rx="8" fill="#38bdf8"/>
+  </svg>
+</header>
+
+<nav class="progress" aria-label="Your progress">
+  <div class="progress-row">
+    <span id="progress-label">0 of 6 steps done</span>
+    <button class="reset-btn" id="reset-btn" type="button">Reset checkmarks</button>
+  </div>
+  <ol class="map">
+    <li><a class="stop" data-stop="1" href="#step1" style="--c:var(--s1)"><span class="dot" aria-hidden="true">💻</span><span class="lbl">Set up</span></a></li>
+    <li><a class="stop" data-stop="2" href="#step2" style="--c:var(--s2)"><span class="dot" aria-hidden="true">👀</span><span class="lbl">Eyes</span></a></li>
+    <li><a class="stop" data-stop="3" href="#step3" style="--c:var(--s3)"><span class="dot" aria-hidden="true">🔊</span><span class="lbl">Voice</span></a></li>
+    <li><a class="stop" data-stop="4" href="#step4" style="--c:var(--s4)"><span class="dot" aria-hidden="true">🖥️</span><span class="lbl">Face</span></a></li>
+    <li><a class="stop" data-stop="5" href="#step5" style="--c:var(--s5)"><span class="dot" aria-hidden="true">🎨</span><span class="lbl">Yours</span></a></li>
+    <li><a class="stop" data-stop="6" href="#step6" style="--c:var(--s6)"><span class="dot" aria-hidden="true">🚪</span><span class="lbl">Door</span></a></li>
+  </ol>
+  <div class="bar"><div class="bar-fill" id="bar-fill"></div></div>
+</nav>
+
+<!-- ============ BEFORE YOU START ============ -->
+<section class="card">
+  <h2><span aria-hidden="true">🚀</span> Before you start</h2>
+  <p><b>Time:</b> about 2 to 2½ hours, with snack breaks. Each step ends with something that works, so you can stop anywhere and still have a win.</p>
+  <p><b>Two jobs, swap every step:</b></p>
+  <div class="roles">
+    <div class="role builder"><span aria-hidden="true">🔧</span><div><b>Builder</b>plugs in the wires and tests the gadget.</div></div>
+    <div class="role coder"><span aria-hidden="true">⌨️</span><div><b>Coder</b>reads the step out loud, uploads the code, and makes the code changes.</div></div>
+  </div>
+  <p class="swap">🔄 Swap jobs after every step!</p>
+  <div class="warn">
+    <strong>⚠️ Golden rule</strong>
+    Unplug the USB cable before moving any wires. Plug it back in to test.
+  </div>
+  <div class="tip">
+    <strong>💡 Parent tip</strong>
+    Before each upload, ask "What do you think will happen?" Guessing first is what makes the "whoa" stick. When something doesn't work, that's the fun part: be detectives together using the Troubleshooting section at the bottom.
+  </div>
+</section>
+
+<!-- ============ HOW IT WORKS ============ -->
+<section class="card">
+  <h2><span aria-hidden="true">🦇</span> How it works</h2>
+  <p>The blue ultrasonic sensor works like a <b>bat</b>. One silver "eye" (marked <b>T</b>) shouts a chirp too high for humans to hear. The other (marked <b>R</b>) listens for the echo bouncing off you. The Arduino times the echo: a longer wait means you're farther away.</p>
+  <p>When you get close enough, the Arduino plays a tune, lights an LED, and shows a greeting on the screen.</p>
+  <div class="echo-demo">
+    <h3>Try it: drag to move your hand</h3>
+    <figure class="diagram">
+      <svg id="echo-svg" viewBox="0 0 600 170" role="img" aria-label="A chirp travels from the sensor to a hand and bounces back">
+        <rect x="84" y="118" width="91" height="26" rx="8" fill="#dcfce7"/>
+        <text x="129" y="135" text-anchor="middle" class="sm" style="fill:#15803d;font-weight:700">HELLO ZONE</text>
+        <line x1="84" y1="150" x2="540" y2="150" stroke="#d9cba8" stroke-width="2"/>
+        <text x="84" y="165" class="sm">0</text>
+        <text x="175" y="165" text-anchor="middle" class="sm">60 cm</text>
+        <text x="540" y="165" text-anchor="middle" class="sm">300 cm</text>
+        <rect x="24" y="36" width="60" height="88" rx="8" fill="#2563eb"/>
+        <circle cx="54" cy="60" r="16" fill="#e5e7eb" stroke="#64748b" stroke-width="3"/>
+        <circle cx="54" cy="100" r="16" fill="#e5e7eb" stroke="#64748b" stroke-width="3"/>
+        <text x="54" y="65" text-anchor="middle" style="font-weight:700">T</text>
+        <text x="54" y="105" text-anchor="middle" style="font-weight:700">R</text>
+        <g id="echo-bubble">
+          <rect x="14" y="4" width="92" height="26" rx="13" fill="#15803d"/>
+          <text x="60" y="22" text-anchor="middle" class="w">♪ Hello!</text>
+        </g>
+        <g id="echo-pulse"><path d="M0,-12 Q8,0 0,12"/><path d="M-10,-18 Q2,0 -10,18"/><path d="M-20,-24 Q-4,0 -20,24"/></g>
+        <text id="echo-hand" x="160" y="100" style="font-size:54px">✋</text>
+      </svg>
+      <figcaption><span style="color:#2563eb;font-weight:700">Blue</span> = the chirp going out. <span style="color:#ea580c;font-weight:700">Orange</span> = the echo coming back. Farther hand, longer trip.</figcaption>
+    </figure>
+    <input type="range" id="echo-slider" min="5" max="300" value="50" aria-label="Distance from sensor in centimeters">
+    <div class="echo-readout">
+      <div>Distance <b id="echo-cm">50 cm</b></div>
+      <div>Echo comes back in <b id="echo-us">2,915 µs</b></div>
+      <div>Greeter says <b id="echo-verdict">Hello!</b></div>
+    </div>
+    <p class="time">µs = microseconds, millionths of a second. Sound needs about 58 µs to travel 1 cm and bounce back.</p>
+  </div>
+</section>
+
+<!-- ============ PARTS ============ -->
+<section class="card">
+  <h2><span aria-hidden="true">🧰</span> Gather the parts</h2>
+  <p>Everything is in your ELEGOO Super Starter Kit. Check them off as you find them.</p>
+  <ul class="parts">
+    <li><label>
+      <svg viewBox="0 0 48 48" aria-hidden="true"><rect x="4" y="9" width="40" height="30" rx="4" fill="#0f8a8f"/><rect x="2" y="14" width="10" height="9" fill="#cbd5e1"/><rect x="2" y="28" width="8" height="7" fill="#1f2340"/><rect x="18" y="11" width="22" height="3" fill="#1f2340"/><rect x="22" y="34" width="18" height="3" fill="#1f2340"/><rect x="20" y="20" width="18" height="7" rx="1" fill="#1f2340"/></svg>
+      <span class="txt">UNO R3 board + USB cable<span class="hint">The black board that says ELEGOO UNO R3.</span></span>
+      <input type="checkbox" class="part-box"></label></li>
+    <li><label>
+      <svg viewBox="0 0 48 48" aria-hidden="true"><rect x="3" y="8" width="42" height="32" rx="3" fill="#f8fafc" stroke="#94a3b8" stroke-width="2"/><line x1="7" y1="13" x2="41" y2="13" stroke="#ef4444" stroke-width="2"/><line x1="7" y1="35" x2="41" y2="35" stroke="#2563eb" stroke-width="2"/><g fill="#64748b"><circle cx="10" cy="19" r="1.3"/><circle cx="17" cy="19" r="1.3"/><circle cx="24" cy="19" r="1.3"/><circle cx="31" cy="19" r="1.3"/><circle cx="38" cy="19" r="1.3"/><circle cx="10" cy="29" r="1.3"/><circle cx="17" cy="29" r="1.3"/><circle cx="24" cy="29" r="1.3"/><circle cx="31" cy="29" r="1.3"/><circle cx="38" cy="29" r="1.3"/></g><line x1="5" y1="24" x2="43" y2="24" stroke="#cbd5e1" stroke-width="2"/></svg>
+      <span class="txt">Breadboard (the big white one)<span class="hint">You won't need the separate power supply module for this build.</span></span>
+      <input type="checkbox" class="part-box"></label></li>
+    <li><label>
+      <svg viewBox="0 0 48 48" aria-hidden="true"><rect x="3" y="10" width="42" height="22" rx="3" fill="#2563eb"/><circle cx="14" cy="21" r="8" fill="#e5e7eb" stroke="#64748b" stroke-width="2"/><circle cx="34" cy="21" r="8" fill="#e5e7eb" stroke="#64748b" stroke-width="2"/><g stroke="#94a3b8" stroke-width="2"><line x1="18" y1="32" x2="18" y2="42"/><line x1="22" y1="32" x2="22" y2="42"/><line x1="26" y1="32" x2="26" y2="42"/><line x1="30" y1="32" x2="30" y2="42"/></g></svg>
+      <span class="txt">Ultrasonic sensor (HC-SR04)<span class="hint">Blue board with two silver "eyes" and 4 pins: Vcc, Trig, Echo, Gnd.</span></span>
+      <input type="checkbox" class="part-box"></label></li>
+    <li><label>
+      <svg viewBox="0 0 48 48" aria-hidden="true"><rect x="3" y="12" width="42" height="26" rx="3" fill="#15803d"/><rect x="8" y="17" width="32" height="16" rx="2" fill="#bef264"/><g fill="#1a2e05"><rect x="11" y="20" width="3" height="4"/><rect x="16" y="20" width="3" height="4"/><rect x="21" y="20" width="3" height="4"/><rect x="26" y="20" width="3" height="4"/><rect x="11" y="27" width="3" height="4"/><rect x="16" y="27" width="3" height="4"/></g><g fill="#fbbf24"><rect x="8" y="9" width="2" height="4"/><rect x="13" y="9" width="2" height="4"/><rect x="18" y="9" width="2" height="4"/><rect x="23" y="9" width="2" height="4"/><rect x="28" y="9" width="2" height="4"/><rect x="33" y="9" width="2" height="4"/><rect x="38" y="9" width="2" height="4"/></g></svg>
+      <span class="txt">LCD screen (1602)<span class="hint">Green board with a row of 16 pins along one edge.</span></span>
+      <input type="checkbox" class="part-box"></label></li>
+    <li><label>
+      <svg viewBox="0 0 48 48" aria-hidden="true"><rect x="10" y="14" width="28" height="20" rx="3" fill="#2563eb"/><circle cx="24" cy="24" r="8" fill="#f8fafc" stroke="#64748b" stroke-width="2"/><line x1="24" y1="24" x2="29" y2="19" stroke="#1f2340" stroke-width="3" stroke-linecap="round"/><g stroke="#94a3b8" stroke-width="2"><line x1="16" y1="34" x2="16" y2="43"/><line x1="24" y1="34" x2="24" y2="43"/><line x1="32" y1="34" x2="32" y2="43"/></g></svg>
+      <span class="txt">Potentiometer (the knob with 3 legs)<span class="hint">Sets the screen's contrast. Push its knob onto the body if it's separate.</span></span>
+      <input type="checkbox" class="part-box"></label></li>
+    <li><label>
+      <svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="21" r="15" fill="#1f2340"/><circle cx="24" cy="21" r="4" fill="#94a3b8"/><text x="12" y="16" font-size="9" font-weight="700" fill="#fff">+</text><g stroke="#94a3b8" stroke-width="2"><line x1="18" y1="35" x2="18" y2="45"/><line x1="30" y1="35" x2="30" y2="43"/></g></svg>
+      <span class="txt">Passive buzzer<span class="hint">Flip both buzzers over: the passive one shows a green circuit board underneath. The active one is sealed with black.</span></span>
+      <input type="checkbox" class="part-box"></label></li>
+    <li><label>
+      <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M8,24 v-8 a7,7 0 0 1 14,0 v8 z" fill="#ef4444"/><rect x="6" y="23" width="18" height="3" rx="1" fill="#b91c1c"/><g stroke="#94a3b8" stroke-width="2"><line x1="11" y1="26" x2="11" y2="44"/><line x1="19" y1="26" x2="19" y2="39"/><line x1="28" y1="34" x2="46" y2="34"/></g><rect x="30" y="29" width="14" height="10" rx="4" fill="#e8c98a"/><rect x="33" y="29" width="2" height="10" fill="#ef4444"/><rect x="36" y="29" width="2" height="10" fill="#ef4444"/><rect x="39" y="29" width="2" height="10" fill="#92400e"/></svg>
+      <span class="txt">1 LED (any color) and 2 resistors of 220 Ω<span class="hint">Use the resistors from the strip labeled 220Ω.</span></span>
+      <input type="checkbox" class="part-box"></label></li>
+    <li><label>
+      <svg viewBox="0 0 48 48" aria-hidden="true"><g fill="none" stroke-width="4" stroke-linecap="round"><path d="M5,12 C20,4 28,22 43,12" stroke="#ef4444"/><path d="M5,22 C20,14 28,32 43,22" stroke="#1f2340"/><path d="M5,32 C20,24 28,42 43,32" stroke="#eab308"/><path d="M5,42 C20,34 28,50 43,40" stroke="#16a34a"/></g></svg>
+      <span class="txt">About 25 male-to-male jumper wires<span class="hint">Tip: use red for 5V, black for GND, other colors for signals.</span></span>
+      <input type="checkbox" class="part-box"></label></li>
+    <li><label>
+      <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M6,18 l18,-8 l18,8 v20 l-18,6 l-18,-6 z" fill="#d6a76a"/><path d="M6,18 l18,7 l18,-7" fill="none" stroke="#92602a" stroke-width="2"/><line x1="24" y1="25" x2="24" y2="44" stroke="#92602a" stroke-width="2"/><rect x="28" y="28" width="10" height="6" fill="#bef264" transform="skewY(-18) translate(0,10)"/></svg>
+      <span class="txt">For mounting (step 6): a small box, tape, and a USB phone charger or power bank</span>
+      <input type="checkbox" class="part-box"></label></li>
+  </ul>
+
+  <h3>Breadboard 101</h3>
+  <p>The long lines along the edges marked <b>+</b> and <b>−</b> are <b>power rails</b>: every hole along one line is connected. In the middle, each short row of 5 holes is connected, but not across the center gap.</p>
+  <figure class="diagram">
+    <svg viewBox="0 0 600 224" role="img" aria-label="Breadboard showing which holes are connected">
+      <defs>
+        <pattern id="holes" width="14" height="14" patternUnits="userSpaceOnUse"><circle cx="7" cy="7" r="2.6" fill="#64748b"/></pattern>
+      </defs>
+      <rect x="20" y="8" width="422" height="208" rx="10" fill="#f8fafc" stroke="#94a3b8" stroke-width="2"/>
+      <rect x="28" y="14" width="406" height="14" rx="7" fill="#fecaca"/>
+      <rect x="28" y="28" width="406" height="14" rx="7" fill="#bfdbfe"/>
+      <rect x="154" y="56" width="14" height="70" rx="7" fill="#86efac"/>
+      <rect x="294" y="140" width="14" height="70" rx="7" fill="#fcd34d"/>
+      <rect x="21" y="128" width="420" height="10" fill="#e2e8f0"/>
+      <rect x="28" y="14" width="406" height="28" fill="url(#holes)"/>
+      <rect x="28" y="56" width="406" height="70" fill="url(#holes)"/>
+      <rect x="28" y="140" width="406" height="70" fill="url(#holes)"/>
+      <text x="16" y="26" text-anchor="end" style="fill:#dc2626;font-weight:800">+</text>
+      <text x="16" y="40" text-anchor="end" style="fill:#2563eb;font-weight:800">−</text>
+      <path d="M436,21 H454" stroke="#dc2626" stroke-width="2"/>
+      <text class="sm" style="fill:#dc2626;font-weight:700"><tspan x="458" y="19">+ rail: the whole red</tspan><tspan x="458" y="31">line is connected</tspan></text>
+      <path d="M436,35 L454,50" stroke="#2563eb" stroke-width="2"/>
+      <text class="sm" style="fill:#2563eb;font-weight:700"><tspan x="458" y="52">− rail: the whole blue</tspan><tspan x="458" y="64">line is connected</tspan></text>
+      <path d="M170,91 H454" stroke="#15803d" stroke-width="2" fill="none" stroke-dasharray="4 4"/>
+      <text class="sm" style="fill:#15803d;font-weight:700"><tspan x="458" y="89">these 5 holes are</tspan><tspan x="458" y="101">connected</tspan></text>
+      <path d="M442,133 H454" stroke="#64748b" stroke-width="2"/>
+      <text x="458" y="137" class="sm" style="font-weight:700">gap: NOT connected</text>
+      <path d="M310,175 H454" stroke="#b45309" stroke-width="2" fill="none" stroke-dasharray="4 4"/>
+      <text class="sm" style="fill:#b45309;font-weight:700"><tspan x="458" y="173">a different group of 5,</tspan><tspan x="458" y="185">below the gap</tspan></text>
+    </svg>
+    <figcaption>Your breadboard is longer than this picture and has rails on both edges, but the rule is the same.</figcaption>
+  </figure>
+</section>
+
+<!-- ============ STEP 1 ============ -->
+<section class="card step" id="step1" style="--c:var(--s1)">
+  <div class="step-head">
+    <div class="step-title">
+      <span class="step-emoji" aria-hidden="true">💻</span>
+      <div>
+        <span class="step-num">Step 1</span>
+        <h2>Set up the computer</h2>
+        <span class="time">⏱ About 15 minutes</span>
+      </div>
+    </div>
+    <label class="done-label"><input type="checkbox" class="done-box" data-step="1"> Done</label>
+  </div>
+  <ol>
+    <li>Download and install the <b>Arduino IDE</b> from <a href="https://www.arduino.cc/en/software" target="_blank" rel="noopener">arduino.cc/en/software</a>.</li>
+    <li>Plug the UNO into the computer with the USB cable. The little <b>ON</b> light should glow.</li>
+    <li>In the Arduino IDE: <b>Tools → Board → Arduino AVR Boards → Arduino Uno</b>.</li>
+    <li><b>Tools → Port</b> → pick the one that mentions Arduino Uno (on a Mac it looks like <code class="inline">/dev/cu.usbmodem…</code>).</li>
+    <li>Open <b>File → Examples → 01.Basics → Blink</b>, then click the <b>Upload</b> arrow (→).</li>
+    <li>Watch the tiny light marked <b>L</b> near pin 13: it blinks once a second.</li>
+  </ol>
+  <div class="kid">
+    <strong>🧒 Kid challenge: your first code change</strong>
+    In the Blink code, change both <code class="inline">delay(1000)</code> to <code class="inline">delay(100)</code> and upload again. What happened? Now try <code class="inline">delay(2000)</code>.
+  </div>
+  <div class="tip">
+    <strong>💡 No port showing up?</strong>
+    Try a different USB cable. Some cables only charge and can't carry data.
+  </div>
+</section>
+
+<!-- ============ STEP 2 ============ -->
+<section class="card step" id="step2" style="--c:var(--s2)">
+  <div class="step-head">
+    <div class="step-title">
+      <span class="step-emoji" aria-hidden="true">👀</span>
+      <div>
+        <span class="step-num">Step 2</span>
+        <h2>Give it eyes</h2>
+        <span class="time">⏱ About 20 minutes · ultrasonic sensor</span>
+      </div>
+    </div>
+    <label class="done-label"><input type="checkbox" class="done-box" data-step="2"> Done</label>
+  </div>
+
+  <figure class="diagram">
+    <svg viewBox="0 0 600 230" role="img" aria-label="Wiring picture: UNO 5V to sensor Vcc, pin 9 to Trig, pin 10 to Echo, GND to Gnd">
+      <rect x="20" y="25" width="170" height="180" rx="12" fill="#0f8a8f"/>
+      <text x="62" y="122" class="w" style="font-size:22px">UNO</text>
+      <g fill="#1f2340"><rect x="178" y="46" width="22" height="18"/><rect x="178" y="86" width="22" height="18"/><rect x="178" y="126" width="22" height="18"/><rect x="178" y="166" width="22" height="18"/></g>
+      <g class="w" text-anchor="end"><text x="170" y="60">5V</text><text x="170" y="100">9</text><text x="170" y="140">10</text><text x="170" y="180">GND</text></g>
+      <rect x="410" y="25" width="170" height="180" rx="10" fill="#2563eb"/>
+      <circle cx="524" cy="72" r="32" fill="#e5e7eb" stroke="#64748b" stroke-width="4"/>
+      <circle cx="524" cy="158" r="32" fill="#e5e7eb" stroke="#64748b" stroke-width="4"/>
+      <text x="524" y="78" text-anchor="middle" style="font-size:18px;font-weight:700">T</text>
+      <text x="524" y="164" text-anchor="middle" style="font-size:18px;font-weight:700">R</text>
+      <g fill="#1f2340"><rect x="400" y="46" width="22" height="18"/><rect x="400" y="86" width="22" height="18"/><rect x="400" y="126" width="22" height="18"/><rect x="400" y="166" width="22" height="18"/></g>
+      <g class="w"><text x="430" y="60">Vcc</text><text x="430" y="100">Trig</text><text x="430" y="140">Echo</text><text x="430" y="180">Gnd</text></g>
+      <path class="wire" d="M200,55 H400" stroke="#ef4444"/>
+      <path class="wire" d="M200,95 H400" stroke="#eab308"/>
+      <path class="wire" d="M200,135 H400" stroke="#16a34a"/>
+      <path class="wire" d="M200,175 H400" stroke="#1f2340"/>
+      <g text-anchor="middle" class="sm" style="font-weight:700"><text x="300" y="47">red · through the + rail</text><text x="300" y="87">pin 9 → Trig</text><text x="300" y="127">pin 10 → Echo</text><text x="300" y="167">black · through the − rail</text></g>
+    </svg>
+    <figcaption>The big picture. Wire colors are a suggestion; the exact holes are in the tables below.</figcaption>
+  </figure>
+
+  <h3>Wire the power rails</h3>
+  <table>
+    <tr><th>From the UNO</th><th>To the breadboard</th></tr>
+    <tr><td class="pin">5V</td><td>The <b>+</b> rail (red wire)</td></tr>
+    <tr><td class="pin">GND</td><td>The <b>−</b> rail (black wire)</td></tr>
+  </table>
+
+  <h3>Wire the sensor</h3>
+  <p>Push the sensor into the breadboard with its eyes facing outward, so each of its 4 pins sits in its own row.</p>
+  <table>
+    <tr><th>Sensor pin</th><th>Connect to</th></tr>
+    <tr><td class="pin">Vcc</td><td><b>+</b> rail</td></tr>
+    <tr><td class="pin">Trig</td><td>UNO pin <span class="pin">9</span></td></tr>
+    <tr><td class="pin">Echo</td><td>UNO pin <span class="pin">10</span></td></tr>
+    <tr><td class="pin">Gnd</td><td><b>−</b> rail</td></tr>
+  </table>
+
+  <h3>Upload this code</h3>
+  <p>In the Arduino IDE: <b>File → New Sketch</b>, delete what's there, paste this, and upload.</p>
+  <div class="code-wrap">
+    <button class="copy-btn" data-target="code1" type="button">Copy code</button>
+<pre id="code1">// Stage 1: the robot can see!
+const int TRIG_PIN = 9;
+const int ECHO_PIN = 10;
+
+void setup() {
+  pinMode(TRIG_PIN, OUTPUT);
+  pinMode(ECHO_PIN, INPUT);
+  Serial.begin(9600);
+}
+
+void loop() {
+  long cm = readDistanceCm();
+  Serial.print("Distance: ");
+  Serial.print(cm);
+  Serial.println(" cm");
+  delay(200);
+}
+
+long readDistanceCm() {
+  digitalWrite(TRIG_PIN, LOW);
+  delayMicroseconds(2);
+  digitalWrite(TRIG_PIN, HIGH);    // shout!
+  delayMicroseconds(10);
+  digitalWrite(TRIG_PIN, LOW);
+
+  long echoTime = pulseIn(ECHO_PIN, HIGH, 30000);  // listen for the echo
+  if (echoTime == 0) return 999;   // no echo = nothing nearby
+  return echoTime / 58;            // 58 microseconds per cm, there and back
+}</pre>
+  </div>
+  <p>Now open the <b>Serial Monitor</b> (the magnifying glass at the top right of the IDE) and set it to <b>9600 baud</b>. Move your hand in front of the sensor and watch the numbers change.</p>
+  <div class="kid">
+    <strong>🧒 Kid challenge: is the robot telling the truth?</strong>
+    Grab a ruler. Hold your hand exactly 20 cm away. Does the robot agree? Who can hold their hand steadiest on one number?
+  </div>
+</section>
+
+<!-- ============ STEP 3 ============ -->
+<section class="card step" id="step3" style="--c:var(--s3)">
+  <div class="step-head">
+    <div class="step-title">
+      <span class="step-emoji" aria-hidden="true">🔊</span>
+      <div>
+        <span class="step-num">Step 3</span>
+        <h2>Give it a voice</h2>
+        <span class="time">⏱ About 20 minutes · buzzer</span>
+      </div>
+    </div>
+    <label class="done-label"><input type="checkbox" class="done-box" data-step="3"> Done</label>
+  </div>
+  <p>Keep the sensor wired. Add this:</p>
+
+  <figure class="diagram">
+    <svg viewBox="0 0 600 250" role="img" aria-label="Wiring picture: pin 8 to the buzzer plus leg, the other buzzer leg back to the minus rail">
+      <rect x="20" y="25" width="150" height="200" rx="12" fill="#0f8a8f"/>
+      <text x="42" y="100" class="w" style="font-size:22px">UNO</text>
+      <g fill="#1f2340"><rect x="158" y="51" width="22" height="18"/><rect x="158" y="191" width="22" height="18"/></g>
+      <g class="w" text-anchor="end"><text x="150" y="65">8</text><text x="150" y="205">GND</text></g>
+      <path class="wire" d="M180,200 H230" stroke="#1f2340"/>
+      <path class="wire" d="M230,200 H575" stroke="#2563eb" stroke-width="8"/>
+      <text x="320" y="226" style="fill:#2563eb;font-weight:700">− rail</text>
+      <path class="wire" d="M180,60 H444" stroke="#f97316"/>
+      <path class="wire" d="M496,60 H540 V200" stroke="#1f2340"/>
+      <circle cx="470" cy="60" r="28" fill="#1f2340"/><circle cx="470" cy="60" r="6" fill="#94a3b8"/>
+      <text x="452" y="54" class="w">+</text>
+      <text x="470" y="22" text-anchor="middle" style="font-weight:700">passive buzzer</text>
+      <text x="300" y="50" text-anchor="middle" class="sm" style="font-weight:700">pin 8 → buzzer + leg</text>
+    </svg>
+    <figcaption>Power goes out of a pin, through the part, and home to the − rail. That loop is a <b>circuit</b>.</figcaption>
+  </figure>
+
+  <table>
+    <tr><th>Part</th><th>Connect</th></tr>
+    <tr><td><b>Passive buzzer</b></td><td>Leg marked <b>+</b> (usually the longer one) → UNO pin <span class="pin">8</span>. Other leg → <b>−</b> rail.</td></tr>
+  </table>
+
+  <h3>Upload this code</h3>
+  <p>This turns it into a car parking sensor: the closer you get, the faster it beeps. From 50 cm in, it beeps at top speed.</p>
+  <div class="code-wrap">
+    <button class="copy-btn" data-target="code2" type="button">Copy code</button>
+<pre id="code2">// Stage 2: parking-sensor beeps
+const int TRIG_PIN   = 9;
+const int ECHO_PIN   = 10;
+const int BUZZER_PIN = 8;
+
+void setup() {
+  pinMode(TRIG_PIN, OUTPUT);
+  pinMode(ECHO_PIN, INPUT);
+  pinMode(BUZZER_PIN, OUTPUT);
+  Serial.begin(9600);
+}
+
+void loop() {
+  long cm = readDistanceCm();
+  Serial.println(cm);
+
+  if (cm &lt; 200) {                   // something within 2 meters?
+    tone(BUZZER_PIN, 880, 50);      // short beep (880 is the note A)
+    delay(100);                     // wait for the beep, plus a tiny pause
+    if (cm &gt; 50) {
+      delay((cm - 50) * 5);         // farther than 50 cm = longer wait = slower beeps
+    }
+  } else {
+    delay(100);
+  }
+}
+
+long readDistanceCm() {
+  digitalWrite(TRIG_PIN, LOW);
+  delayMicroseconds(2);
+  digitalWrite(TRIG_PIN, HIGH);    // shout!
+  delayMicroseconds(10);
+  digitalWrite(TRIG_PIN, LOW);
+
+  long echoTime = pulseIn(ECHO_PIN, HIGH, 30000);  // listen for the echo
+  if (echoTime == 0) return 999;   // no echo = nothing nearby
+  return echoTime / 58;            // 58 microseconds per cm, there and back
+}</pre>
+  </div>
+  <div class="kid">
+    <strong>🧒 Kid challenge: make it your sound</strong>
+    Change <code class="inline">880</code> to <code class="inline">440</code> (lower) or <code class="inline">2000</code> (squeakier). Change the <code class="inline">50</code> in <code class="inline">cm &gt; 50</code> and <code class="inline">cm - 50</code> to <code class="inline">20</code>. What changed?
+  </div>
+</section>
+
+<!-- ============ STEP 4 ============ -->
+<section class="card step" id="step4" style="--c:var(--s4)">
+  <div class="step-head">
+    <div class="step-title">
+      <span class="step-emoji" aria-hidden="true">🖥️</span>
+      <div>
+        <span class="step-num">Step 4</span>
+        <h2>Give it a face</h2>
+        <span class="time">⏱ About 45 minutes · LCD screen</span>
+      </div>
+    </div>
+    <label class="done-label"><input type="checkbox" class="done-box" data-step="4"> Done</label>
+  </div>
+  <p>This is the biggest step, so it's split in two. Keep the sensor and buzzer wired.</p>
+
+  <figure class="diagram">
+    <svg viewBox="0 0 640 330" role="img" aria-label="Wiring picture of the 16 LCD pins: six data wires go to UNO pins 12, 11, 5, 4, 3 and 2; the rest go to the power rails or the knob">
+      <rect x="40" y="16" width="560" height="96" rx="8" fill="#15803d"/>
+      <rect x="120" y="26" width="400" height="48" rx="4" fill="#bef264" stroke="#3f6212" stroke-width="3"/>
+      <text x="320" y="57" text-anchor="middle" style="font-family:ui-monospace,Menlo,monospace;font-size:20px;font-weight:700;fill:#1a2e05">Hello, human!</text>
+      <g class="w sm" text-anchor="middle">
+        <text x="65" y="90">1</text><text x="99" y="90">2</text><text x="133" y="90">3</text><text x="167" y="90">4</text><text x="201" y="90">5</text><text x="235" y="90">6</text><text x="269" y="90">7</text><text x="303" y="90">8</text><text x="337" y="90">9</text><text x="371" y="90">10</text><text x="405" y="90">11</text><text x="439" y="90">12</text><text x="473" y="90">13</text><text x="507" y="90">14</text><text x="541" y="90">15</text><text x="575" y="90">16</text>
+        <text x="65" y="102">VSS</text><text x="99" y="102">VDD</text><text x="133" y="102">V0</text><text x="167" y="102">RS</text><text x="201" y="102">RW</text><text x="235" y="102">E</text><text x="269" y="102">D0</text><text x="303" y="102">D1</text><text x="337" y="102">D2</text><text x="371" y="102">D3</text><text x="405" y="102">D4</text><text x="439" y="102">D5</text><text x="473" y="102">D6</text><text x="507" y="102">D7</text><text x="541" y="102">A</text><text x="575" y="102">K</text>
+      </g>
+      <g fill="#fbbf24">
+        <rect x="60" y="106" width="10" height="12"/><rect x="94" y="106" width="10" height="12"/><rect x="128" y="106" width="10" height="12"/><rect x="162" y="106" width="10" height="12"/><rect x="196" y="106" width="10" height="12"/><rect x="230" y="106" width="10" height="12"/><rect x="264" y="106" width="10" height="12"/><rect x="298" y="106" width="10" height="12"/><rect x="332" y="106" width="10" height="12"/><rect x="366" y="106" width="10" height="12"/><rect x="400" y="106" width="10" height="12"/><rect x="434" y="106" width="10" height="12"/><rect x="468" y="106" width="10" height="12"/><rect x="502" y="106" width="10" height="12"/><rect x="536" y="106" width="10" height="12"/><rect x="570" y="106" width="10" height="12"/>
+      </g>
+      <!-- power pins -->
+      <g stroke="#94a3b8" stroke-width="3"><line x1="65" y1="118" x2="65" y2="134"/><line x1="99" y1="118" x2="99" y2="134"/><line x1="133" y1="118" x2="133" y2="134"/><line x1="201" y1="118" x2="201" y2="134"/><line x1="541" y1="118" x2="541" y2="134"/><line x1="575" y1="118" x2="575" y2="134"/></g>
+      <g>
+        <rect x="53" y="134" width="24" height="20" rx="10" fill="#2563eb"/><rect x="87" y="134" width="24" height="20" rx="10" fill="#ef4444"/>
+        <rect x="113" y="134" width="40" height="20" rx="10" fill="#b45309"/>
+        <rect x="189" y="134" width="24" height="20" rx="10" fill="#2563eb"/>
+        <rect x="529" y="134" width="24" height="20" rx="10" fill="#ef4444"/><rect x="563" y="134" width="24" height="20" rx="10" fill="#2563eb"/>
+      </g>
+      <g class="w" text-anchor="middle"><text x="65" y="149">−</text><text x="99" y="149">+</text><text x="133" y="148" class="w sm">knob</text><text x="201" y="149">−</text><text x="541" y="149">+</text><text x="575" y="149">−</text></g>
+      <text x="541" y="168" text-anchor="middle" class="sm" style="font-weight:700">via 220 Ω</text>
+      <text x="320" y="140" text-anchor="middle" class="sm" style="fill:#64748b;font-weight:700">7 to 10: leave empty</text>
+      <!-- data wires -->
+      <path class="wire" d="M167,118 C167,200 180,190 180,262" stroke="#f97316"/>
+      <path class="wire" d="M235,118 V262" stroke="#ca8a04"/>
+      <path class="wire" d="M405,118 C405,200 390,190 390,262" stroke="#16a34a"/>
+      <path class="wire" d="M439,118 C439,200 425,190 425,262" stroke="#2563eb"/>
+      <path class="wire" d="M473,118 C473,200 460,190 460,262" stroke="#7c3aed"/>
+      <path class="wire" d="M507,118 C507,200 495,190 495,262" stroke="#db2777"/>
+      <rect x="140" y="266" width="400" height="54" rx="12" fill="#0f8a8f"/>
+      <g fill="#1f2340"><rect x="171" y="258" width="18" height="14"/><rect x="226" y="258" width="18" height="14"/><rect x="381" y="258" width="18" height="14"/><rect x="416" y="258" width="18" height="14"/><rect x="451" y="258" width="18" height="14"/><rect x="486" y="258" width="18" height="14"/></g>
+      <g class="w" text-anchor="middle" style="font-size:15px"><text x="180" y="292">12</text><text x="235" y="292">11</text><text x="390" y="292">5</text><text x="425" y="292">4</text><text x="460" y="292">3</text><text x="495" y="292">2</text></g>
+      <text x="312" y="308" text-anchor="middle" class="w" style="font-size:20px">UNO</text>
+    </svg>
+    <figcaption><b style="color:#2563eb">−</b> = the − rail. <b style="color:#ef4444">+</b> = the + rail. <b style="color:#b45309">knob</b> = middle leg of the knob. The six colored wires are the data wires for Part B.</figcaption>
+  </figure>
+
+  <h3>Part A: wake up the screen (power wires only)</h3>
+  <ol>
+    <li>Push the LCD's 16 pins into the breadboard so each pin gets its own row. Pin 1 is labeled <b>VSS</b>; pin 16 is <b>K</b>.</li>
+    <li>Push the knob's 3 legs into 3 separate rows. Left leg → <b>+</b> rail, right leg → <b>−</b> rail.</li>
+    <li>Wire the LCD power pins from the table below: pins <b>1, 2, 3, 5, 15, 16</b>.</li>
+    <li>Plug in USB. The screen should light up. Slowly turn the knob until you see a row of little boxes.</li>
+  </ol>
+  <div class="tip">
+    <strong>💡 Why do it this way?</strong>
+    If you see the boxes, the screen is alive and the contrast is set. Now any later problem is in the data wires, not the power.
+  </div>
+
+  <h3>Part B: the data wires</h3>
+  <p>Unplug USB, then add the rest.</p>
+  <div class="table-scroll">
+  <table>
+    <tr><th>LCD pin</th><th>Label</th><th>Connect to</th></tr>
+    <tr><td class="pin">1</td><td>VSS</td><td><b>−</b> rail</td></tr>
+    <tr><td class="pin">2</td><td>VDD</td><td><b>+</b> rail</td></tr>
+    <tr><td class="pin">3</td><td>V0</td><td>Middle leg of the knob</td></tr>
+    <tr><td class="pin">4</td><td>RS</td><td>UNO pin <span class="pin">12</span></td></tr>
+    <tr><td class="pin">5</td><td>RW</td><td><b>−</b> rail</td></tr>
+    <tr><td class="pin">6</td><td>E</td><td>UNO pin <span class="pin">11</span></td></tr>
+    <tr><td class="pin">7–10</td><td>D0–D3</td><td>Nothing. Leave empty.</td></tr>
+    <tr><td class="pin">11</td><td>D4</td><td>UNO pin <span class="pin">5</span></td></tr>
+    <tr><td class="pin">12</td><td>D5</td><td>UNO pin <span class="pin">4</span></td></tr>
+    <tr><td class="pin">13</td><td>D6</td><td>UNO pin <span class="pin">3</span></td></tr>
+    <tr><td class="pin">14</td><td>D7</td><td>UNO pin <span class="pin">2</span></td></tr>
+    <tr><td class="pin">15</td><td>A</td><td>220 Ω resistor → <b>+</b> rail</td></tr>
+    <tr><td class="pin">16</td><td>K</td><td><b>−</b> rail</td></tr>
+  </table>
+  </div>
+
+  <h3>Upload the full Door Greeter code</h3>
+  <div class="code-wrap">
+    <button class="copy-btn" data-target="code3" type="button">Copy code</button>
+<pre id="code3">// Door Greeter Bot: the full version
+#include &lt;LiquidCrystal.h&gt;
+
+// LCD wires:   RS, E, D4, D5, D6, D7
+LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
+
+const int TRIG_PIN   = 9;
+const int ECHO_PIN   = 10;
+const int BUZZER_PIN = 8;
+const int LED_PIN    = 7;
+
+const int TRIGGER_CM = 60;    // how close before it says hi
+
+// Change these! Max 16 characters each.
+const char* greetings[] = {
+  "Hello, human!",
+  "Welcome back!",
+  "Halt! Password?",
+  "Robot says hi!",
+  "Nice socks."
+};
+const int NUM_GREETINGS = sizeof(greetings) / sizeof(greetings[0]);  // counts them for you
+
+bool someoneHere = false;
+int visitors = 0;
+
+void setup() {
+  pinMode(TRIG_PIN, OUTPUT);
+  pinMode(ECHO_PIN, INPUT);
+  pinMode(BUZZER_PIN, OUTPUT);
+  pinMode(LED_PIN, OUTPUT);
+  Serial.begin(9600);
+  lcd.begin(16, 2);
+  randomSeed(analogRead(A0));
+  showIdle();
+}
+
+void loop() {
+  long cm = readDistanceCm();
+  Serial.println(cm);
+
+  // Someone walked up: say hi once
+  if (cm &lt; TRIGGER_CM &amp;&amp; !someoneHere) {
+    someoneHere = true;
+    visitors++;
+    greet();
+  }
+
+  // They walked away: get ready for the next visitor
+  if (cm &gt; TRIGGER_CM + 20 &amp;&amp; someoneHere) {
+    someoneHere = false;
+    digitalWrite(LED_PIN, LOW);
+    showIdle();
+  }
+
+  delay(100);
+}
+
+void greet() {
+  digitalWrite(LED_PIN, HIGH);
+  lcd.clear();
+  lcd.print(greetings[random(NUM_GREETINGS)]);
+  lcd.setCursor(0, 1);             // second line
+  lcd.print("Visitor #");
+  lcd.print(visitors);
+  playHello();
+}
+
+void showIdle() {
+  lcd.clear();
+  lcd.print("Door guard: ON");
+  lcd.setCursor(0, 1);
+  lcd.print("Visitors: ");
+  lcd.print(visitors);
+}
+
+void playHello() {
+  int notes[] = {523, 659, 784, 1047};   // C, E, G, high C
+  for (int i = 0; i &lt; 4; i++) {
+    tone(BUZZER_PIN, notes[i], 150);
+    delay(180);
+  }
+  noTone(BUZZER_PIN);
+}
+
+long readDistanceCm() {
+  digitalWrite(TRIG_PIN, LOW);
+  delayMicroseconds(2);
+  digitalWrite(TRIG_PIN, HIGH);    // shout!
+  delayMicroseconds(10);
+  digitalWrite(TRIG_PIN, LOW);
+
+  long echoTime = pulseIn(ECHO_PIN, HIGH, 30000);  // listen for the echo
+  if (echoTime == 0) return 999;   // no echo = nothing nearby
+  return echoTime / 58;            // 58 microseconds per cm, there and back
+}</pre>
+  </div>
+  <p><b>Test it:</b> walk up to it. It should play a tune, light the LED, and show a random greeting with your visitor number. Walk away and it resets to <i>Door guard: ON</i>.</p>
+</section>
+
+<!-- ============ STEP 5 ============ -->
+<section class="card step" id="step5" style="--c:var(--s5)">
+  <div class="step-head">
+    <div class="step-title">
+      <span class="step-emoji" aria-hidden="true">🎨</span>
+      <div>
+        <span class="step-num">Step 5</span>
+        <h2>Make it yours</h2>
+        <span class="time">⏱ About 15 minutes · code changes</span>
+      </div>
+    </div>
+    <label class="done-label"><input type="checkbox" class="done-box" data-step="5"> Done</label>
+  </div>
+  <p>Now it's the kids' turn to be the programmers. Upload after each change.</p>
+  <ol>
+    <li><b>Write your own greetings.</b> Edit the <code class="inline">greetings</code> list. Put your names in! Keep each one 16 characters or less, inside quotes, with a comma after each except the last.</li>
+  </ol>
+  <div class="lcd-lab">
+    <label for="lcd-input"><b>Greeting tester:</b> type a greeting and see if it fits the screen.</label>
+    <input type="text" id="lcd-input" value="Hello, human!" autocomplete="off" spellcheck="false">
+    <div><div class="lcd"><div class="lcd-screen" id="lcd-screen" aria-hidden="true"></div></div></div>
+    <p class="lcd-count" id="lcd-count" aria-live="polite"></p>
+  </div>
+  <ol start="2">
+    <li><b>Change the trigger distance.</b> <code class="inline">TRIGGER_CM = 60</code> means 60 cm. Try 30 or 100.</li>
+    <li><b>Compose a new tune.</b> Change the numbers in <code class="inline">notes[]</code> using this chart. Tap the keys to hear each note and build your tune, or type your own numbers into the box and press Play:</li>
+  </ol>
+  <div class="keys" id="keys">
+    <button class="key" type="button" data-f="523" style="--k:#ef4444">C<small>523</small></button>
+    <button class="key" type="button" data-f="587" style="--k:#ea580c">D<small>587</small></button>
+    <button class="key" type="button" data-f="659" style="--k:#b45309">E<small>659</small></button>
+    <button class="key" type="button" data-f="698" style="--k:#15803d">F<small>698</small></button>
+    <button class="key" type="button" data-f="784" style="--k:#0e7490">G<small>784</small></button>
+    <button class="key" type="button" data-f="880" style="--k:#2563eb">A<small>880</small></button>
+    <button class="key" type="button" data-f="988" style="--k:#7c3aed">B<small>988</small></button>
+    <button class="key" type="button" data-f="1047" style="--k:#db2777">High C<small>1047</small></button>
+  </div>
+  <div class="tune-out"><label for="tune-input">int notes[] = {</label><input type="text" id="tune-input" value="523, 659, 784, 1047" autocomplete="off" spellcheck="false" inputmode="numeric"><span>};</span></div>
+  <div class="tune-controls">
+    <button class="btn" id="tune-play" type="button">▶ Play my tune</button>
+    <button class="btn ghost" id="tune-undo" type="button">Undo last note</button>
+    <button class="btn ghost" id="tune-clear" type="button">Start over</button>
+    <span class="time" id="tune-hint"></span>
+  </div>
+  <div class="kid">
+    <strong>🧒 Kid challenge: longer song</strong>
+    Want more than 4 notes? Add numbers to the list, then change the <code class="inline">4</code> in <code class="inline">i &lt; 4</code> to match how many notes you have.
+  </div>
+</section>
+
+<!-- ============ STEP 6 ============ -->
+<section class="card step" id="step6" style="--c:var(--s6); --on:#3b2500">
+  <div class="step-head">
+    <div class="step-title">
+      <span class="step-emoji" aria-hidden="true">🚪</span>
+      <div>
+        <span class="step-num">Step 6</span>
+        <h2>Mount it at the door</h2>
+        <span class="time">⏱ About 20 minutes</span>
+      </div>
+    </div>
+    <label class="done-label"><input type="checkbox" class="done-box" data-step="6"> Done</label>
+  </div>
+  <ol>
+    <li>Put the UNO and breadboard in a small box. Cut two round holes for the sensor's eyes and a window for the screen. Decorate it!</li>
+    <li>Place it near the bedroom door at about chest height for your shortest kid, eyes facing where people walk up.</li>
+    <li>Power it with a USB phone charger or a power bank. (The kit's 9V battery works through the round jack, but drains fast.)</li>
+    <li><b>Calibrate:</b> with the laptop connected, open the Serial Monitor and check the reading when <i>nobody</i> is there. <code class="inline">TRIGGER_CM</code> must be smaller than that number, or it'll greet the wall forever.</li>
+  </ol>
+  <div class="celebrate" id="celebrate">
+    <span class="trophy" aria-hidden="true">🏆</span>
+    <b>Certified Robot Builders!</b>
+    You built a robot that greets people. Nice work, team!
+  </div>
+</section>
+
+<!-- ============ TROUBLESHOOTING ============ -->
+<section class="card">
+  <h2><span aria-hidden="true">🕵️</span> Troubleshooting</h2>
+  <p>Detective time. Click a problem to see what to check.</p>
+  <details>
+    <summary>Upload fails or no port in the Tools menu</summary>
+    <p>Try another USB cable (some are charge-only). Make sure Board is set to Arduino Uno and you picked the right Port.</p>
+  </details>
+  <details>
+    <summary>Distance always says 999 or doesn't change</summary>
+    <p>Check that Trig goes to pin 9 and Echo to pin 10 (they're easy to swap). Check Vcc and Gnd reach the rails.</p>
+  </details>
+  <details>
+    <summary>Half the breadboard doesn't seem to work</summary>
+    <p>On some breadboards the + and − rails are split in the middle (look for a gap in the red/blue line). Add a short wire to bridge the gap.</p>
+  </details>
+  <details>
+    <summary>It keeps greeting when nobody is there</summary>
+    <p>Something (a wall, the door, furniture) is closer than <code class="inline">TRIGGER_CM</code>. Aim the sensor differently or lower the number. Use the Serial Monitor to see what it's "seeing."</p>
+  </details>
+  <details>
+    <summary>Screen lights up but shows nothing</summary>
+    <p>Turn the knob slowly from one end to the other. Contrast is very sensitive.</p>
+  </details>
+  <details>
+    <summary>Screen shows only boxes, or gibberish</summary>
+    <p>A data wire is wrong or loose. Recheck RS → 12, E → 11, D4 → 5, D5 → 4, D6 → 3, D7 → 2. Press wires in firmly, then press the UNO's reset button.</p>
+  </details>
+  <details>
+    <summary>Buzzer only clicks or sounds harsh</summary>
+    <p>You probably have the active buzzer (sealed black underneath). Swap it for the passive one (green board underneath).</p>
+  </details>
+  <details>
+    <summary>LED doesn't light</summary>
+    <p>Flip it around. The long leg must be on the pin 7 side (through the resistor).</p>
+  </details>
+</section>
+
+<!-- ============ ROUND 2 ============ -->
+<section class="card">
+  <h2><span aria-hidden="true">✨</span> Round 2 ideas</h2>
+  <p>Once the greeter works, here's where to take it next, all with parts already in the kit:</p>
+  <ul class="ideas">
+    <li style="--k:var(--s1)"><span class="big" aria-hidden="true">📺</span><b>Remote-control modes:</b> use the kit's IR remote and IR receiver. Button 1 = greeter, button 2 = "Do not disturb" sign, button 3 = alarm siren if anyone sneaks up.</li>
+    <li style="--k:var(--s2)"><span class="big" aria-hidden="true">👋</span><b>A waving hand:</b> tape a cardboard hand to the servo motor (SG90) so it waves hello.</li>
+    <li style="--k:var(--s5)"><span class="big" aria-hidden="true">🌡️</span><b>Room weather:</b> add the DHT11 sensor so the idle screen shows temperature and humidity.</li>
+    <li style="--k:var(--s3)"><span class="big" aria-hidden="true">🤫</span><b>Secret handshake:</b> it only stays quiet if you wave your hand twice quickly in front of it.</li>
+  </ul>
+  <p>ELEGOO's free PDF tutorial for this kit has a lesson for each of these parts.</p>
+</section>
+
+</div>
+
+<script>
+  var STORAGE_KEY = "doorGreeterDone";
+  var PARTS_KEY = "doorGreeterParts";
+  var boxes = document.querySelectorAll(".done-box");
+  var partBoxes = document.querySelectorAll(".part-box");
+  var barFill = document.getElementById("bar-fill");
+  var progressLabel = document.getElementById("progress-label");
+  var celebrate = document.getElementById("celebrate");
+  var reducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function loadState(key) {
+    try { return JSON.parse(localStorage.getItem(key) || "{}"); }
+    catch (e) { return {}; }
+  }
+  function saveState(key, state) {
+    try { localStorage.setItem(key, JSON.stringify(state)); }
+    catch (e) { /* storage not available, that's fine */ }
+  }
+
+  var state = loadState(STORAGE_KEY);
+  var partState = loadState(PARTS_KEY);
+
+  function updateProgress() {
+    var done = 0;
+    boxes.forEach(function (box) {
+      var card = box.closest(".step");
+      card.classList.toggle("is-done", box.checked);
+      var stop = document.querySelector('.stop[data-stop="' + box.dataset.step + '"]');
+      if (stop) stop.classList.toggle("is-done", box.checked);
+      if (box.checked) done++;
+    });
+    barFill.style.width = (done / boxes.length * 100) + "%";
+    progressLabel.textContent = done + " of " + boxes.length + " steps done";
+    celebrate.classList.toggle("show", done === boxes.length);
+    return done;
+  }
+
+  function confetti() {
+    if (reducedMotion) return;
+    var colors = ["#2563eb", "#ea580c", "#7c3aed", "#db2777", "#16a34a", "#f59e0b"];
+    for (var i = 0; i < 80; i++) {
+      var bit = document.createElement("i");
+      bit.className = "confetti";
+      bit.style.left = (Math.random() * 100) + "vw";
+      bit.style.background = colors[i % colors.length];
+      bit.style.animationDuration = (2 + Math.random() * 2) + "s";
+      bit.style.animationDelay = (Math.random() * 0.8) + "s";
+      document.body.appendChild(bit);
+      setTimeout(function (el) { el.remove(); }, 5200, bit);
+    }
+  }
+
+  boxes.forEach(function (box) {
+    box.checked = !!state[box.dataset.step];
+    box.addEventListener("change", function () {
+      state[box.dataset.step] = box.checked;
+      saveState(STORAGE_KEY, state);
+      if (updateProgress() === boxes.length && box.checked) confetti();
+    });
+  });
+
+  partBoxes.forEach(function (box, i) {
+    box.checked = !!partState[i];
+    box.addEventListener("change", function () {
+      partState[i] = box.checked;
+      saveState(PARTS_KEY, partState);
+    });
+  });
+
+  document.getElementById("reset-btn").addEventListener("click", function () {
+    state = {};
+    partState = {};
+    saveState(STORAGE_KEY, state);
+    saveState(PARTS_KEY, partState);
+    boxes.forEach(function (box) { box.checked = false; });
+    partBoxes.forEach(function (box) { box.checked = false; });
+    updateProgress();
+  });
+
+  updateProgress();
+
+  /* Copy buttons */
+  function fallbackCopy(text) {
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand("copy"); } catch (e) {}
+    document.body.removeChild(ta);
+  }
+  function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text).catch(function () { fallbackCopy(text); });
+    }
+    fallbackCopy(text);
+    return Promise.resolve();
+  }
+  document.querySelectorAll(".copy-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var code = document.getElementById(btn.dataset.target).textContent;
+      copyText(code).then(function () {
+        btn.textContent = "Copied!";
+        setTimeout(function () { btn.textContent = "Copy code"; }, 1500);
+      });
+    });
+  });
+
+  /* Echo demo */
+  var slider = document.getElementById("echo-slider");
+  var echoCm = document.getElementById("echo-cm");
+  var echoUs = document.getElementById("echo-us");
+  var echoVerdict = document.getElementById("echo-verdict");
+  var echoSvg = document.getElementById("echo-svg");
+  var echoHand = document.getElementById("echo-hand");
+  var echoPulse = document.getElementById("echo-pulse");
+  var SENSOR_X = 90, FACE_X = 84, FAR_X = 540;
+
+  function handX(cm) { return FACE_X + cm / 300 * (FAR_X - FACE_X); }
+  function updateEcho() {
+    var cm = Number(slider.value);
+    var us = Math.round(cm * 58.3);
+    echoCm.textContent = cm + " cm";
+    echoUs.textContent = us.toLocaleString() + " µs";
+    echoVerdict.textContent = cm < 60 ? "Hello!" : "(waiting…)";
+    echoHand.setAttribute("x", handX(cm));
+    echoSvg.classList.toggle("is-greeting", cm < 60);
+  }
+  slider.addEventListener("input", updateEcho);
+  updateEcho();
+
+  /* The chirp flies out and back; a farther hand means a longer trip. */
+  var tripStart = null;
+  function animateEcho(now) {
+    if (tripStart === null) tripStart = now;
+    var cm = Number(slider.value);
+    var target = handX(cm) + 6;
+    var oneWay = 250 + cm * 5;
+    var t = (now - tripStart) / oneWay;
+    if (t >= 2.3) { tripStart = now; t = 0; }
+    if (t < 2) {
+      var back = t >= 1;
+      var x = back ? target - (target - SENSOR_X) * (t - 1) : SENSOR_X + (target - SENSOR_X) * t;
+      echoPulse.setAttribute("transform", "translate(" + x + "," + (back ? 100 : 60) + ") scale(" + (back ? -1 : 1) + ",1)");
+      echoPulse.setAttribute("class", back ? "back" : "");
+      echoPulse.style.visibility = "visible";
+    } else {
+      echoPulse.style.visibility = "hidden";
+    }
+    requestAnimationFrame(animateEcho);
+  }
+  if (!reducedMotion) requestAnimationFrame(animateEcho);
+
+  /* Greeting tester: a pretend 16x2 LCD */
+  var LCD_COLS = 16;
+  var lcdInput = document.getElementById("lcd-input");
+  var lcdScreen = document.getElementById("lcd-screen");
+  var lcdCount = document.getElementById("lcd-count");
+  for (var c = 0; c < LCD_COLS * 2; c++) lcdScreen.appendChild(document.createElement("span"));
+  function updateLcd() {
+    var text = lcdInput.value;
+    var line2 = "Visitor #1";
+    var cells = lcdScreen.children;
+    for (var i = 0; i < LCD_COLS; i++) {
+      cells[i].textContent = text.charAt(i);
+      cells[LCD_COLS + i].textContent = line2.charAt(i);
+    }
+    var over = text.length - LCD_COLS;
+    if (over > 0) {
+      lcdCount.textContent = "❌ " + text.length + " characters: too long by " + over + ". The end gets cut off!";
+      lcdCount.className = "lcd-count bad";
+    } else {
+      lcdCount.textContent = "✅ " + text.length + " of 16 characters: it fits!";
+      lcdCount.className = "lcd-count ok";
+    }
+  }
+  lcdInput.addEventListener("input", updateLcd);
+  updateLcd();
+
+  /* Tune maker: sounds like the buzzer, timed like playHello() */
+  var MAX_NOTES = 32;
+  var MIN_NOTE = 31, MAX_NOTE = 5000;   // the UNO's tone() can't go lower than 31
+  var tuneInput = document.getElementById("tune-input");
+  var tuneHint = document.getElementById("tune-hint");
+  var audioCtx = null;
+
+  function beep(freq, delaySec) {
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    if (!audioCtx) audioCtx = new AC();
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    var osc = audioCtx.createOscillator();
+    var gain = audioCtx.createGain();
+    osc.type = "square";
+    osc.frequency.value = freq;
+    gain.gain.value = 0.06;
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    var start = audioCtx.currentTime + (delaySec || 0);
+    osc.start(start);
+    osc.stop(start + 0.15);
+  }
+  function readTune() {
+    var notes = [], bad = [];
+    tuneInput.value.split(/[\s,]+/).forEach(function (part) {
+      if (!part) return;
+      var n = Number(part);
+      if (/^\d+$/.test(part) && n >= MIN_NOTE && n <= MAX_NOTE) notes.push(n);
+      else bad.push(part);
+    });
+    return { notes: notes, bad: bad };
+  }
+  function renderTune() {
+    var tune = readTune();
+    if (tune.bad.length) tuneHint.textContent = '"' + tune.bad[0] + '" is not a note. Use numbers from ' + MIN_NOTE + " to " + MAX_NOTE + ", with commas between them.";
+    else if (tune.notes.length === 0) tuneHint.textContent = "Tap some keys or type some numbers.";
+    else tuneHint.textContent = tune.notes.length + " notes, so the loop needs i < " + tune.notes.length;
+  }
+  tuneInput.addEventListener("input", renderTune);
+  tuneInput.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") document.getElementById("tune-play").click();
+  });
+  document.getElementById("keys").addEventListener("click", function (e) {
+    var key = e.target.closest(".key");
+    if (!key) return;
+    beep(Number(key.dataset.f), 0);
+    if (readTune().notes.length < MAX_NOTES) {
+      var current = tuneInput.value.replace(/[\s,]+$/, "");
+      tuneInput.value = current ? current + ", " + key.dataset.f : key.dataset.f;
+    }
+    renderTune();
+  });
+  document.getElementById("tune-play").addEventListener("click", function () {
+    readTune().notes.slice(0, MAX_NOTES).forEach(function (freq, i) { beep(freq, i * 0.18); });
+  });
+  document.getElementById("tune-undo").addEventListener("click", function () {
+    tuneInput.value = tuneInput.value.replace(/[\s,]+$/, "").replace(/[\s,]*[^\s,]+$/, "");
+    renderTune();
+  });
+  document.getElementById("tune-clear").addEventListener("click", function () { tuneInput.value = ""; renderTune(); });
+  renderTune();
+</script>
+</body>
+</html>

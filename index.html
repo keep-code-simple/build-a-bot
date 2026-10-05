@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Build-a-Bot</title>
+<meta name="description" content="Hands-on Arduino builds for kids: colourful step-by-step guides you can finish in an afternoon.">
+<style>
+  :root {
+    --bg: #fff7e8;
+    --dots: #f6e3bd;
+    --card: #ffffff;
+    --text: #1f2340;
+    --muted: #5d6180;
+    --line: #e7dcc6;
+    --accent: #2563eb;
+    --accent-soft: #e3edff;
+    --good: #15803d;
+    --good-soft: #dcfce7;
+    --warn: #a16207;
+    --warn-soft: #fef3c7;
+    --code-bg: #1b1f3a;
+    --code-text: #e8eaff;
+    --s1: #2563eb;
+    --s2: #ea580c;
+    --s3: #7c3aed;
+    --s4: #db2777;
+    --s5: #15803d;
+    --s6: #f59e0b;
+    --round: ui-rounded, "SF Pro Rounded", "Arial Rounded MT Bold", "Chalkboard SE", system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14162b;
+      --dots: #1d2040;
+      --card: #20244a;
+      --text: #f1f2ff;
+      --muted: #b3b7da;
+      --line: #383d6e;
+      --accent: #8fb4ff;
+      --accent-soft: #263463;
+      --good: #6ee7a0;
+      --good-soft: #17402b;
+      --warn: #fcd34d;
+      --warn-soft: #453712;
+      --code-bg: #0e1024;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background-color: var(--bg);
+    background-image: radial-gradient(var(--dots) 2px, transparent 2.5px);
+    background-size: 26px 26px;
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 17px;
+    line-height: 1.6;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 0 16px 80px; }
+  h1, h2, h3, .step-num, .done-label, .stop .lbl, .role b, .key { font-family: var(--round); }
+  h1 { font-size: 2.6rem; line-height: 1.1; margin: 0 0 10px; }
+  h2 { font-size: 1.55rem; line-height: 1.2; margin: 0 0 10px; }
+  h3 { font-size: 1.1rem; margin: 24px 0 8px; }
+  a { color: var(--accent); }
+
+  /* ---------- hero ---------- */
+  .hero {
+    margin-top: 16px;
+    border-radius: 28px;
+    padding: 28px 28px 22px;
+    color: #fff;
+    background: linear-gradient(135deg, #2563eb 0%, #7c3aed 55%, #db2777 100%);
+    display: flex; align-items: center; gap: 20px;
+    box-shadow: 0 8px 0 rgba(31, 35, 64, 0.18);
+  }
+  .hero-text { flex: 1; min-width: 0; }
+  .hero .subtitle { font-size: 1.15rem; margin: 0 0 14px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { background: rgba(255,255,255,0.22); border-radius: 99px; padding: 3px 12px; font-size: 0.9rem; font-weight: 600; }
+  .robot { width: 190px; flex-shrink: 0; }
+  .robot .arm { transform-origin: 160px 124px; animation: wave 1.4s ease-in-out infinite alternate; }
+  .robot .pupil { transform-origin: center; transform-box: fill-box; animation: blink 4s infinite; }
+  .robot .antenna { animation: glow 1.2s ease-in-out infinite alternate; }
+  @keyframes wave { from { transform: rotate(-14deg); } to { transform: rotate(22deg); } }
+  @keyframes blink { 0%, 92%, 100% { transform: scaleY(1); } 96% { transform: scaleY(0.1); } }
+  @keyframes glow { from { fill: #fda4af; } to { fill: #fff; } }
+
+  /* ---------- mission map ---------- */
+  .progress {
+    position: sticky; top: 0; z-index: 5;
+    background: var(--bg);
+    padding: 10px 0 12px;
+    border-bottom: 3px dashed var(--line);
+    margin: 14px 0 20px;
+  }
+  .progress-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 0.95rem; font-weight: 600; }
+  .reset-btn { background: none; border: 2px solid var(--line); color: var(--muted); border-radius: 99px; padding: 2px 12px; cursor: pointer; font-size: 0.85rem; }
+  .map { list-style: none; display: flex; justify-content: space-between; padding: 0; margin: 8px 0 8px; }
+  .map li { flex: 1; margin: 0; text-align: center; }
+  .stop { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; text-decoration: none; color: var(--muted); }
+  .stop .dot {
+    width: 44px; height: 44px; border-radius: 50%;
+    display: grid; place-items: center; font-size: 1.3rem;
+    background: var(--card); border: 3px solid var(--line);
+    filter: grayscale(1); opacity: 0.75;
+    transition: transform 0.25s, background 0.25s;
+  }
+  .stop .lbl { font-size: 0.8rem; font-weight: 700; }
+  .stop.is-done { color: var(--text); }
+  .stop.is-done .dot { background: var(--c); border-color: var(--c); filter: none; opacity: 1; transform: scale(1.12) rotate(-6deg); box-shadow: 0 3px 0 rgba(31,35,64,0.25); }
+  .bar { height: 12px; background: var(--line); border-radius: 99px; overflow: hidden; }
+  .bar-fill { height: 100%; width: 0; border-radius: 99px; background: linear-gradient(90deg, var(--s1), var(--s2), var(--s3), var(--s4), var(--s5), var(--s6)); background-size: 860px 100%; transition: width 0.4s; }
+
+  /* ---------- cards ---------- */
+  .card {
+    background: var(--card);
+    border: 2px solid var(--line);
+    border-radius: 22px;
+    padding: 22px 24px;
+    margin: 22px 0;
+    box-shadow: 0 5px 0 var(--line);
+    --c: var(--accent);
+  }
+  .card > h2 { display: flex; align-items: center; gap: 10px; }
+  .step { border-top: 10px solid var(--c); scroll-margin-top: 150px; --on: #fff; }
+  .step.is-done { border-color: var(--c); box-shadow: 0 5px 0 var(--c); }
+  .step-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+  .step-title { display: flex; gap: 14px; align-items: center; }
+  .step-emoji {
+    width: 64px; height: 64px; flex-shrink: 0; border-radius: 20px;
+    display: grid; place-items: center; font-size: 2rem;
+    background: color-mix(in srgb, var(--c) 18%, var(--card));
+    transform: rotate(-4deg);
+  }
+  .step-title h2 { margin: 2px 0 0; }
+  .step-num {
+    display: inline-block; background: var(--c); color: var(--on);
+    font-weight: 800; font-size: 0.85rem; letter-spacing: 0.04em; text-transform: uppercase;
+    border-radius: 99px; padding: 1px 12px;
+  }
+  .time { color: var(--muted); font-size: 0.92rem; }
+  .done-label {
+    display: flex; align-items: center; gap: 8px; white-space: nowrap;
+    border: 3px solid var(--c); border-radius: 99px; padding: 6px 16px; cursor: pointer;
+    font-size: 1rem; font-weight: 700;
+  }
+  .step.is-done .done-label { background: var(--c); color: var(--on); }
+  .done-label input { width: 20px; height: 20px; cursor: pointer; accent-color: var(--good); }
+
+  .roles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 10px 0; }
+  .role { border-radius: 16px; padding: 14px 16px; display: flex; gap: 12px; align-items: center; }
+  .role span { font-size: 2.2rem; }
+  .role b { display: block; font-size: 1.15rem; }
+  .role.builder { background: color-mix(in srgb, var(--s2) 16%, var(--card)); }
+  .role.coder { background: color-mix(in srgb, var(--s3) 16%, var(--card)); }
+  .swap { text-align: center; font-weight: 700; margin: 4px 0 0; }
+
+  table { border-collapse: collapse; width: 100%; margin: 8px 0 14px; font-size: 0.95rem; }
+  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 0.85rem; }
+  .pin { font-family: ui-monospace, Menlo, Consolas, monospace; font-weight: 700; }
+  td .pin, td.pin { color: var(--c); }
+  .table-scroll { overflow-x: auto; }
+
+  .tip, .kid, .warn { border-radius: 16px; padding: 14px 16px; margin: 16px 0; font-size: 0.97rem; border-left: 8px solid; }
+  .tip { background: var(--accent-soft); border-color: var(--accent); }
+  .kid { background: var(--good-soft); border-color: var(--good); }
+  .warn { background: var(--warn-soft); border-color: var(--warn); }
+  .tip strong, .kid strong, .warn strong { display: block; margin-bottom: 2px; font-family: var(--round); font-size: 1.05rem; }
+
+  .code-wrap { position: relative; margin: 12px 0; }
+  pre {
+    background: var(--code-bg); color: var(--code-text);
+    padding: 16px; border-radius: 16px; overflow-x: auto;
+    font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.85rem; line-height: 1.5;
+    margin: 0; border: 3px solid var(--c);
+  }
+  .copy-btn {
+    position: absolute; top: 10px; right: 10px;
+    background: var(--c); color: var(--on, #fff); border: none; border-radius: 99px;
+    padding: 6px 14px; cursor: pointer; font-size: 0.85rem; font-weight: 700;
+  }
+  .copy-btn:hover { filter: brightness(1.15); }
+  code.inline { font-family: ui-monospace, Menlo, Consolas, monospace; background: var(--accent-soft); padding: 1px 6px; border-radius: 6px; font-size: 0.9em; }
+
+  ol, ul { padding-left: 22px; }
+  li { margin: 4px 0; }
+
+  /* ---------- parts ---------- */
+  .parts { list-style: none; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .parts li { margin: 0; }
+  .parts label {
+    display: flex; gap: 12px; align-items: center; height: 100%;
+    border: 2px solid var(--line); border-radius: 16px; padding: 10px 12px; cursor: pointer;
+  }
+  .parts label:has(input:checked) { background: var(--good-soft); border-color: var(--good); }
+  .parts svg { width: 56px; height: 56px; flex-shrink: 0; background: #fffdf6; border-radius: 14px; padding: 4px; }
+  .parts .txt { flex: 1; min-width: 0; font-weight: 600; line-height: 1.35; }
+  .parts .hint { color: var(--muted); font-size: 0.86rem; display: block; font-weight: 400; }
+  .parts input { width: 20px; height: 20px; flex-shrink: 0; accent-color: var(--good); }
+
+  /* ---------- diagrams (always on light "paper") ---------- */
+  .diagram {
+    background: #fffdf6; border: 2px dashed #d9cba8; border-radius: 16px;
+    padding: 8px; margin: 12px 0; overflow-x: auto;
+  }
+  .diagram svg { display: block; width: 100%; min-width: 540px; height: auto; font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
+  .diagram text { fill: #1f2340; font-size: 13px; }
+  .diagram .w, .diagram .w text { fill: #fff; font-weight: 700; }
+  .diagram .sm { font-size: 10px; }
+  .diagram .wire { fill: none; stroke-width: 5; stroke-linecap: round; }
+  .diagram figcaption, .cap { color: #5d6180; font-size: 0.88rem; padding: 4px 6px 2px; }
+  figure { margin: 0; }
+
+  /* ---------- echo demo ---------- */
+  .echo-demo input[type=range] { width: 100%; accent-color: var(--s2); height: 28px; }
+  .echo-readout { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; }
+  .echo-readout div { background: var(--accent-soft); border-radius: 14px; padding: 8px 14px; flex: 1; min-width: 150px; }
+  .echo-readout b { display: block; font-size: 1.4rem; color: var(--accent); font-family: var(--round); }
+  #echo-pulse path { fill: none; stroke: #2563eb; stroke-width: 4; stroke-linecap: round; }
+  #echo-pulse.back path { stroke: #ea580c; }
+  #echo-bubble { opacity: 0; transition: opacity 0.2s; }
+  .is-greeting #echo-bubble { opacity: 1; }
+
+  /* ---------- LCD lab ---------- */
+  .lcd-lab input[type=text] {
+    width: 100%; font: inherit; padding: 9px 14px; border-radius: 12px;
+    border: 2px solid var(--line); background: var(--card); color: var(--text);
+  }
+  .lcd {
+    display: inline-block; max-width: 100%; margin-top: 10px; padding: 12px 14px; border-radius: 10px;
+    background: #14532d; border: 4px solid #0b3a1e;
+  }
+  .lcd-screen { background: #bef264; padding: 6px; border-radius: 4px; display: grid; grid-template-columns: repeat(16, 1fr); gap: 2px; }
+  .lcd-screen span {
+    width: 1.05em; height: 1.5em; display: grid; place-items: center;
+    background: rgba(63, 98, 18, 0.14); color: #1a2e05;
+    font-family: ui-monospace, Menlo, Consolas, monospace; font-weight: 700; font-size: clamp(0.8rem, 3.6vw, 1.25rem);
+  }
+  .lcd-count { font-weight: 700; margin: 8px 0 0; }
+  .lcd-count.bad { color: #dc2626; }
+  .lcd-count.ok { color: var(--good); }
+
+  /* ---------- tune maker ---------- */
+  .keys { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; margin: 10px 0; }
+  .key {
+    border: none; border-radius: 12px 12px 18px 18px; padding: 14px 2px 10px; cursor: pointer;
+    background: var(--k); color: #fff; font-weight: 800; font-size: 1.1rem;
+    box-shadow: 0 5px 0 rgba(31,35,64,0.3);
+  }
+  .key small { display: block; font-family: ui-monospace, Menlo, monospace; font-size: 0.78rem; font-weight: 700; }
+  .key:active { transform: translateY(4px); box-shadow: 0 1px 0 rgba(31,35,64,0.3); }
+  .tune-out { background: var(--code-bg); color: var(--code-text); border-radius: 12px; padding: 10px 14px; font-family: ui-monospace, Menlo, monospace; font-size: 0.88rem; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .tune-out input { flex: 1; min-width: 0; font: inherit; color: inherit; background: rgba(255,255,255,0.12); border: 2px solid var(--c); border-radius: 8px; padding: 5px 8px; }
+  .tune-controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
+  .btn { border: none; border-radius: 99px; padding: 7px 16px; font: inherit; font-weight: 700; cursor: pointer; background: var(--c); color: #fff; }
+  .btn.ghost { background: none; border: 2px solid var(--line); color: var(--muted); }
+
+  details { border: 2px solid var(--line); border-radius: 14px; padding: 10px 14px; margin: 8px 0; background: var(--card); }
+  details[open] { border-color: var(--s2); }
+  summary { cursor: pointer; font-weight: 600; }
+  details p { margin: 8px 0 2px; }
+
+  .ideas { list-style: none; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .ideas li { margin: 0; border-radius: 16px; padding: 12px 14px; background: color-mix(in srgb, var(--k) 14%, var(--card)); border: 2px solid color-mix(in srgb, var(--k) 45%, var(--card)); }
+  .ideas .big { font-size: 1.7rem; display: block; }
+
+  .celebrate {
+    display: none; text-align: center; border-radius: 20px; padding: 22px; margin-top: 20px; color: #fff;
+    background: linear-gradient(135deg, #f59e0b, #db2777 60%, #7c3aed);
+  }
+  .celebrate.show { display: block; animation: pop 0.5s; }
+  .celebrate .trophy { font-size: 3rem; display: block; }
+  .celebrate b { font-family: var(--round); font-size: 1.5rem; display: block; }
+  @keyframes pop { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .confetti { position: fixed; top: -16px; width: 10px; height: 16px; z-index: 50; pointer-events: none; animation: fall linear forwards; }
+  @keyframes fall { to { transform: translateY(110vh) rotate(720deg); } }
+
+  @media (max-width: 620px) {
+    .hero { flex-direction: column-reverse; text-align: center; padding: 20px; }
+    .chips { justify-content: center; }
+    .robot { width: 130px; }
+    h1 { font-size: 2rem; }
+    .step-head { flex-direction: column; }
+    .roles, .parts, .ideas { grid-template-columns: 1fr; }
+    .stop .lbl { display: none; }
+    .stop .dot { width: 38px; height: 38px; font-size: 1.1rem; }
+    .keys { grid-template-columns: repeat(4, 1fr); }
+    .card { padding: 18px 16px; }
+    .step { scroll-margin-top: 120px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .robot .arm, .robot .pupil, .robot .antenna, .celebrate.show { animation: none; }
+    #echo-pulse { display: none; }
+  }
+  @media print {
+    body { background: #fff; }
+    .progress, .copy-btn, .reset-btn, .echo-demo, .lcd-lab, .tune-controls, .robot { display: none; }
+    .card { break-inside: avoid; box-shadow: none; }
+    .hero { color: #000; background: none; box-shadow: none; padding: 0; }
+  }
+
+  /* ---------- home page ---------- */
+  .chip-link { color: #fff; text-decoration: none; background: rgba(31,35,64,0.35); }
+  .chip-link:hover { background: rgba(31,35,64,0.55); }
+  .section-title { margin: 30px 4px 0; font-size: 1.7rem; }
+  .chapter { display: grid; grid-template-columns: 170px 1fr; gap: 22px; align-items: center; border-top: 10px solid var(--c); }
+  .chapter-art {
+    align-self: stretch; min-height: 150px; border-radius: 18px; display: grid; place-items: center;
+    background: color-mix(in srgb, var(--c) 18%, var(--card)); font-size: 4.6rem; text-decoration: none;
+  }
+  .chapter-art span { transform: rotate(-6deg); transition: transform 0.2s; }
+  .chapter:hover .chapter-art span { transform: rotate(6deg) scale(1.1); }
+  .chapter h2 { margin: 4px 0 6px; }
+  .chapter h2 a { color: inherit; text-decoration: none; }
+  .chapter p { margin: 0 0 10px; }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .tag { background: color-mix(in srgb, var(--c) 14%, var(--card)); border-radius: 99px; padding: 2px 11px; font-size: 0.86rem; font-weight: 600; }
+  .chapter-foot { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .go { display: inline-block; text-decoration: none; background: var(--c); color: #fff; font-family: var(--round); font-weight: 800; border-radius: 99px; padding: 8px 20px; box-shadow: 0 4px 0 rgba(31,35,64,0.25); }
+  .go:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(31,35,64,0.25); }
+  .badges { flex: 1; min-width: 150px; font-size: 0.88rem; font-weight: 600; color: var(--muted); }
+  .badges .bar { margin-top: 4px; }
+  .badges .bar-fill { background: var(--c); }
+  .chapter.soon { border-style: dashed; border-top-style: dashed; box-shadow: none; opacity: 0.85; }
+  .steps3 { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .steps3 li { margin: 0; border-radius: 16px; padding: 14px; background: color-mix(in srgb, var(--k) 14%, var(--card)); }
+  .steps3 .big { font-size: 1.9rem; display: block; }
+  .steps3 b { font-family: var(--round); display: block; }
+  footer { text-align: center; color: var(--muted); font-size: 0.92rem; margin-top: 30px; }
+  @media (max-width: 620px) {
+    .chapter { grid-template-columns: 1fr; }
+    .chapter-art { min-height: 110px; font-size: 3.6rem; }
+    .steps3 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <div class="hero-text">
+    <h1>Build-a-Bot</h1>
+    <p class="subtitle">Hands-on Arduino builds for kids. Each chapter is one afternoon, one new part, and one gadget that really works.</p>
+    <div class="chips">
+      <span class="chip">📖 2 chapters</span>
+      <span class="chip">🧒 Ages 10 and up</span>
+      <span class="chip">👥 Best with 2 builders</span>
+      <span class="chip">🆓 Free and open source</span>
+    </div>
+  </div>
+  <svg class="robot" viewBox="0 0 200 222" role="img" aria-label="A friendly robot waving hello">
+    <line x1="100" y1="16" x2="100" y2="38" stroke="#fff" stroke-width="4"/>
+    <circle class="antenna" cx="100" cy="12" r="8" fill="#fda4af"/>
+    <rect x="22" y="112" width="20" height="58" rx="10" fill="#fcd34d"/>
+    <g class="arm">
+      <rect x="158" y="62" width="20" height="66" rx="10" fill="#fcd34d"/>
+      <circle cx="168" cy="58" r="13" fill="#fde68a"/>
+    </g>
+    <rect x="48" y="36" width="104" height="66" rx="14" fill="#38bdf8" stroke="#fff" stroke-width="3"/>
+    <circle cx="78" cy="69" r="18" fill="#e5e7eb" stroke="#64748b" stroke-width="3"/>
+    <circle cx="122" cy="69" r="18" fill="#e5e7eb" stroke="#64748b" stroke-width="3"/>
+    <circle class="pupil" cx="78" cy="69" r="7" fill="#1f2340"/>
+    <circle class="pupil" cx="122" cy="69" r="7" fill="#1f2340"/>
+    <rect x="40" y="108" width="120" height="86" rx="16" fill="#fbbf24" stroke="#fff" stroke-width="3"/>
+    <rect x="56" y="122" width="88" height="34" rx="5" fill="#bef264" stroke="#3f6212" stroke-width="3"/>
+    <text x="100" y="145" text-anchor="middle" font-family="ui-monospace, Menlo, monospace" font-weight="700" font-size="16" fill="#1a2e05">HELLO!</text>
+    <circle cx="70" cy="175" r="7" fill="#ef4444" stroke="#fff" stroke-width="2"/>
+    <circle cx="130" cy="175" r="9" fill="#1f2340"/>
+    <circle cx="130" cy="175" r="3" fill="#94a3b8"/>
+    <rect x="58" y="196" width="30" height="20" rx="8" fill="#38bdf8"/>
+    <rect x="112" y="196" width="30" height="20" rx="8" fill="#38bdf8"/>
+  </svg>
+</header>
+
+<h2 class="section-title">Pick a chapter</h2>
+
+<section class="card chapter" style="--c:var(--s1)">
+  <a class="chapter-art" href="door-greeter-build-guide.html" aria-hidden="true" tabindex="-1"><span>🤖</span></a>
+  <div>
+    <span class="step-num">Chapter 1</span>
+    <h2><a href="door-greeter-build-guide.html">Door Greeter Bot</a></h2>
+    <p>A gadget by the bedroom door that sees you coming, plays a tune, and greets you on a little screen.</p>
+    <div class="tags"><span class="tag">⏱ 2 to 2½ hours</span><span class="tag">👀 Ultrasonic sensor</span><span class="tag">🔊 Buzzer</span><span class="tag">🖥️ LCD screen</span></div>
+    <div class="chapter-foot">
+      <a class="go" href="door-greeter-build-guide.html">Start building →</a>
+      <div class="badges" data-key="doorGreeterDone"><span class="badges-label">6 badges to earn</span><div class="bar"><div class="bar-fill"></div></div></div>
+    </div>
+  </div>
+</section>
+
+<section class="card chapter" style="--c:var(--s3)">
+  <a class="chapter-art" href="chapter-2-secret-code-bot.html" aria-hidden="true" tabindex="-1"><span>🔐</span></a>
+  <div>
+    <span class="step-num">Chapter 2</span>
+    <h2><a href="chapter-2-secret-code-bot.html">Secret Code Bot</a></h2>
+    <p>Type a secret code on a remote control. Get it right for a victory tune. Get it wrong three times and the alarm goes off.</p>
+    <div class="tags"><span class="tag">⏱ About 2 hours</span><span class="tag">📡 IR remote</span><span class="tag">🔊 Buzzer</span><span class="tag">🖥️ LCD screen</span><span class="tag">Needs Chapter 1</span></div>
+    <div class="chapter-foot">
+      <a class="go" href="chapter-2-secret-code-bot.html">Start building →</a>
+      <div class="badges" data-key="secretCodeBotDone"><span class="badges-label">6 badges to earn</span><div class="bar"><div class="bar-fill"></div></div></div>
+    </div>
+  </div>
+</section>
+
+<section class="card chapter soon" style="--c:var(--s5)">
+  <div class="chapter-art" aria-hidden="true"><span>👁️</span></div>
+  <div>
+    <span class="step-num">Chapter 3</span>
+    <h2>Robot Eyes <span class="tag">coming soon</span></h2>
+    <p>The computer's camera becomes the robot's eyes and an AI becomes its brain: it greets your face, counts your fingers, and plays Rock Paper Scissors.</p>
+  </div>
+</section>
+
+<section class="card">
+  <h2><span aria-hidden="true">🧭</span> How every chapter works</h2>
+  <ul class="steps3">
+    <li style="--k:var(--s2)"><span class="big" aria-hidden="true">🏅</span><b>Six small steps</b>Each step ends with something that works, and earns a badge. Stop anywhere and you still have a win.</li>
+    <li style="--k:var(--s3)"><span class="big" aria-hidden="true">🔄</span><b>Two jobs, swap every step</b>The Builder plugs in wires. The Coder uploads and changes the code.</li>
+    <li style="--k:var(--s5)"><span class="big" aria-hidden="true">🧪</span><b>Kids change the code</b>Every step has a challenge: change a number or a word and see what happens.</li>
+  </ul>
+</section>
+
+<section class="card">
+  <h2><span aria-hidden="true">🧰</span> What you need</h2>
+  <ul>
+    <li><b>An Arduino UNO starter kit.</b> These guides were written with the ELEGOO Super Starter Kit for UNO. Other UNO kits with the same parts will work too.</li>
+    <li><b>A computer</b> with the free <a href="https://www.arduino.cc/en/software" target="_blank" rel="noopener">Arduino IDE</a> and a USB port.</li>
+    <li><b>A grown-up helper</b> whose main job is to ask "What do you think will happen?"</li>
+    <li>For the finishing touches: a small box, tape, and a USB phone charger or power bank.</li>
+  </ul>
+  <div class="tip">
+    <strong>💡 Works offline</strong>
+    Every guide is a single page with its pictures and code built in. Your checkmarks are saved in your own browser, on your own device.
+  </div>
+</section>
+
+<footer>
+  <p>Made at a kitchen table by a dad and two builders, ages 13 and 10. Free to use, share and remix.</p>
+</footer>
+
+</div>
+<script>
+  /* Show how many badges this browser has earned in each chapter. */
+  document.querySelectorAll(".badges").forEach(function (box) {
+    var done = 0, total = 6;
+    try {
+      var state = JSON.parse(localStorage.getItem(box.dataset.key) || "{}");
+      for (var step in state) if (state[step]) done++;
+    } catch (e) { /* storage not available, that's fine */ }
+    if (done > total) done = total;
+    box.querySelector(".bar-fill").style.width = (done / total * 100) + "%";
+    box.querySelector(".badges-label").textContent =
+      done === 0 ? total + " badges to earn" :
+      done === total ? "All " + total + " badges earned! 🏆" :
+      done + " of " + total + " badges earned";
+  });
+</script>
+</body>
+</html>

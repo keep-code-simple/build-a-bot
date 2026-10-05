@@ -1,0 +1,5 @@
+# macOS clutter
+.DS_Store
+
+# ELEGOO's own downloads (their files, not ours to republish)
+available-parts/
