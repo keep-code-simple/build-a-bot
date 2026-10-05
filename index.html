@@ -328,6 +328,7 @@
   .badges { flex: 1; min-width: 150px; font-size: 0.88rem; font-weight: 600; color: var(--muted); }
   .badges .bar { margin-top: 4px; }
   .badges .bar-fill { background: var(--c); }
+  .chapter.bonus { background: linear-gradient(135deg, color-mix(in srgb, #0e7490 12%, var(--card)), color-mix(in srgb, #7c3aed 12%, var(--card))); }
   .chapter.soon { border-style: dashed; border-top-style: dashed; box-shadow: none; opacity: 0.85; }
   .steps3 { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
   .steps3 li { margin: 0; border-radius: 16px; padding: 14px; background: color-mix(in srgb, var(--k) 14%, var(--card)); }
@@ -418,6 +419,22 @@
   </div>
 </section>
 
+<h2 class="section-title">Bonus level</h2>
+
+<section class="card chapter bonus" style="--c:#0e7490">
+  <a class="chapter-art" href="inside-the-robot.html" aria-hidden="true" tabindex="-1"><span>🔬</span></a>
+  <div>
+    <span class="step-num">Bonus</span> <span class="tag" id="bonus-lock">Best after Chapter 1</span>
+    <h2><a href="inside-the-robot.html">Inside the Robot</a></h2>
+    <p>Shrink down and go inside your robot. Poke the board, open the brain chip, and flip the tiniest switches in the world. No building this time: all playing.</p>
+    <div class="tags"><span class="tag">⏱ 30 to 45 minutes</span><span class="tag">👆 Tap, drag and slide</span><span class="tag">🐣 Simple or 🦉 Deeper</span><span class="tag">Great on a tablet</span></div>
+    <div class="chapter-foot">
+      <a class="go" href="inside-the-robot.html">Go inside →</a>
+      <div class="badges" data-key="insideRobotDone"><span class="badges-label">6 badges to earn</span><div class="bar"><div class="bar-fill"></div></div></div>
+    </div>
+  </div>
+</section>
+
 <section class="card">
   <h2><span aria-hidden="true">🧭</span> How every chapter works</h2>
   <ul class="steps3">
@@ -447,6 +464,13 @@
 
 </div>
 <script>
+  /* The bonus level is never locked, but finishing Chapter 1 here earns it an "Unlocked!" tag. */
+  try {
+    var ch1 = JSON.parse(localStorage.getItem("doorGreeterDone") || "{}"), ch1Done = 0;
+    for (var s in ch1) if (ch1[s]) ch1Done++;
+    if (ch1Done >= 6) document.getElementById("bonus-lock").textContent = "🔓 Unlocked!";
+  } catch (e) { /* storage not available, that's fine */ }
+
   /* Show how many badges this browser has earned in each chapter. */
   document.querySelectorAll(".badges").forEach(function (box) {
     var done = 0, total = 6;

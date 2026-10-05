@@ -1,0 +1,1908 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inside the Robot</title>
+<meta name="description" content="A bonus level for kids: tap, drag and slide your way inside an Arduino robot, from the board down to the transistors.">
+<style>
+  :root {
+    --bg: #fff7e8;
+    --dots: #f6e3bd;
+    --card: #ffffff;
+    --text: #1f2340;
+    --muted: #5d6180;
+    --line: #e7dcc6;
+    --accent: #2563eb;
+    --accent-soft: #e3edff;
+    --good: #15803d;
+    --good-soft: #dcfce7;
+    --warn: #a16207;
+    --warn-soft: #fef3c7;
+    --code-bg: #1b1f3a;
+    --code-text: #e8eaff;
+    --s1: #2563eb;
+    --s2: #ea580c;
+    --s3: #7c3aed;
+    --s4: #db2777;
+    --s5: #15803d;
+    --s6: #f59e0b;
+    --round: ui-rounded, "SF Pro Rounded", "Arial Rounded MT Bold", "Chalkboard SE", system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14162b;
+      --dots: #1d2040;
+      --card: #20244a;
+      --text: #f1f2ff;
+      --muted: #b3b7da;
+      --line: #383d6e;
+      --accent: #8fb4ff;
+      --accent-soft: #263463;
+      --good: #6ee7a0;
+      --good-soft: #17402b;
+      --warn: #fcd34d;
+      --warn-soft: #453712;
+      --code-bg: #0e1024;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background-color: var(--bg);
+    background-image: radial-gradient(var(--dots) 2px, transparent 2.5px);
+    background-size: 26px 26px;
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 17px;
+    line-height: 1.6;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 0 16px 80px; }
+  h1, h2, h3, .step-num, .done-label, .stop .lbl, .role b, .key { font-family: var(--round); }
+  h1 { font-size: 2.6rem; line-height: 1.1; margin: 0 0 10px; }
+  h2 { font-size: 1.55rem; line-height: 1.2; margin: 0 0 10px; }
+  h3 { font-size: 1.1rem; margin: 24px 0 8px; }
+  a { color: var(--accent); }
+
+  /* ---------- hero ---------- */
+  .hero {
+    margin-top: 16px;
+    border-radius: 28px;
+    padding: 28px 28px 22px;
+    color: #fff;
+    background: linear-gradient(135deg, #2563eb 0%, #7c3aed 55%, #db2777 100%);
+    display: flex; align-items: center; gap: 20px;
+    box-shadow: 0 8px 0 rgba(31, 35, 64, 0.18);
+  }
+  .hero-text { flex: 1; min-width: 0; }
+  .hero .subtitle { font-size: 1.15rem; margin: 0 0 14px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { background: rgba(255,255,255,0.22); border-radius: 99px; padding: 3px 12px; font-size: 0.9rem; font-weight: 600; }
+  .chip-link { color: #fff; text-decoration: none; background: rgba(31,35,64,0.35); }
+  .chip-link:hover { background: rgba(31,35,64,0.55); }
+  .robot { width: 190px; flex-shrink: 0; }
+  .robot .arm { transform-origin: 160px 124px; animation: wave 1.4s ease-in-out infinite alternate; }
+  .robot .pupil { transform-origin: center; transform-box: fill-box; animation: blink 4s infinite; }
+  .robot .antenna { animation: glow 1.2s ease-in-out infinite alternate; }
+  @keyframes wave { from { transform: rotate(-14deg); } to { transform: rotate(22deg); } }
+  @keyframes blink { 0%, 92%, 100% { transform: scaleY(1); } 96% { transform: scaleY(0.1); } }
+  @keyframes glow { from { fill: #fda4af; } to { fill: #fff; } }
+
+  /* ---------- mission map ---------- */
+  .progress {
+    position: sticky; top: 0; z-index: 5;
+    background: var(--bg);
+    padding: 10px 0 12px;
+    border-bottom: 3px dashed var(--line);
+    margin: 14px 0 20px;
+  }
+  .progress-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 0.95rem; font-weight: 600; }
+  .reset-btn { background: none; border: 2px solid var(--line); color: var(--muted); border-radius: 99px; padding: 2px 12px; cursor: pointer; font-size: 0.85rem; }
+  .map { list-style: none; display: flex; justify-content: space-between; padding: 0; margin: 8px 0 8px; }
+  .map li { flex: 1; margin: 0; text-align: center; }
+  .stop { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; text-decoration: none; color: var(--muted); }
+  .stop .dot {
+    width: 44px; height: 44px; border-radius: 50%;
+    display: grid; place-items: center; font-size: 1.3rem;
+    background: var(--card); border: 3px solid var(--line);
+    filter: grayscale(1); opacity: 0.75;
+    transition: transform 0.25s, background 0.25s;
+  }
+  .stop .lbl { font-size: 0.8rem; font-weight: 700; }
+  .stop.is-done { color: var(--text); }
+  .stop.is-done .dot { background: var(--c); border-color: var(--c); filter: none; opacity: 1; transform: scale(1.12) rotate(-6deg); box-shadow: 0 3px 0 rgba(31,35,64,0.25); }
+  .bar { height: 12px; background: var(--line); border-radius: 99px; overflow: hidden; }
+  .bar-fill { height: 100%; width: 0; border-radius: 99px; background: linear-gradient(90deg, var(--s1), var(--s2), var(--s3), var(--s4), var(--s5), var(--s6)); background-size: 860px 100%; transition: width 0.4s; }
+
+  /* ---------- cards ---------- */
+  .card {
+    background: var(--card);
+    border: 2px solid var(--line);
+    border-radius: 22px;
+    padding: 22px 24px;
+    margin: 22px 0;
+    box-shadow: 0 5px 0 var(--line);
+    --c: var(--accent);
+  }
+  .card > h2 { display: flex; align-items: center; gap: 10px; }
+  .step { border-top: 10px solid var(--c); scroll-margin-top: 150px; --on: #fff; }
+  .step.is-done { border-color: var(--c); box-shadow: 0 5px 0 var(--c); }
+  .step-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+  .step-title { display: flex; gap: 14px; align-items: center; }
+  .step-emoji {
+    width: 64px; height: 64px; flex-shrink: 0; border-radius: 20px;
+    display: grid; place-items: center; font-size: 2rem;
+    background: color-mix(in srgb, var(--c) 18%, var(--card));
+    transform: rotate(-4deg);
+  }
+  .step-title h2 { margin: 2px 0 0; }
+  .step-num {
+    display: inline-block; background: var(--c); color: var(--on);
+    font-weight: 800; font-size: 0.85rem; letter-spacing: 0.04em; text-transform: uppercase;
+    border-radius: 99px; padding: 1px 12px;
+  }
+  .time { color: var(--muted); font-size: 0.92rem; }
+  .done-label {
+    display: flex; align-items: center; gap: 8px; white-space: nowrap;
+    border: 3px solid var(--c); border-radius: 99px; padding: 6px 16px; cursor: pointer;
+    font-size: 1rem; font-weight: 700;
+  }
+  .step.is-done .done-label { background: var(--c); color: var(--on); }
+  .done-label input { width: 20px; height: 20px; cursor: pointer; accent-color: var(--good); }
+
+  .roles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 10px 0; }
+  .role { border-radius: 16px; padding: 14px 16px; display: flex; gap: 12px; align-items: center; }
+  .role span { font-size: 2.2rem; }
+  .role b { display: block; font-size: 1.15rem; }
+  .role.builder { background: color-mix(in srgb, var(--s2) 16%, var(--card)); }
+  .role.coder { background: color-mix(in srgb, var(--s3) 16%, var(--card)); }
+  .swap { text-align: center; font-weight: 700; margin: 4px 0 0; }
+
+  table { border-collapse: collapse; width: 100%; margin: 8px 0 14px; font-size: 0.95rem; }
+  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 0.85rem; }
+  .pin { font-family: ui-monospace, Menlo, Consolas, monospace; font-weight: 700; }
+  td .pin, td.pin { color: var(--c); }
+  .table-scroll { overflow-x: auto; }
+
+  .tip, .kid, .warn { border-radius: 16px; padding: 14px 16px; margin: 16px 0; font-size: 0.97rem; border-left: 8px solid; }
+  .tip { background: var(--accent-soft); border-color: var(--accent); }
+  .kid { background: var(--good-soft); border-color: var(--good); }
+  .warn { background: var(--warn-soft); border-color: var(--warn); }
+  .tip strong, .kid strong, .warn strong { display: block; margin-bottom: 2px; font-family: var(--round); font-size: 1.05rem; }
+
+  .code-wrap { position: relative; margin: 12px 0; }
+  pre {
+    background: var(--code-bg); color: var(--code-text);
+    padding: 16px; border-radius: 16px; overflow-x: auto;
+    font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.85rem; line-height: 1.5;
+    margin: 0; border: 3px solid var(--c);
+  }
+  .copy-btn {
+    position: absolute; top: 10px; right: 10px;
+    background: var(--c); color: var(--on, #fff); border: none; border-radius: 99px;
+    padding: 6px 14px; cursor: pointer; font-size: 0.85rem; font-weight: 700;
+  }
+  .copy-btn:hover { filter: brightness(1.15); }
+  code.inline { font-family: ui-monospace, Menlo, Consolas, monospace; background: var(--accent-soft); padding: 1px 6px; border-radius: 6px; font-size: 0.9em; }
+
+  ol, ul { padding-left: 22px; }
+  li { margin: 4px 0; }
+
+  .peek { display: inline-block; margin: 6px 0; padding: 8px 16px; border: 3px dashed #0e7490; border-radius: 99px; text-decoration: none; font-family: var(--round); font-weight: 700; color: var(--text); background: color-mix(in srgb, #0e7490 10%, var(--card)); }
+  .peek:hover { border-style: solid; }
+  .celebrate a { color: #fff; font-family: var(--round); font-weight: 800; }
+
+  /* ---------- photos ---------- */
+  .photos { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 12px 0 4px; }
+  .photos figure { margin: 0; }
+  .photos img { display: block; width: 100%; height: auto; border-radius: 18px; border: 4px solid var(--card); box-shadow: 0 5px 0 var(--line); }
+  .photos figure:nth-child(1) img { transform: rotate(-1.5deg); }
+  .photos figure:nth-child(2) img { transform: rotate(1.5deg); }
+  .photos figcaption { text-align: center; font-family: var(--round); font-weight: 700; margin-top: 10px; }
+  .photos figcaption span { display: block; font-family: inherit; font-weight: 400; color: var(--muted); font-size: 0.9rem; }
+
+  /* ---------- parts ---------- */
+  .parts { list-style: none; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .parts li { margin: 0; }
+  .parts label {
+    display: flex; gap: 12px; align-items: center; height: 100%;
+    border: 2px solid var(--line); border-radius: 16px; padding: 10px 12px; cursor: pointer;
+  }
+  .parts label:has(input:checked) { background: var(--good-soft); border-color: var(--good); }
+  .parts svg { width: 56px; height: 56px; flex-shrink: 0; background: #fffdf6; border-radius: 14px; padding: 4px; }
+  .parts .txt { flex: 1; min-width: 0; font-weight: 600; line-height: 1.35; }
+  .parts .hint { color: var(--muted); font-size: 0.86rem; display: block; font-weight: 400; }
+  .parts input { width: 20px; height: 20px; flex-shrink: 0; accent-color: var(--good); }
+
+  /* ---------- diagrams (always on light "paper") ---------- */
+  .diagram {
+    background: #fffdf6; border: 2px dashed #d9cba8; border-radius: 16px;
+    padding: 8px; margin: 12px 0; overflow-x: auto;
+  }
+  .diagram svg { display: block; width: 100%; min-width: 540px; height: auto; font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
+  .diagram text { fill: #1f2340; font-size: 13px; }
+  .diagram .w, .diagram .w text { fill: #fff; font-weight: 700; }
+  .diagram .sm { font-size: 10px; }
+  .diagram .wire { fill: none; stroke-width: 5; stroke-linecap: round; }
+  .diagram figcaption, .cap { color: #5d6180; font-size: 0.88rem; padding: 4px 6px 2px; }
+  figure { margin: 0; }
+
+  /* ---------- echo demo ---------- */
+  .echo-demo input[type=range] { width: 100%; accent-color: var(--s2); height: 28px; }
+  .echo-readout { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; }
+  .echo-readout div { background: var(--accent-soft); border-radius: 14px; padding: 8px 14px; flex: 1; min-width: 150px; }
+  .echo-readout b { display: block; font-size: 1.4rem; color: var(--accent); font-family: var(--round); }
+  #echo-pulse path { fill: none; stroke: #2563eb; stroke-width: 4; stroke-linecap: round; }
+  #echo-pulse.back path { stroke: #ea580c; }
+  #echo-bubble { opacity: 0; transition: opacity 0.2s; }
+  .is-greeting #echo-bubble { opacity: 1; }
+
+  /* ---------- LCD lab ---------- */
+  .lcd-lab input[type=text] {
+    width: 100%; font: inherit; padding: 9px 14px; border-radius: 12px;
+    border: 2px solid var(--line); background: var(--card); color: var(--text);
+  }
+  .lcd {
+    display: inline-block; max-width: 100%; margin-top: 10px; padding: 12px 14px; border-radius: 10px;
+    background: #14532d; border: 4px solid #0b3a1e;
+  }
+  .lcd-screen { background: #bef264; padding: 6px; border-radius: 4px; display: grid; grid-template-columns: repeat(16, 1fr); gap: 2px; }
+  .lcd-screen span {
+    width: 1.05em; height: 1.5em; display: grid; place-items: center;
+    background: rgba(63, 98, 18, 0.14); color: #1a2e05;
+    font-family: ui-monospace, Menlo, Consolas, monospace; font-weight: 700; font-size: clamp(0.8rem, 3.6vw, 1.25rem);
+  }
+  .lcd-count { font-weight: 700; margin: 8px 0 0; }
+  .lcd-count.bad { color: #dc2626; }
+  .lcd-count.ok { color: var(--good); }
+
+  /* ---------- tune maker ---------- */
+  .keys { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; margin: 10px 0; }
+  .key {
+    border: none; border-radius: 12px 12px 18px 18px; padding: 14px 2px 10px; cursor: pointer;
+    background: var(--k); color: #fff; font-weight: 800; font-size: 1.1rem;
+    box-shadow: 0 5px 0 rgba(31,35,64,0.3);
+  }
+  .key small { display: block; font-family: ui-monospace, Menlo, monospace; font-size: 0.78rem; font-weight: 700; }
+  .key:active { transform: translateY(4px); box-shadow: 0 1px 0 rgba(31,35,64,0.3); }
+  .tune-out { background: var(--code-bg); color: var(--code-text); border-radius: 12px; padding: 10px 14px; font-family: ui-monospace, Menlo, monospace; font-size: 0.88rem; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .tune-out input { flex: 1; min-width: 0; font: inherit; color: inherit; background: rgba(255,255,255,0.12); border: 2px solid var(--c); border-radius: 8px; padding: 5px 8px; }
+  .tune-controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
+  .btn { border: none; border-radius: 99px; padding: 7px 16px; font: inherit; font-weight: 700; cursor: pointer; background: var(--c); color: #fff; }
+  .btn.ghost { background: none; border: 2px solid var(--line); color: var(--muted); }
+
+  details { border: 2px solid var(--line); border-radius: 14px; padding: 10px 14px; margin: 8px 0; background: var(--card); }
+  details[open] { border-color: var(--s2); }
+  summary { cursor: pointer; font-weight: 600; }
+  details p { margin: 8px 0 2px; }
+
+  .ideas { list-style: none; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .ideas li { margin: 0; border-radius: 16px; padding: 12px 14px; background: color-mix(in srgb, var(--k) 14%, var(--card)); border: 2px solid color-mix(in srgb, var(--k) 45%, var(--card)); }
+  .ideas .big { font-size: 1.7rem; display: block; }
+
+  .celebrate {
+    display: none; text-align: center; border-radius: 20px; padding: 22px; margin-top: 20px; color: #fff;
+    background: linear-gradient(135deg, #f59e0b, #db2777 60%, #7c3aed);
+  }
+  .celebrate.show { display: block; animation: pop 0.5s; }
+  .celebrate .trophy { font-size: 3rem; display: block; }
+  .celebrate b { font-family: var(--round); font-size: 1.5rem; display: block; }
+  @keyframes pop { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .confetti { position: fixed; top: -16px; width: 10px; height: 16px; z-index: 50; pointer-events: none; animation: fall linear forwards; }
+  @keyframes fall { to { transform: translateY(110vh) rotate(720deg); } }
+
+  @media (max-width: 620px) {
+    .hero { flex-direction: column-reverse; text-align: center; padding: 20px; }
+    .chips { justify-content: center; }
+    .robot { width: 130px; }
+    h1 { font-size: 2rem; }
+    .step-head { flex-direction: column; }
+    .roles, .parts, .ideas { grid-template-columns: 1fr; }
+    .photos { gap: 10px; }
+    .stop .lbl { display: none; }
+    .stop .dot { width: 38px; height: 38px; font-size: 1.1rem; }
+    .keys { grid-template-columns: repeat(4, 1fr); }
+    .card { padding: 18px 16px; }
+    .step { scroll-margin-top: 120px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .robot .arm, .robot .pupil, .robot .antenna, .celebrate.show { animation: none; }
+    #echo-pulse { display: none; }
+  }
+  @media print {
+    body { background: #fff; }
+    .progress, .copy-btn, .reset-btn, .echo-demo, .lcd-lab, .tune-controls, .robot { display: none; }
+    .card { break-inside: avoid; box-shadow: none; }
+    .hero { color: #000; background: none; box-shadow: none; padding: 0; }
+  }
+
+
+  /* ---------- Inside the Robot additions ---------- */
+  .chip-link { color: #fff; text-decoration: none; background: rgba(31,35,64,0.35); }
+  .chip-link:hover { background: rgba(31,35,64,0.55); }
+  .hero { background: linear-gradient(135deg, #0e7490 0%, #2563eb 50%, #7c3aed 100%); }
+  .robot .heart { transform-origin: center; transform-box: fill-box; animation: beat 0.8s ease-in-out infinite; }
+  @keyframes beat { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.9); } }
+
+  button, .drop, .hot, .hold, .sw { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+  .bar-tools { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; align-items: center; }
+  .reset-btn.tool { min-height: 44px; padding: 3px 14px; font-weight: 600; }
+  .seg { display: inline-flex; border: 2px solid var(--line); border-radius: 99px; overflow: hidden; background: var(--card); }
+  .seg-btn { border: none; background: none; color: var(--muted); font: inherit; font-family: var(--round); font-weight: 700; font-size: 0.9rem; padding: 6px 14px; min-height: 44px; cursor: pointer; }
+  .seg-btn[aria-pressed="true"] { background: var(--c, var(--accent)); color: #fff; }
+  .seg.wide { display: flex; margin: 10px 0; }
+  .seg.wide .seg-btn { flex: 1; min-height: 46px; font-size: 1rem; }
+
+  .deeper, .deeper-inline, .deeper-svg { display: none; }
+  body.is-deeper .deeper { display: block; }
+  body.is-deeper .deeper-inline { display: inline; }
+  body.is-deeper .deeper-svg { display: inline; }
+  p.deeper { background: color-mix(in srgb, var(--s3) 12%, var(--card)); border-left: 8px solid var(--s3); border-radius: 16px; padding: 12px 16px; font-size: 0.97rem; }
+
+  .big-idea { text-align: center; font-family: var(--round); font-weight: 800; font-size: 1.5rem; margin: 6px 0 12px; }
+  .big-idea span { display: inline-block; padding: 4px 16px; border-radius: 99px; color: #fff; }
+  .big-idea span:nth-child(1) { background: var(--s1); }
+  .big-idea span:nth-child(2) { background: var(--s3); }
+  .big-idea span:nth-child(3) { background: var(--s5); }
+
+  .btn.big, .chipbtn { min-height: 48px; padding: 10px 20px; font-size: 1rem; }
+  .btn.big.ghost { border: 3px solid var(--c); color: var(--text); background: none; }
+  .btn.big[aria-pressed="true"] { background: var(--c); color: var(--on, #fff); border-color: var(--c); }
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: 12px 0; }
+  .chipbtn {
+    border: none; border-radius: 16px; cursor: grab; font: inherit; font-family: var(--round); font-weight: 800;
+    background: var(--k); color: #fff; box-shadow: 0 5px 0 rgba(31,35,64,0.3); touch-action: none; user-select: none; -webkit-user-select: none;
+  }
+  .chipbtn.is-picked { outline: 4px solid var(--s6); outline-offset: 3px; }
+  .drag-ghost { position: fixed; z-index: 60; pointer-events: none; transform: translate(-50%, -50%) rotate(-4deg) scale(1.08); opacity: 0.92; }
+  .drop.is-target { outline: 4px dashed var(--s6); outline-offset: 3px; }
+  svg .drop.is-target { stroke: #f59e0b; stroke-width: 5; }
+
+  p.cap { color: var(--muted); }
+  .big-range { width: 100%; height: 44px; accent-color: var(--c); }
+  .say { font-weight: 600; font-size: 1.05rem; }
+  .codeline {
+    font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 1rem; font-weight: 700;
+    background: var(--code-bg); color: var(--code-text); border-radius: 14px; padding: 12px 16px; overflow-x: auto; white-space: nowrap; margin: 10px 0 4px;
+  }
+  .cond { padding: 2px 8px; border-radius: 8px; background: #475569; color: #e2e8f0; transition: background 0.2s; }
+  .cond.is-true { background: #16a34a; color: #fff; }
+  .op { padding: 2px 6px; border-radius: 8px; background: #f59e0b; color: #1f2340; }
+
+  .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0 0; }
+  .tab { flex: 1; min-height: 48px; border: 3px solid var(--line); background: var(--card); color: var(--text); border-radius: 16px 16px 0 0; font: inherit; font-family: var(--round); font-weight: 800; cursor: pointer; }
+  .tab.is-on { background: var(--c); border-color: var(--c); color: #fff; }
+  .l1-ctl { margin: 12px 0; }
+  #l1-buzz.is-wiggle { animation: wiggle 0.12s linear 8; transform-origin: center; transform-box: fill-box; }
+  @keyframes wiggle { 0%, 100% { transform: rotate(-12deg); } 50% { transform: rotate(12deg); } }
+  .diagram .dot-label { font-family: ui-monospace, Menlo, monospace; font-size: 13px; font-weight: 800; fill: #1f2340; paint-order: stroke; stroke: #fffdf6; stroke-width: 4px; }
+
+  /* moving-dot "flow" lines */
+  .flow { fill: none; stroke-width: 8; stroke-linecap: round; stroke-dasharray: 0.1 18; animation: flow 0.7s linear infinite; }
+  @keyframes flow { to { stroke-dashoffset: -18.1; } }
+
+  /* Level 2 */
+  .roads path { fill: none; stroke: #fcd34d; stroke-width: 3; stroke-linecap: round; opacity: 0; transition: opacity 0.3s; }
+  .roads.is-on path { opacity: 0.95; }
+  #city-g { transition: transform 0.45s ease; }
+  .hot { cursor: pointer; }
+  .hot .ring { fill: rgba(250, 204, 21, 0.35); stroke: #facc15; stroke-width: 3; animation: ping 1.4s ease-in-out infinite; transform-origin: center; transform-box: fill-box; }
+  .hot .core { fill: #facc15; stroke: #fff; stroke-width: 2; }
+  .hot.is-found .ring { fill: rgba(74, 222, 128, 0.3); stroke: #4ade80; animation: none; }
+  .hot.is-found .core { fill: #4ade80; }
+  .hot.is-open .ring { stroke: #fff; stroke-width: 5; }
+  @keyframes ping { 0%, 100% { transform: scale(0.8); } 50% { transform: scale(1.15); } }
+  .city-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .found { font-family: var(--round); font-weight: 800; }
+  .city-card { border: 3px solid var(--c); border-radius: 18px; padding: 14px 16px; margin: 12px 0; min-height: 96px; background: color-mix(in srgb, var(--c) 8%, var(--card)); }
+  .city-card strong { font-family: var(--round); font-size: 1.15rem; }
+  .city-card p { margin: 4px 0 0; }
+  .city-card.pop { animation: pop 0.3s; }
+  .veil { opacity: 0.62; transition: opacity 0.4s; }
+  .pw { display: none; }
+  .diagram .pw-label { fill: #fde047; font-weight: 800; font-size: 15px; paint-order: stroke; stroke: #0b1020; stroke-width: 4px; }
+  .diagram .pw-sleep { font-size: 34px; font-weight: 800; fill: #fff; paint-order: stroke; stroke: #0b1020; stroke-width: 5px; }
+  #power-svg.is-usb .veil, #power-svg.is-bat .veil { opacity: 0; }
+  #power-svg.is-usb .pw-usb, #power-svg.is-bat .pw-bat, #power-svg.is-usb .pw-any, #power-svg.is-bat .pw-any { display: inline; }
+  #power-svg.is-usb .pw-sleep, #power-svg.is-bat .pw-sleep { display: none; }
+
+  /* Level 3 */
+  .rooms { display: grid; grid-template-columns: 1.25fr 1fr; gap: 12px; margin: 12px 0; }
+  .room-col { display: grid; gap: 12px; }
+  .room { border-radius: 18px; padding: 12px 14px; border: 3px solid; transition: opacity 0.3s, filter 0.3s; }
+  .room h3 { margin: 0 0 2px; }
+  .room h3 small { font-size: 0.75rem; color: var(--muted); font-family: ui-monospace, Menlo, monospace; }
+  .room-say { margin: 0 0 8px; font-size: 0.92rem; color: var(--muted); }
+  .room.book { border-color: var(--s1); background: color-mix(in srgb, var(--s1) 9%, var(--card)); }
+  .room.ram { border-color: var(--s2); background: color-mix(in srgb, var(--s2) 9%, var(--card)); }
+  .room.worker { border-color: var(--s5); background: color-mix(in srgb, var(--s5) 9%, var(--card)); }
+  .room.beat { border-color: var(--s4); background: color-mix(in srgb, var(--s4) 9%, var(--card)); }
+  .book-lines { list-style: none; margin: 0; padding: 8px 6px; background: var(--code-bg); color: var(--code-text); border-radius: 12px; font-family: ui-monospace, Menlo, monospace; font-size: 0.8rem; overflow-x: auto; }
+  .book-lines li { margin: 0; padding: 2px 6px 2px 30px; white-space: pre; border-radius: 6px; position: relative; }
+  .book-lines li.is-now { background: #f59e0b; color: #1f2340; font-weight: 700; }
+  .book-lines li.is-now::before { content: "👷"; position: absolute; left: 4px; }
+  .rooms.is-blur .book-lines li { background: rgba(245, 158, 11, 0.35); }
+  .ram-vals { margin: 0; display: grid; gap: 6px; }
+  .ram-vals div { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; background: var(--card); border-radius: 10px; padding: 4px 10px; }
+  .ram-vals dt { font-family: ui-monospace, Menlo, monospace; font-size: 0.85rem; }
+  .ram-vals dd { margin: 0; font-family: var(--round); font-weight: 800; font-size: 1.25rem; color: var(--s2); }
+  .ram-vals dd.bump { animation: pop 0.3s; }
+  .pulse { display: inline-block; width: 16px; height: 16px; border-radius: 50%; background: var(--s4); vertical-align: middle; }
+  .rooms.is-running .pulse { animation: beat var(--beat, 0.5s) ease-in-out infinite; }
+  .rooms.is-off .room.ram, .rooms.is-off .room.worker, .rooms.is-off .room.beat { opacity: 0.35; filter: grayscale(1); }
+  .rooms.is-off .room.book { box-shadow: 0 0 0 5px var(--s5); }
+  .speed-label { display: flex; align-items: center; gap: 10px; font-size: 1.5rem; }
+  #up-tx.is-on, #up-rx.is-on { fill: #facc15; }
+
+  /* Level 4 */
+  #mat-bulb.is-on, #tr-lamp.is-on, #gate-lamp.is-on, #p13-led.is-on { fill: #fde047; stroke: #f59e0b; filter: drop-shadow(0 0 10px #facc15); }
+  #l1-led.is-on { fill: #fbbf24; stroke: #f59e0b; }
+  #l1-light.is-yes { fill: #4ade80; }
+  .hold { cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+  #tr-gate { transition: transform 0.15s; }
+  #tr-svg.is-on #tr-gate { transform: translateY(-58px); }
+  #tr-svg.is-on #tr-tap { transform: translateY(8px); }
+  #tr-svg.is-on #tr-bit { fill: #16a34a; }
+  .sw { cursor: pointer; }
+  .sw .lever { transition: transform 0.15s; transform: rotate(-28deg); }
+  .sw.is-on .lever { transform: rotate(0deg); }
+  .not-toy { border: 3px dashed var(--line); border-radius: 18px; padding: 12px 16px; margin: 14px 0; }
+  .not-out { font-size: 1.05rem; }
+
+  /* Level 5 */
+  .zoom { position: relative; border-radius: 18px; overflow: hidden; background: #0b1020; }
+  #zoom-canvas { display: block; width: 100%; height: auto; }
+  .zoom-read { position: absolute; left: 12px; bottom: 10px; right: 12px; color: #fff; text-shadow: 0 2px 6px #000, 0 0 12px #000; }
+  .zoom-read b { display: block; font-family: var(--round); font-size: clamp(1.5rem, 6vw, 2.6rem); line-height: 1.1; }
+  .zoom-stops { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 12px; }
+  .zoom-stops button { flex: 1; min-height: 44px; min-width: 110px; border: 2px solid var(--line); background: var(--card); color: var(--text); border-radius: 12px; font: inherit; font-size: 0.85rem; font-weight: 600; cursor: pointer; }
+  .cards3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 10px 0 14px; }
+  .pick { border: 3px solid var(--line); border-radius: 18px; padding: 14px 12px; text-align: center; background: var(--card); cursor: pointer; min-height: 170px; }
+  .pick .big { font-size: 2.2rem; display: block; }
+  .pick b { font-family: var(--round); display: block; font-size: 1.1rem; }
+  .pick small { color: var(--muted); display: block; }
+  .pick-out { margin: 8px 0 0; font-weight: 600; font-size: 0.95rem; }
+  .pick.is-done { border-color: var(--good); background: var(--good-soft); }
+  .board { display: block; margin: 4px auto 8px; border-radius: 6px; background: #0f6f73; position: relative; }
+  .board::after { content: ""; position: absolute; background: #111827; border-radius: 2px; }
+  .b-uno { width: 96px; height: 74px; } .b-uno::after { left: 34px; top: 44px; width: 50px; height: 14px; }
+  .b-nano { width: 62px; height: 26px; margin-top: 28px; margin-bottom: 32px; background: #1e40af; } .b-nano::after { left: 24px; top: 7px; width: 12px; height: 12px; }
+  .b-esp { width: 76px; height: 40px; margin-top: 21px; margin-bottom: 25px; background: #111827; } .b-esp::after { left: 8px; top: 8px; width: 26px; height: 24px; background: #cbd5e1; }
+
+  /* Boss */
+  .q { border: 2px solid var(--line); border-radius: 18px; padding: 14px 16px; margin: 12px 0; }
+  .q.is-right { border-color: var(--good); background: var(--good-soft); }
+  .q h4 { margin: 0 0 10px; font-family: var(--round); font-size: 1.08rem; }
+  .q .opts { display: grid; gap: 8px; }
+  .q .opt { min-height: 48px; text-align: left; border: 2px solid var(--line); background: var(--card); color: var(--text); border-radius: 14px; padding: 10px 14px; font: inherit; cursor: pointer; }
+  .q .opt.is-wrong { border-color: #dc2626; opacity: 0.6; animation: shake 0.3s; }
+  .q .opt.is-correct { border-color: var(--good); background: var(--good); color: #06240f; font-weight: 700; }
+  .q .why { margin: 10px 0 0; font-weight: 600; }
+  @keyframes shake { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+  .teach { border-radius: 20px; padding: 18px; background: color-mix(in srgb, var(--s6) 16%, var(--card)); border: 3px solid var(--s6); }
+  .go-home { color: #fff; font-family: var(--round); font-weight: 800; }
+
+  /* badges */
+  .earn { border: 3px dashed var(--c); border-radius: 18px; padding: 14px 16px; margin: 18px 0 4px; }
+  .earn strong { font-family: var(--round); font-size: 1.05rem; }
+  .earn ul { list-style: none; padding: 0; margin: 8px 0 0; }
+  .earn li { padding-left: 30px; position: relative; margin: 6px 0; }
+  .earn li::before { content: "⬜"; position: absolute; left: 0; }
+  .earn li.is-done { font-weight: 700; }
+  .earn li.is-done::before { content: "✅"; }
+  .earned { display: none; margin: 10px 0 0; font-family: var(--round); font-size: 1.25rem; text-align: center; background: var(--c); color: var(--on, #fff); border-radius: 14px; padding: 10px; }
+  .earn.is-earned { border-style: solid; }
+  .earn.is-earned .earned { display: block; animation: pop 0.5s; }
+
+  @media (max-width: 720px) {
+    .rooms { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 620px) {
+    .cards3 { grid-template-columns: 1fr; }
+    .pick { min-height: 0; }
+    .tab { flex-basis: 100%; border-radius: 16px; }
+    .progress-row { flex-direction: column; align-items: flex-start; }
+    .bar-tools { justify-content: flex-start; }
+    .step { scroll-margin-top: 170px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .flow, .hot .ring, .robot .heart, .rooms.is-running .pulse, #l1-buzz.is-wiggle { animation: none; }
+    #city-g, #tr-gate, .sw .lever { transition: none; }
+  }
+  @media print {
+    .tabs, .btn-row, .big-range, .zoom, .zoom-stops, .seg, .bar-tools { display: none; }
+    .deeper { display: block; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <div class="hero-text">
+    <h1>Inside the Robot</h1>
+    <p class="subtitle">Bonus level! Shrink down and go inside your Door Greeter. Poke the board, open the brain chip, flip the tiniest switches in the world, and earn six badges on the way.</p>
+    <div class="chips">
+      <a class="chip chip-link" href="index.html">🏠 Home</a>
+      <span class="chip">🔬 Bonus level</span>
+      <span class="chip">⏱ 30 to 45 minutes</span>
+      <span class="chip">👆 Tap, drag and slide</span>
+      <a class="chip chip-link" href="door-greeter-build-guide.html">Best after Chapter 1</a>
+    </div>
+  </div>
+  <svg class="robot xray" viewBox="0 0 200 222" role="img" aria-label="A friendly robot with a see-through chest showing the chip inside">
+    <line x1="100" y1="16" x2="100" y2="38" stroke="#fff" stroke-width="4"/>
+    <circle class="antenna" cx="100" cy="12" r="8" fill="#fda4af"/>
+    <rect x="22" y="112" width="20" height="58" rx="10" fill="#fcd34d"/>
+    <g class="arm"><rect x="158" y="62" width="20" height="66" rx="10" fill="#fcd34d"/><circle cx="168" cy="58" r="13" fill="#fde68a"/></g>
+    <rect x="48" y="36" width="104" height="66" rx="14" fill="#38bdf8" stroke="#fff" stroke-width="3"/>
+    <circle cx="78" cy="69" r="18" fill="#e5e7eb" stroke="#64748b" stroke-width="3"/>
+    <circle cx="122" cy="69" r="18" fill="#e5e7eb" stroke="#64748b" stroke-width="3"/>
+    <circle class="pupil" cx="78" cy="69" r="7" fill="#1f2340"/>
+    <circle class="pupil" cx="122" cy="69" r="7" fill="#1f2340"/>
+    <rect x="40" y="108" width="120" height="86" rx="16" fill="#fbbf24" stroke="#fff" stroke-width="3"/>
+    <rect x="54" y="120" width="92" height="62" rx="8" fill="#0f6f73" stroke="#fff" stroke-width="2"/>
+    <g stroke="#fcd34d" stroke-width="2" fill="none"><path d="M62,134 H80 V150"/><path d="M138,134 H120 V150"/><path d="M62,170 H82"/><path d="M138,170 H118"/></g>
+    <rect x="80" y="142" width="40" height="24" rx="3" fill="#111827"/>
+    <g fill="#cbd5e1"><rect x="84" y="138" width="4" height="4"/><rect x="94" y="138" width="4" height="4"/><rect x="104" y="138" width="4" height="4"/><rect x="113" y="138" width="4" height="4"/><rect x="84" y="166" width="4" height="4"/><rect x="94" y="166" width="4" height="4"/><rect x="104" y="166" width="4" height="4"/><rect x="113" y="166" width="4" height="4"/></g>
+    <circle class="heart" cx="100" cy="154" r="4" fill="#f472b6"/>
+    <rect x="58" y="196" width="30" height="20" rx="8" fill="#38bdf8"/>
+    <rect x="112" y="196" width="30" height="20" rx="8" fill="#38bdf8"/>
+  </svg>
+</header>
+
+<nav class="progress" aria-label="Your progress">
+  <div class="progress-row">
+    <span id="progress-label">0 of 6 badges earned</span>
+    <span class="bar-tools">
+      <span class="seg" role="group" aria-label="How much detail">
+        <button type="button" class="seg-btn" id="depth-simple" aria-pressed="true">🐣 Simple</button>
+        <button type="button" class="seg-btn" id="depth-deeper" aria-pressed="false">🦉 Deeper</button>
+      </span>
+      <button class="reset-btn tool" id="sound-btn" type="button" aria-pressed="true">🔊 Sound on</button>
+      <button class="reset-btn tool" id="reset-btn" type="button">Start over</button>
+    </span>
+  </div>
+  <ol class="map">
+    <li><a class="stop" data-stop="1" href="#level1" style="--c:var(--s1)"><span class="dot" aria-hidden="true">🔁</span><span class="lbl">Loop</span></a></li>
+    <li><a class="stop" data-stop="2" href="#level2" style="--c:var(--s2)"><span class="dot" aria-hidden="true">🏙️</span><span class="lbl">City</span></a></li>
+    <li><a class="stop" data-stop="3" href="#level3" style="--c:var(--s3)"><span class="dot" aria-hidden="true">🧠</span><span class="lbl">Brain</span></a></li>
+    <li><a class="stop" data-stop="4" href="#level4" style="--c:var(--s4)"><span class="dot" aria-hidden="true">🏖️</span><span class="lbl">Sand</span></a></li>
+    <li><a class="stop" data-stop="5" href="#level5" style="--c:var(--s5)"><span class="dot" aria-hidden="true">🔭</span><span class="lbl">Chips</span></a></li>
+    <li><a class="stop" data-stop="6" href="#boss" style="--c:var(--s6)"><span class="dot" aria-hidden="true">🎓</span><span class="lbl">Boss</span></a></li>
+  </ol>
+  <div class="bar"><div class="bar-fill" id="bar-fill"></div></div>
+</nav>
+
+<!-- ============ INTRO ============ -->
+<section class="card">
+  <h2><span aria-hidden="true">🔬</span> The big idea</h2>
+  <p class="big-idea"><span>INPUT</span> → <span>BRAIN</span> → <span>OUTPUT</span></p>
+  <p>Everything a robot does is signals going in, a decision, and signals going out. Each level below zooms in one step closer, all the way down to switches too small to see.</p>
+  <div class="tip">
+    <strong>💡 How this page works</strong>
+    Don't just read it: <b>play with it</b>. Every level has something to tap, drag or slide, and playing is how you earn its badge. Keep your real Door Greeter on the table next to you. Pick <b>🐣 Simple</b> or <b>🦉 Deeper</b> at the top any time.
+  </div>
+</section>
+
+<!-- ============ LEVEL 1 ============ -->
+<section class="card step" id="level1" style="--c:var(--s1)">
+  <div class="step-head">
+    <div class="step-title">
+      <span class="step-emoji" aria-hidden="true">🔁</span>
+      <div><span class="step-num">Level 1</span><h2>The robot loop</h2><span class="time">Sense → think → act, over and over</span></div>
+    </div>
+  </div>
+  <p>Every robot does three things, again and again: <b>notice</b> something, <b>decide</b>, <b>do</b> something.</p>
+
+  <div class="tabs" role="group" aria-label="Pick the input">
+    <button type="button" class="tab is-on" data-tab="sensor">🦇 Sensor</button>
+    <button type="button" class="tab" data-tab="remote">📡 Remote button</button>
+    <button type="button" class="tab" data-tab="ai">🤖 AI camera</button>
+  </div>
+  <figure class="diagram">
+    <svg id="l1-svg" viewBox="0 0 640 232" role="img" aria-label="Three boxes: sense, think, act. A signal travels from one to the next.">
+      <path d="M106,166 V204 H530 V166" fill="none" stroke="#d9cba8" stroke-width="6" stroke-linecap="round"/>
+      <path d="M320,166 V204" fill="none" stroke="#d9cba8" stroke-width="6"/>
+      <path id="l1-p1" d="M106,166 V204 H320 V166" fill="none" stroke="none"/>
+      <path id="l1-p2" d="M320,166 V204 H530 V166" fill="none" stroke="none"/>
+      <rect x="16" y="14" width="180" height="152" rx="18" fill="#e3edff" stroke="#2563eb" stroke-width="4"/>
+      <text x="106" y="42" text-anchor="middle" style="font-weight:800;fill:#2563eb">SENSE</text>
+      <text id="l1-sense-emoji" x="106" y="104" text-anchor="middle" style="font-size:46px">🦇</text>
+      <text id="l1-sense-val" x="106" y="146" text-anchor="middle" style="font-family:ui-monospace,Menlo,monospace;font-weight:700;font-size:15px">cm = 200</text>
+      <rect x="230" y="14" width="180" height="152" rx="18" fill="#ede9fe" stroke="#7c3aed" stroke-width="4"/>
+      <text x="320" y="42" text-anchor="middle" style="font-weight:800;fill:#7c3aed">THINK</text>
+      <text x="320" y="100" text-anchor="middle" style="font-size:42px">🧠</text>
+      <rect id="l1-light" x="262" y="118" width="116" height="34" rx="17" fill="#cbd5e1"/>
+      <text id="l1-light-t" x="320" y="141" text-anchor="middle" style="font-weight:800">waiting…</text>
+      <rect x="444" y="14" width="180" height="152" rx="18" fill="#dcfce7" stroke="#15803d" stroke-width="4"/>
+      <text x="534" y="42" text-anchor="middle" style="font-weight:800;fill:#15803d">ACT</text>
+      <text id="l1-buzz" x="492" y="94" text-anchor="middle" style="font-size:34px">🔈</text>
+      <circle id="l1-led" cx="572" cy="80" r="11" fill="#e5e7eb" stroke="#94a3b8" stroke-width="2"/>
+      <text x="572" y="60" text-anchor="middle" class="sm" style="font-weight:700">L</text>
+      <rect x="460" y="106" width="148" height="48" rx="5" fill="#1d4ed8" stroke="#14532d" stroke-width="4"/>
+      <text id="l1-lcd1" x="468" y="126" style="font-family:ui-monospace,Menlo,monospace;font-size:13px;fill:#fff;font-weight:700">Door guard: ON</text>
+      <text id="l1-lcd2" x="468" y="144" style="font-family:ui-monospace,Menlo,monospace;font-size:13px;fill:#fff;font-weight:700">Visitors: 0</text>
+    </svg>
+  </figure>
+  <p class="codeline" id="l1-code">if (<span id="l1-a" class="cond">cm &lt; 60</span> &amp;&amp; <span id="l1-b" class="cond is-true">!someoneHere</span>)</p>
+  <p class="cap">Green = true, grey = false. The robot says hello only when <b>both</b> are green.</p>
+
+  <div class="l1-ctl" data-for="sensor">
+    <label for="l1-slider"><b>Move your hand:</b> drag it closer than 60 cm.</label>
+    <input type="range" id="l1-slider" min="5" max="300" value="200" class="big-range">
+  </div>
+  <div class="l1-ctl" data-for="remote" hidden>
+    <button type="button" class="btn big" id="l1-remote-btn">📡 Press button 1 on the remote</button>
+  </div>
+  <div class="l1-ctl" data-for="ai" hidden>
+    <button type="button" class="btn big" id="l1-ai-btn">🙂 Step in front of the camera</button>
+  </div>
+
+  <p><b>Now swap the input</b> with the three tabs. Watch closely: THINK and ACT stay exactly the same. The brain doesn't care <i>where</i> a signal came from. A sensor, a remote and an AI are all just inputs.</p>
+  <p class="deeper">🦉 The <code class="inline">loop()</code> function runs again and again. With <code class="inline">delay(100)</code> in the greeter, it runs about 10 times a second. Without the delay, it would loop thousands of times a second.</p>
+  <div class="kid">
+    <strong>🖐 Try it for real</strong>
+    Walk up to your real greeter and say out loud which box is happening: "sense... think... act!"
+  </div>
+  <div class="earn" data-level="1">
+    <strong>🏅 To earn <span>Loop Master</span>: make it say hello with…</strong>
+    <ul><li data-task="1.sensor">the sensor</li><li data-task="1.remote">the remote button</li><li data-task="1.ai">the AI camera</li></ul>
+    <p class="earned">🏅 Badge earned: <b>Loop Master!</b></p>
+  </div>
+</section>
+
+<!-- ============ LEVEL 2 ============ -->
+<section class="card step" id="level2" style="--c:var(--s2)">
+  <div class="step-head">
+    <div class="step-title">
+      <span class="step-emoji" aria-hidden="true">🏙️</span>
+      <div><span class="step-num">Level 2</span><h2>The board: a tiny city</h2><span class="time">Roads, power and doors</span></div>
+    </div>
+  </div>
+  <p>The green board doesn't think. It's a <b>city map</b>. The thin lines are roads made of copper, and electricity drives along them. Only one building in the city does the thinking.</p>
+
+  <h3>Tour the city: tap every glowing dot</h3>
+  <figure class="diagram">
+    <svg id="city-svg" viewBox="0 0 640 440" role="img" aria-label="A drawing of the UNO board with ten parts to tap">
+      <defs>
+        <g id="uno-art">
+          <rect x="60" y="40" width="540" height="360" rx="16" fill="#0f6f73"/>
+          <rect x="24" y="90" width="96" height="74" rx="6" fill="#cbd5e1" stroke="#64748b" stroke-width="3"/>
+          <rect x="36" y="104" width="56" height="46" rx="3" fill="#94a3b8"/>
+          <rect x="24" y="286" width="90" height="78" rx="8" fill="#1f2937"/>
+          <circle cx="52" cy="325" r="17" fill="#0b1220" stroke="#64748b" stroke-width="3"/>
+          <rect x="134" y="296" width="40" height="50" rx="4" fill="#111827"/><rect x="140" y="288" width="28" height="10" fill="#94a3b8"/>
+          <circle cx="212" cy="322" r="18" fill="#cbd5e1" stroke="#64748b" stroke-width="3"/><path d="M203,313 l18,18" stroke="#64748b" stroke-width="2"/>
+          <circle cx="258" cy="322" r="18" fill="#cbd5e1" stroke="#64748b" stroke-width="3"/><path d="M249,313 l18,18" stroke="#64748b" stroke-width="2"/>
+          <rect x="150" y="112" width="44" height="44" rx="4" fill="#111827"/>
+          <g fill="#cbd5e1"><rect x="154" y="107" width="5" height="5"/><rect x="164" y="107" width="5" height="5"/><rect x="174" y="107" width="5" height="5"/><rect x="184" y="107" width="5" height="5"/><rect x="154" y="156" width="5" height="5"/><rect x="164" y="156" width="5" height="5"/><rect x="174" y="156" width="5" height="5"/><rect x="184" y="156" width="5" height="5"/></g>
+          <rect x="222" y="118" width="72" height="30" rx="15" fill="#e5e7eb" stroke="#64748b" stroke-width="3"/>
+          <text x="258" y="138" text-anchor="middle" style="font-size:12px;font-weight:700;fill:#334155">16.000</text>
+          <rect x="88" y="48" width="34" height="34" rx="6" fill="#cbd5e1"/><circle cx="105" cy="65" r="10" fill="#ef4444"/>
+          <rect x="290" y="250" width="270" height="64" rx="6" fill="#111827"/>
+          <circle cx="302" cy="282" r="6" fill="#374151"/>
+          <text x="425" y="288" text-anchor="middle" style="fill:#9ca3af;font-size:13px;font-weight:700">THE BRAIN</text>
+          <g fill="#cbd5e1" id="legs-top"><rect x="300" y="240" width="8" height="10"/><rect x="319" y="240" width="8" height="10"/><rect x="338" y="240" width="8" height="10"/><rect x="357" y="240" width="8" height="10"/><rect x="376" y="240" width="8" height="10"/><rect x="395" y="240" width="8" height="10"/><rect x="414" y="240" width="8" height="10"/><rect x="433" y="240" width="8" height="10"/><rect x="452" y="240" width="8" height="10"/><rect x="471" y="240" width="8" height="10"/><rect x="490" y="240" width="8" height="10"/><rect x="509" y="240" width="8" height="10"/><rect x="528" y="240" width="8" height="10"/><rect x="547" y="240" width="8" height="10"/></g>
+          <use href="#legs-top" y="74"/>
+          <rect x="250" y="50" width="336" height="22" rx="3" fill="#111827"/>
+          <g fill="#4b5563"><rect x="258" y="57" width="8" height="8"/><rect x="282" y="57" width="8" height="8"/><rect x="306" y="57" width="8" height="8"/><rect x="330" y="57" width="8" height="8"/><rect x="354" y="57" width="8" height="8"/><rect x="378" y="57" width="8" height="8"/><rect x="402" y="57" width="8" height="8"/><rect x="426" y="57" width="8" height="8"/><rect x="450" y="57" width="8" height="8"/><rect x="474" y="57" width="8" height="8"/><rect x="498" y="57" width="8" height="8"/><rect x="522" y="57" width="8" height="8"/><rect x="546" y="57" width="8" height="8"/><rect x="570" y="57" width="8" height="8"/></g>
+          <text x="418" y="90" text-anchor="middle" style="fill:#d1fae5;font-size:11px;font-weight:700">13 · 12 · 11 · 10 · 9 · 8 · 7 · 6 · 5 · 4 · 3 · 2 · 1 · 0</text>
+          <rect x="330" y="370" width="256" height="22" rx="3" fill="#111827"/>
+          <g fill="#4b5563"><rect x="340" y="377" width="8" height="8"/><rect x="364" y="377" width="8" height="8"/><rect x="388" y="377" width="8" height="8"/><rect x="412" y="377" width="8" height="8"/><rect x="436" y="377" width="8" height="8"/><rect x="474" y="377" width="8" height="8"/><rect x="494" y="377" width="8" height="8"/><rect x="514" y="377" width="8" height="8"/><rect x="534" y="377" width="8" height="8"/><rect x="554" y="377" width="8" height="8"/><rect x="570" y="377" width="8" height="8"/></g>
+          <text x="458" y="362" text-anchor="middle" style="fill:#d1fae5;font-size:11px;font-weight:700">POWER · · · A0 to A5</text>
+          <rect x="330" y="112" width="16" height="9" rx="2" fill="#fbbf24"/><rect x="330" y="132" width="16" height="9" rx="2" fill="#fbbf24"/><rect x="330" y="152" width="16" height="9" rx="2" fill="#fbbf24"/>
+          <g style="fill:#d1fae5;font-size:11px;font-weight:700"><text x="352" y="121">L</text><text x="352" y="141">TX</text><text x="352" y="161">RX</text><text x="560" y="168">ON</text></g>
+          <rect x="538" y="159" width="16" height="9" rx="2" fill="#4ade80"/>
+        </g>
+      </defs>
+      <g id="city-g">
+        <use href="#uno-art"/>
+        <g id="city-roads" class="roads">
+          <path id="city-road-main" d="M120,134 H210 V205 H330 V250"/>
+          <path d="M366,250 V72"/><path d="M423,250 V98 M423,84 V72"/><path d="M480,250 V98 M480,84 V72"/><path d="M537,250 V172 M537,150 V98 M537,84 V72"/>
+          <path d="M114,325 H134"/><path d="M174,322 H194"/><path d="M276,322 H284 V340 H430 V324"/><path d="M500,324 V350 M500,366 V370"/>
+        </g>
+        <g id="city-hots"></g>
+      </g>
+    </svg>
+  </figure>
+  <div class="city-row">
+    <button type="button" class="btn big ghost" id="roads-btn" aria-pressed="false">🛣️ Show the roads</button>
+    <span class="found" id="city-count">0 of 10 found</span>
+  </div>
+  <div class="city-card" id="city-card" aria-live="polite">
+    <strong id="city-card-title">👆 Tap a glowing dot</strong>
+    <p id="city-card-simple">Each dot is a different building in the city.</p>
+    <p class="deeper" id="city-card-deeper"></p>
+  </div>
+  <div class="kid">
+    <strong>🖐 Try it for real</strong>
+    Find each part on your real board. Count the legs on the big chip. Find the silver oval and read the number on it.
+  </div>
+
+  <h3>Follow the power</h3>
+  <p>A brain without power is asleep. Power comes in through one of two doors.</p>
+  <figure class="diagram">
+    <svg id="power-svg" viewBox="0 0 640 440" role="img" aria-label="The board again, asleep until you plug in power">
+      <use href="#uno-art"/>
+      <rect class="veil" x="14" y="32" width="596" height="376" rx="22" fill="#0b1020"/>
+      <g class="pw pw-usb"><path class="flow" d="M120,150 H240 V215 H425 V250" stroke="#fde047"/><text x="150" y="190" class="pw-label">5 V</text></g>
+      <g class="pw pw-bat"><path class="flow" d="M114,325 H134" stroke="#fb923c"/><text x="70" y="278" class="pw-label" style="fill:#fb923c">9 V in</text><path class="flow" d="M174,300 V215 H425 V250" stroke="#fde047"/><text x="186" y="262" class="pw-label">5 V out</text><text x="154" y="364" text-anchor="middle" class="pw-label" style="font-size:12px">the calmer</text></g>
+      <g class="pw pw-any"><path class="flow" d="M425,215 H575 V72" stroke="#fde047"/><path class="flow" d="M575,215 V370" stroke="#fde047"/><circle cx="546" cy="164" r="13" fill="#4ade80" opacity="0.55"/><text x="425" y="232" text-anchor="middle" class="pw-label" style="font-size:12px">into the brain</text></g>
+      <text class="pw-sleep" x="340" y="210" text-anchor="middle">💤 asleep</text>
+    </svg>
+  </figure>
+  <div class="btn-row">
+    <button type="button" class="btn big" id="pw-usb-btn">🔌 Plug in USB</button>
+    <button type="button" class="btn big" id="pw-bat-btn">🔋 Plug in battery</button>
+    <button type="button" class="btn big ghost" id="pw-off-btn">Unplug</button>
+  </div>
+  <p id="pw-say" class="say">Pick a power door.</p>
+  <p class="deeper">🦉 The UNO runs on 5 V. The round jack likes 7 to 12 V, so the kit's 9 V battery fits. The "calmer" is a voltage regulator.</p>
+
+  <h3>Pins: the brain's doors</h3>
+  <p>A pin is a door. For an <b>output</b>, the brain opens the door and pushes electricity out. For an <b>input</b>, the brain listens at the door: did something arrive?</p>
+  <figure class="diagram">
+    <svg id="pin-svg" viewBox="0 0 640 196" role="img" aria-label="Pin 13 as an output to the L light, and pin 10 as an input from the sensor">
+      <rect x="16" y="20" width="170" height="156" rx="12" fill="#111827"/>
+      <text x="101" y="92" text-anchor="middle" style="fill:#fff;font-weight:800;font-size:18px">THE BRAIN</text>
+      <text id="pin-ear" x="101" y="130" text-anchor="middle" style="font-size:26px">👂</text>
+      <rect x="186" y="44" width="34" height="34" rx="4" fill="#fbbf24"/><text x="203" y="36" text-anchor="middle" class="sm" style="font-weight:700">pin 13</text>
+      <path d="M220,61 H480" stroke="#94a3b8" stroke-width="5" fill="none"/>
+      <path id="p13-flow" class="flow" d="M220,61 H480" stroke="#f59e0b" style="visibility:hidden"/>
+      <text id="p13-v" x="350" y="48" text-anchor="middle" style="font-weight:800">0 V</text>
+      <circle id="p13-led" cx="512" cy="61" r="24" fill="#e5e7eb" stroke="#94a3b8" stroke-width="3"/>
+      <text x="512" y="67" text-anchor="middle" style="font-weight:800">L</text>
+      <text x="580" y="66" text-anchor="middle" class="sm" style="font-weight:700">OUTPUT</text>
+      <rect id="p10-door" x="186" y="118" width="34" height="34" rx="4" fill="#cbd5e1"/><text x="203" y="168" text-anchor="middle" class="sm" style="font-weight:700">pin 10</text>
+      <path id="p10-path" d="M480,135 H220" stroke="#94a3b8" stroke-width="5" fill="none"/>
+      <rect x="484" y="114" width="64" height="42" rx="5" fill="#2563eb"/><circle cx="502" cy="135" r="11" fill="#e5e7eb"/><circle cx="530" cy="135" r="11" fill="#e5e7eb"/>
+      <text x="592" y="140" text-anchor="middle" class="sm" style="font-weight:700">INPUT</text>
+    </svg>
+  </figure>
+  <div class="btn-row">
+    <button type="button" class="btn big" id="p13-btn" aria-pressed="false">Pin 13 is LOW: tap to switch</button>
+    <button type="button" class="btn big ghost" id="p10-btn">🦇 Echo arrives at pin 10</button>
+  </div>
+  <p class="codeline" id="pin-code">digitalWrite(13, LOW);</p>
+  <p class="deeper">🦉 HIGH means about 5 V and LOW means 0 V. That's how all the robot's 1s and 0s look in real life. A pin can safely give only a small amount of current (about 20 mA is the safe everyday limit, 40 mA is the absolute maximum), roughly enough for an LED. That's why bigger things like motors need a helper: a driver chip or a transistor.</p>
+
+  <div class="earn" data-level="2">
+    <strong>🏅 To earn <span>City Explorer</span>:</strong>
+    <ul><li data-task="2.hots">find all 10 parts of the city</li><li data-task="2.power">wake the board up with power</li></ul>
+    <p class="earned">🏅 Badge earned: <b>City Explorer!</b></p>
+  </div>
+</section>
+
+<!-- ============ LEVEL 3 ============ -->
+<section class="card step" id="level3" style="--c:var(--s3)">
+  <div class="step-head">
+    <div class="step-title">
+      <span class="step-emoji" aria-hidden="true">🧠</span>
+      <div><span class="step-num">Level 3</span><h2>Inside the brain chip</h2><span class="time">Memory, the worker and the heartbeat</span></div>
+    </div>
+  </div>
+  <p>Let's open the big black chip. Inside are four rooms.</p>
+
+  <div class="rooms" id="rooms">
+    <div class="room book">
+      <h3>📘 The instruction book <small class="deeper-inline">Flash memory · 32 KB</small></h3>
+      <p class="room-say">Your code lives here. It stays even with the power off.</p>
+      <ol class="book-lines" id="book-lines"></ol>
+    </div>
+    <div class="room-col">
+      <div class="room ram">
+        <h3>🧽 The whiteboard <small class="deeper-inline">RAM · 2 KB</small></h3>
+        <p class="room-say">Scratch paper for numbers that change. Wiped when the power goes off.</p>
+        <dl class="ram-vals">
+          <div><dt>cm</dt><dd id="ram-cm">?</dd></div>
+          <div><dt>someoneHere</dt><dd id="ram-here">false</dd></div>
+          <div><dt>visitors</dt><dd id="ram-visitors">0</dd></div>
+        </dl>
+      </div>
+      <div class="room worker">
+        <h3>👷 The worker <small class="deeper-inline">the CPU</small></h3>
+        <p class="room-say">Reads the book one line at a time and does exactly what it says.</p>
+      </div>
+      <div class="room beat">
+        <h3><span class="pulse" id="pulse"></span> The heartbeat <small class="deeper-inline">16 MHz</small></h3>
+        <p class="room-say">Every tick, the worker takes one tiny step. The real one ticks 16 million times a second.</p>
+      </div>
+    </div>
+  </div>
+  <div class="btn-row">
+    <button type="button" class="btn big" id="worker-btn">▶ Start the worker</button>
+    <button type="button" class="btn big ghost" id="unplug-btn">🔌 Unplug!</button>
+  </div>
+  <label for="speed" class="speed-label"><span>🐢</span><input type="range" id="speed" min="1" max="5" value="2" class="big-range"><span>🚀</span></label>
+  <p class="cap" id="speed-say">Slow motion: about 2 lines a second.</p>
+
+  <h3>The unplug test</h3>
+  <p>Let the worker count a few visitors, then hit <b>🔌 Unplug!</b> Which room forgets, and which room remembers? Then plug it back in.</p>
+  <p id="unplug-say" class="say">The code is safe in the book, but the scratch paper forgets.</p>
+  <div class="kid">
+    <strong>🖐 Try it for real (the best moment on this page)</strong>
+    Unplug your real greeter, plug it back in, and check the visitor count on the real screen. It's back to 0. Then press the red reset button with a few visitors counted. What happens?
+  </div>
+  <p class="deeper">🦉 <b>Deeper challenge:</b> the chip also has a tiny third memory called EEPROM (1 KB) that survives unplugging. Could you save the visitor count there so it never forgets?</p>
+
+  <h3>How code gets into the chip</h3>
+  <p>Uploading is writing a new instruction book into the chip. Press the button and follow the code on its trip.</p>
+  <figure class="diagram">
+    <svg id="up-svg" viewBox="0 0 640 214" role="img" aria-label="Code travels from the computer down the USB cable, through the translator chip, into the brain's instruction book">
+      <rect x="16" y="34" width="170" height="100" rx="8" fill="#1f2340"/>
+      <rect x="26" y="44" width="150" height="80" rx="4" fill="#0b1020"/>
+      <text id="up-code" x="101" y="90" text-anchor="middle" style="font-family:ui-monospace,Menlo,monospace;font-size:14px;fill:#a5f3fc;font-weight:700">visitors++;</text>
+      <rect x="4" y="134" width="194" height="12" rx="6" fill="#94a3b8"/>
+      <text x="101" y="166" text-anchor="middle" class="sm" style="font-weight:700">the computer</text>
+      <path id="up-cable" d="M186,100 C250,100 250,150 320,150 H352" fill="none" stroke="#94a3b8" stroke-width="7" stroke-linecap="round"/>
+      <rect x="352" y="124" width="54" height="52" rx="5" fill="#111827"/>
+      <text x="379" y="194" text-anchor="middle" class="sm" style="font-weight:700">translator</text>
+      <circle id="up-tx" cx="366" cy="108" r="7" fill="#e5e7eb" stroke="#94a3b8"/><circle id="up-rx" cx="392" cy="108" r="7" fill="#e5e7eb" stroke="#94a3b8"/>
+      <text x="366" y="96" text-anchor="middle" class="sm" style="font-weight:700">TX</text><text x="392" y="96" text-anchor="middle" class="sm" style="font-weight:700">RX</text>
+      <path id="up-path2" d="M406,150 H486" fill="none" stroke="#94a3b8" stroke-width="7" stroke-linecap="round"/>
+      <rect x="486" y="70" width="140" height="124" rx="8" fill="#111827"/>
+      <text x="556" y="92" text-anchor="middle" style="fill:#9ca3af;font-size:12px;font-weight:700">THE BRAIN</text>
+      <text x="556" y="140" text-anchor="middle" style="font-size:38px">📘</text>
+      <rect x="506" y="160" width="100" height="14" rx="7" fill="#374151"/><rect id="up-bar" x="506" y="160" width="0" height="14" rx="7" fill="#4ade80"/>
+      <text id="up-door" x="466" y="118" text-anchor="middle" style="font-size:30px;visibility:hidden">🧑‍✈️</text>
+    </svg>
+  </figure>
+  <div class="btn-row"><button type="button" class="btn big" id="upload-btn">⬆️ Upload</button></div>
+  <p id="up-say" class="say">Ready when you are.</p>
+  <p>After that, the computer isn't needed anymore. The robot runs on its own, even on a battery.</p>
+  <p class="deeper">🦉 The doorman is called the <b>bootloader</b>. Opening a USB connection restarts the UNO so the bootloader can listen for new code. That's also why the board restarts when the Python programs in Chapter 3 connect to it. The translator is a second, smaller microcontroller (an ATmega16U2 on the official UNO).</p>
+  <div class="kid">
+    <strong>🖐 Try it for real</strong>
+    Upload any sketch and watch the real TX and RX lights flicker. (<a href="door-greeter-build-guide.html#step1">Chapter 1, Step 1</a> has an easy one.)
+  </div>
+
+  <div class="earn" data-level="3">
+    <strong>🏅 To earn <span>Brain Surgeon</span>:</strong>
+    <ul><li data-task="3.unplug">pass the unplug test (unplug, then plug back in)</li><li data-task="3.upload">finish an upload</li></ul>
+    <p class="earned">🏅 Badge earned: <b>Brain Surgeon!</b></p>
+  </div>
+</section>
+
+<!-- ============ LEVEL 4 ============ -->
+<section class="card step" id="level4" style="--c:var(--s4)">
+  <div class="step-head">
+    <div class="step-title">
+      <span class="step-emoji" aria-hidden="true">🏖️</span>
+      <div><span class="step-num">Level 4</span><h2>Sand that thinks</h2><span class="time">Silicon, and switches that decide</span></div>
+    </div>
+  </div>
+
+  <h3>Three kinds of stuff</h3>
+  <p>This circuit has a gap. Drag (or tap) a material to fill it and see if the light comes on.</p>
+  <figure class="diagram">
+    <svg id="mat-svg" viewBox="0 0 640 200" role="img" aria-label="A battery, a wire with a gap, and a light bulb">
+      <path d="M92,84 H250 M390,84 H548 M548,132 V168 H60 V140" fill="none" stroke="#94a3b8" stroke-width="6" stroke-linecap="round"/>
+      <path id="mat-flow" class="flow" d="M92,84 H548" stroke="#f59e0b" style="visibility:hidden"/>
+      <rect x="28" y="56" width="64" height="84" rx="8" fill="#1f2340"/><rect x="48" y="46" width="24" height="12" rx="3" fill="#94a3b8"/>
+      <text x="60" y="106" text-anchor="middle" style="font-size:26px">🔋</text>
+      <rect id="mat-gap" class="drop" data-drop="gap" x="250" y="56" width="140" height="56" rx="10" fill="#fffdf6" stroke="#94a3b8" stroke-width="3" stroke-dasharray="8 6"/>
+      <text id="mat-name" x="320" y="90" text-anchor="middle" style="font-weight:800;pointer-events:none">gap</text>
+      <circle id="mat-bulb" cx="548" cy="104" r="28" fill="#e5e7eb" stroke="#94a3b8" stroke-width="3"/>
+      <text x="548" y="114" text-anchor="middle" style="font-size:26px;pointer-events:none">💡</text>
+    </svg>
+  </figure>
+  <div class="btn-row" id="mats">
+    <button type="button" class="chipbtn drag" data-item="copper" data-group="mat" style="--k:#ea580c">🟧 Copper</button>
+    <button type="button" class="chipbtn drag" data-item="rubber" data-group="mat" style="--k:#374151">⚫ Rubber</button>
+    <button type="button" class="chipbtn drag" data-item="silicon" data-group="mat" style="--k:#7c3aed">💎 Silicon</button>
+    <button type="button" class="btn big" id="mat-ctl" hidden aria-pressed="false">Control: OFF</button>
+  </div>
+  <p id="mat-say" class="say">Pick a material.</p>
+  <p class="deeper">🦉 Pure silicon is made from sand (sand is mostly silicon and oxygen). Adding a tiny pinch of other atoms, like phosphorus or boron, is called <b>doping</b>. It's what makes silicon controllable.</p>
+
+  <h3>The transistor: a switch that electricity controls</h3>
+  <p>A transistor is a switch with no fingers. Instead of you flipping it, a little bit of electricity flips it. <b>Press and hold the tap.</b></p>
+  <figure class="diagram">
+    <svg id="tr-svg" viewBox="0 0 640 220" role="img" aria-label="A pipe with a tap. Holding the tap lets the flow through and lights a lamp.">
+      <rect x="30" y="118" width="500" height="50" rx="10" fill="#e0f2fe" stroke="#0e7490" stroke-width="4"/>
+      <path class="flow" d="M46,143 H268" stroke="#0ea5e9"/>
+      <path id="tr-flow" class="flow" d="M268,143 H520" stroke="#0ea5e9" style="visibility:hidden"/>
+      <g id="tr-gate"><rect x="270" y="112" width="52" height="62" rx="6" fill="#1f2340"/></g>
+      <g id="tr-tap" class="hold" tabindex="0" role="button" aria-label="The tap. Press and hold.">
+        <rect x="288" y="44" width="16" height="70" fill="#64748b"/>
+        <rect x="246" y="22" width="100" height="30" rx="15" fill="#ef4444" stroke="#991b1b" stroke-width="3"/>
+        <text x="296" y="42" text-anchor="middle" style="fill:#fff;font-weight:800;font-size:13px">HOLD ME</text>
+      </g>
+      <circle id="tr-lamp" cx="566" cy="143" r="26" fill="#e5e7eb" stroke="#94a3b8" stroke-width="3"/>
+      <text x="566" y="152" text-anchor="middle" style="font-size:24px;pointer-events:none">💡</text>
+      <text id="tr-bit" x="440" y="88" text-anchor="middle" style="font-size:64px;font-weight:800;fill:#94a3b8">0</text>
+      <g class="deeper-svg" style="font-weight:700"><text x="110" y="198" text-anchor="middle">source</text><text x="296" y="198" text-anchor="middle">gate</text><text x="440" y="198" text-anchor="middle">drain</text></g>
+    </svg>
+  </figure>
+  <p class="say">On = 1, off = 0. That's the whole language of computers.</p>
+  <p class="deeper">🦉 The three parts are called <b>source</b>, <b>drain</b> and <b>gate</b>. Voltage on the gate opens a path between source and drain.</p>
+
+  <h3>Switches make decisions</h3>
+  <p>Now wire two switches to one lamp. Flip the switches, then change how they're connected.</p>
+  <div class="seg wide" role="group" aria-label="How the switches are connected">
+    <button type="button" class="seg-btn" id="gate-and" aria-pressed="true">In a row = AND</button>
+    <button type="button" class="seg-btn" id="gate-or" aria-pressed="false">Side by side = OR</button>
+  </div>
+  <figure class="diagram">
+    <svg id="gate-svg" viewBox="0 0 640 230" role="img" aria-label="Two switches and a lamp labelled Say hello">
+      <rect x="20" y="80" width="56" height="74" rx="8" fill="#1f2340"/><text x="48" y="126" text-anchor="middle" style="font-size:24px">🔋</text>
+      <g id="g-and" fill="none" stroke="#94a3b8" stroke-width="6" stroke-linecap="round">
+        <path d="M76,117 H170 M244,117 H360 M434,117 H548"/>
+        <path id="and-flow" class="flow" d="M76,117 H548" stroke="#f59e0b" style="visibility:hidden"/>
+        <g class="sw" data-sw="a" transform="translate(170,117)"><circle r="7" fill="#1f2340" stroke="none"/><circle cx="74" r="7" fill="#1f2340" stroke="none"/><line class="lever" x1="0" y1="0" x2="74" y2="0" stroke="#1f2340" stroke-width="7"/></g>
+        <g class="sw" data-sw="b" transform="translate(360,117)"><circle r="7" fill="#1f2340" stroke="none"/><circle cx="74" r="7" fill="#1f2340" stroke="none"/><line class="lever" x1="0" y1="0" x2="74" y2="0" stroke="#1f2340" stroke-width="7"/></g>
+        <g stroke="none" style="font-weight:800"><text x="207" y="86" text-anchor="middle">A</text><text x="397" y="86" text-anchor="middle">B</text></g>
+      </g>
+      <g id="g-or" fill="none" stroke="#94a3b8" stroke-width="6" stroke-linecap="round" style="display:none">
+        <path d="M76,117 H150 V62 H250 M324,62 H440 V117 H548 M150,117 V172 H250 M324,172 H440 V117"/>
+        <path id="or-flow-a" class="flow" d="M76,117 H150 V62 H440 V117 H548" stroke="#f59e0b" style="visibility:hidden"/>
+        <path id="or-flow-b" class="flow" d="M76,117 H150 V172 H440 V117 H548" stroke="#f59e0b" style="visibility:hidden"/>
+        <g class="sw" data-sw="a" transform="translate(250,62)"><circle r="7" fill="#1f2340" stroke="none"/><circle cx="74" r="7" fill="#1f2340" stroke="none"/><line class="lever" x1="0" y1="0" x2="74" y2="0" stroke="#1f2340" stroke-width="7"/></g>
+        <g class="sw" data-sw="b" transform="translate(250,172)"><circle r="7" fill="#1f2340" stroke="none"/><circle cx="74" r="7" fill="#1f2340" stroke="none"/><line class="lever" x1="0" y1="0" x2="74" y2="0" stroke="#1f2340" stroke-width="7"/></g>
+        <g stroke="none" style="font-weight:800"><text x="287" y="38" text-anchor="middle">A</text><text x="287" y="212" text-anchor="middle">B</text></g>
+      </g>
+      <circle id="gate-lamp" cx="578" cy="117" r="28" fill="#e5e7eb" stroke="#94a3b8" stroke-width="3"/>
+      <text x="578" y="126" text-anchor="middle" style="font-size:26px">💡</text>
+      <text x="578" y="72" text-anchor="middle" style="font-weight:800">Say hello!</text>
+    </svg>
+  </figure>
+  <div class="btn-row">
+    <button type="button" class="btn big ghost sw-btn" id="sw-a" aria-pressed="false">A · Someone is close: NO</button>
+    <button type="button" class="btn big ghost sw-btn" id="sw-b" aria-pressed="false">B · Not greeted yet: NO</button>
+  </div>
+  <p class="codeline" id="gate-code">if (<span id="gate-ca" class="cond">cm &lt; 60</span> <span id="gate-op" class="op">&amp;&amp;</span> <span id="gate-cb" class="cond">!someoneHere</span>)</p>
+  <p id="gate-say" class="say">In a row: the lamp needs <b>both</b> switches on. That's AND, written <code class="inline">&amp;&amp;</code>.</p>
+  <div class="not-toy">
+    <b>And one more: NOT.</b> It flips a signal upside down. In code it's written <code class="inline">!</code>
+    <div class="btn-row"><button type="button" class="btn big" id="not-btn" aria-pressed="false">someoneHere is false</button><span class="not-out" id="not-out">so !someoneHere is <b>true</b></span></div>
+  </div>
+  <p>The <code class="inline">&amp;&amp;</code> in YOUR greeter code is exactly this. Billions of these tiny decisions, stacked together, make a brain.</p>
+  <div class="kid">
+    <strong>🖐 Try it for real</strong>
+    Open the greeter code (<a href="door-greeter-build-guide.html#step4">Chapter 1, Step 4</a>) and find every <code class="inline">&amp;&amp;</code> and <code class="inline">!</code>. Each one is a little AND or NOT.
+  </div>
+
+  <div class="earn" data-level="4">
+    <strong>🏅 To earn <span>Sand Wizard</span>: light the "Say hello!" lamp…</strong>
+    <ul><li data-task="4.and">with the switches in a row (AND)</li><li data-task="4.or">with the switches side by side (OR)</li></ul>
+    <p class="earned">🏅 Badge earned: <b>Sand Wizard!</b></p>
+  </div>
+</section>
+
+<!-- ============ LEVEL 5 ============ -->
+<section class="card step" id="level5" style="--c:var(--s5)">
+  <div class="step-head">
+    <div class="step-title">
+      <span class="step-emoji" aria-hidden="true">🔭</span>
+      <div><span class="step-num">Level 5</span><h2>Small chips, giant chips</h2><span class="time">Same switches, just a LOT more of them</span></div>
+    </div>
+  </div>
+
+  <h3>How many switches?</h3>
+  <p>Slide to zoom out, from one switch to the biggest chips on Earth.</p>
+  <div class="zoom">
+    <canvas id="zoom-canvas" width="640" height="240" aria-hidden="true"></canvas>
+    <div class="zoom-read"><b id="zoom-num">1</b><span id="zoom-what">💡 A light switch in your room</span></div>
+  </div>
+  <input type="range" id="zoom" min="0" max="1000" value="0" class="big-range" aria-label="Zoom out">
+  <div class="zoom-stops" id="zoom-stops"></div>
+  <div class="tip">
+    <strong>💡 Fun fact</strong>
+    Modern transistors are so small that more than a thousand fit side by side across one human hair.
+  </div>
+  <p class="say">Same idea in the 4004, the M4 and the giant AI chips: tiny switches made of silicon. The difference is how many, and how fast.</p>
+
+  <h3>Who holds the plan?</h3>
+  <p>Drag the 📘 plan onto each chip (or tap the plan, then tap a chip).</p>
+  <div class="btn-row"><button type="button" class="chipbtn drag" data-item="plan" data-group="plan" style="--k:#2563eb">📘 The plan</button></div>
+  <div class="cards3" id="plan-cards">
+    <div class="pick drop" data-drop="micro" data-accept="plan"><span class="big" aria-hidden="true">🤖</span><b>UNO, Nano, ESP32</b><small>microcontrollers</small><p class="pick-out"></p></div>
+    <div class="pick drop" data-drop="mac" data-accept="plan"><span class="big" aria-hidden="true">💻</span><b>MacBook chip</b><small>a computer's brain</small><p class="pick-out"></p></div>
+    <div class="pick drop" data-drop="aichip" data-accept="plan"><span class="big" aria-hidden="true">🏭</span><b>Big AI chip</b><small>like Nvidia's</small><p class="pick-out"></p></div>
+  </div>
+  <p class="say">Your Arduino is a brain <b>and</b> hands in one. A giant AI chip is pure muscle: it needs a boss computer to tell it what to crunch. In Chapter 3 you build the same team: the MacBook is the AI brain, and the Arduino is the hands.</p>
+
+  <h3>From workbench to product</h3>
+  <p>Could your greeter code run on other boards? Drag the 📜 code onto each one.</p>
+  <div class="btn-row"><button type="button" class="chipbtn drag" data-item="code" data-group="code" style="--k:#15803d">📜 Greeter code</button></div>
+  <div class="cards3" id="board-cards">
+    <div class="pick drop" data-drop="uno" data-accept="code"><span class="board b-uno" aria-hidden="true"></span><b>UNO</b><small>The workbench. Easy to plug wires into. Perfect for trying ideas.</small><p class="pick-out"></p></div>
+    <div class="pick drop" data-drop="nano" data-accept="code"><span class="board b-nano" aria-hidden="true"></span><b>Nano</b><small>Same brain as the UNO (same chip!), shrunk to the size of a stick of gum.</small><p class="pick-out"></p></div>
+    <div class="pick drop" data-drop="esp32" data-accept="code"><span class="board b-esp" aria-hidden="true"></span><b>ESP32</b><small>A different, faster brain with Wi-Fi and Bluetooth built in.</small><p class="pick-out"></p></div>
+  </div>
+  <p class="deeper">🦉 UNO and Nano both use the ATmega328P at 16 MHz with 2 KB of RAM. The ESP32 runs at up to 240 MHz with 520 KB of RAM, so it's much faster with much more scratch paper.</p>
+
+  <div class="earn" data-level="5">
+    <strong>🏅 To earn <span>Chip Scout</span>:</strong>
+    <ul><li data-task="5.zoom">zoom all the way out</li><li data-task="5.uno">put the code on the UNO</li><li data-task="5.nano">put the code on the Nano</li><li data-task="5.esp32">put the code on the ESP32</li></ul>
+    <p class="earned">🏅 Badge earned: <b>Chip Scout!</b></p>
+  </div>
+</section>
+
+<!-- ============ BOSS ============ -->
+<section class="card step" id="boss" style="--c:var(--s6); --on:#3b2500">
+  <div class="step-head">
+    <div class="step-title">
+      <span class="step-emoji" aria-hidden="true">🎓</span>
+      <div><span class="step-num">Boss level</span><h2>Explain it back</h2><span class="time">The best way to know you understand something is to teach it</span></div>
+    </div>
+  </div>
+  <h3>Quick quiz</h3>
+  <p>Tap the answer. Wrong guesses are free: just try again.</p>
+  <div id="quiz"></div>
+
+  <h3>Teach-back</h3>
+  <div class="teach">
+    <p class="big-idea"><span>INPUT</span> · <span>BRAIN</span> · <span>OUTPUT</span></p>
+    <p><b>Mission 1:</b> explain how the Door Greeter works to a parent using only these three words plus your hands.</p>
+    <p><b>Mission 2:</b> explain what a transistor is <i>without</i> saying "transistor".</p>
+  </div>
+
+  <div class="earn" data-level="6">
+    <strong>🏅 To earn <span>Robot Professor</span>:</strong>
+    <ul><li data-task="6.quiz">get all 7 quiz answers right</li></ul>
+    <p class="earned">🏅 Badge earned: <b>Robot Professor!</b></p>
+  </div>
+  <div class="celebrate" id="celebrate">
+    <span class="trophy" aria-hidden="true">🎓</span>
+    <b>All six badges! You are a Robot Professor.</b>
+    You know what's inside a robot, all the way down to the sand. Now go teach someone.
+    <p><a class="go-home" href="index.html">🏠 Back to the chapters</a></p>
+  </div>
+</section>
+
+</div>
+
+<script>
+  var DONE_KEY = "insideRobotDone", TASKS_KEY = "insideRobotTasks", DEPTH_KEY = "insideRobotDepth", SOUND_KEY = "insideRobotSound";
+  var LEVELS = 6;
+  var SVG_NS = "http://www.w3.org/2000/svg";
+  var reducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function $(id) { return document.getElementById(id); }
+
+  function load(key, fallback) {
+    try { var raw = localStorage.getItem(key); return raw === null ? fallback : JSON.parse(raw); }
+    catch (e) { return fallback; }
+  }
+  function save(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); }
+    catch (e) { /* storage not available, that's fine */ }
+  }
+
+  var done = load(DONE_KEY, {});
+  var tasks = load(TASKS_KEY, {});
+  var soundOn = load(SOUND_KEY, true);
+
+  /* ---------- sound ---------- */
+  var audioCtx = null;
+  function buzz(freq, delaySec, durSec) {
+    if (!soundOn) return;
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    if (!audioCtx) audioCtx = new AC();
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    var osc = audioCtx.createOscillator();
+    var gain = audioCtx.createGain();
+    osc.type = "square";
+    osc.frequency.value = freq;
+    gain.gain.value = 0.05;
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    var start = audioCtx.currentTime + (delaySec || 0);
+    osc.start(start);
+    osc.stop(start + (durSec || 0.12));
+  }
+  function playHello() { [523, 659, 784, 1047].forEach(function (f, i) { buzz(f, i * 0.18, 0.15); }); }
+  function playBadge() { [784, 988, 1175, 1568].forEach(function (f, i) { buzz(f, i * 0.11, 0.12); }); }
+  var soundBtn = $("sound-btn");
+  function renderSound() {
+    soundBtn.textContent = soundOn ? "🔊 Sound on" : "🔇 Sound off";
+    soundBtn.setAttribute("aria-pressed", soundOn ? "true" : "false");
+  }
+  soundBtn.addEventListener("click", function () { soundOn = !soundOn; save(SOUND_KEY, soundOn); renderSound(); });
+  renderSound();
+
+  /* ---------- Simple / Deeper ---------- */
+  function setDepth(deeper) {
+    document.body.classList.toggle("is-deeper", deeper);
+    $("depth-simple").setAttribute("aria-pressed", deeper ? "false" : "true");
+    $("depth-deeper").setAttribute("aria-pressed", deeper ? "true" : "false");
+    save(DEPTH_KEY, deeper ? "deeper" : "simple");
+  }
+  $("depth-simple").addEventListener("click", function () { setDepth(false); });
+  $("depth-deeper").addEventListener("click", function () { setDepth(true); });
+  setDepth(load(DEPTH_KEY, "simple") === "deeper");
+
+  /* ---------- badges ---------- */
+  function confetti() {
+    if (reducedMotion) return;
+    var colors = ["#2563eb", "#ea580c", "#7c3aed", "#db2777", "#16a34a", "#f59e0b"];
+    for (var i = 0; i < 70; i++) {
+      var bit = document.createElement("i");
+      bit.className = "confetti";
+      bit.style.left = (Math.random() * 100) + "vw";
+      bit.style.background = colors[i % colors.length];
+      bit.style.animationDuration = (2 + Math.random() * 2) + "s";
+      bit.style.animationDelay = (Math.random() * 0.6) + "s";
+      document.body.appendChild(bit);
+      setTimeout(function (el) { el.remove(); }, 5000, bit);
+    }
+  }
+  function renderProgress() {
+    var count = 0;
+    for (var level = 1; level <= LEVELS; level++) {
+      var earned = !!done[level];
+      if (earned) count++;
+      var stop = document.querySelector('.stop[data-stop="' + level + '"]');
+      if (stop) stop.classList.toggle("is-done", earned);
+      var box = document.querySelector('.earn[data-level="' + level + '"]');
+      if (box) box.classList.toggle("is-earned", earned);
+      var card = box && box.closest(".step");
+      if (card) card.classList.toggle("is-done", earned);
+    }
+    document.querySelectorAll("[data-task]").forEach(function (item) {
+      item.classList.toggle("is-done", !!tasks[item.dataset.task]);
+    });
+    $("bar-fill").style.width = (count / LEVELS * 100) + "%";
+    $("progress-label").textContent = count + " of " + LEVELS + " badges earned";
+    $("celebrate").classList.toggle("show", count === LEVELS);
+    return count;
+  }
+  /* Tick off one thing a level asks for; earning them all earns the badge. */
+  function task(name) {
+    if (tasks[name]) return;
+    tasks[name] = true;
+    save(TASKS_KEY, tasks);
+    var level = name.split(".")[0];
+    var all = document.querySelectorAll('[data-task^="' + level + '."]');
+    var complete = true;
+    all.forEach(function (item) { if (!tasks[item.dataset.task]) complete = false; });
+    if (complete && !done[level]) {
+      done[level] = true;
+      save(DONE_KEY, done);
+      playBadge();
+      confetti();
+    }
+    renderProgress();
+  }
+  $("reset-btn").addEventListener("click", function () {
+    done = {}; tasks = {};
+    save(DONE_KEY, done); save(TASKS_KEY, tasks);
+    save("insideRobotCity", {}); save("insideRobotQuiz", {});
+    window.scrollTo(0, 0);
+    location.reload();
+  });
+
+  /* ---------- a dot that travels along an SVG path ---------- */
+  function flyDot(svg, path, opts, whenDone) {
+    opts = opts || {};
+    if (reducedMotion) { if (whenDone) whenDone(); return; }
+    var group = document.createElementNS(SVG_NS, "g");
+    var dot = document.createElementNS(SVG_NS, "circle");
+    dot.setAttribute("r", opts.r || 10);
+    dot.setAttribute("fill", opts.color || "#f59e0b");
+    dot.setAttribute("stroke", "#fff");
+    dot.setAttribute("stroke-width", "3");
+    group.appendChild(dot);
+    if (opts.label) {
+      var text = document.createElementNS(SVG_NS, "text");
+      text.setAttribute("class", "dot-label");
+      text.setAttribute("text-anchor", "middle");
+      text.setAttribute("y", "-16");
+      text.textContent = opts.label;
+      group.appendChild(text);
+    }
+    svg.appendChild(group);
+    var length = path.getTotalLength(), started = null, duration = opts.dur || 900;
+    function frame(now) {
+      if (started === null) started = now;
+      var t = Math.min(1, (now - started) / duration);
+      var point = path.getPointAtLength(t * length);
+      group.setAttribute("transform", "translate(" + point.x + "," + point.y + ")");
+      if (t < 1) { requestAnimationFrame(frame); }
+      else { group.remove(); if (whenDone) whenDone(); }
+    }
+    requestAnimationFrame(frame);
+  }
+
+  /* ---------- drag a thing onto a target (or tap it, then tap the target) ---------- */
+  var picked = null;
+  function clearPicked() {
+    if (picked) picked.classList.remove("is-picked");
+    picked = null;
+    document.querySelectorAll(".drop.is-target").forEach(function (t) { t.classList.remove("is-target"); });
+  }
+  function targetsFor(item) {
+    return Array.prototype.filter.call(document.querySelectorAll(".drop"), function (t) {
+      return item.dataset.group === "mat" ? t.dataset.drop === "gap" : t.dataset.accept === item.dataset.item;
+    });
+  }
+  var dropHandlers = {};
+  function dropOn(item, target) {
+    clearPicked();
+    var handler = dropHandlers[item.dataset.group];
+    if (handler) handler(item.dataset.item, target.dataset.drop, target);
+  }
+  document.querySelectorAll(".drag").forEach(function (item) {
+    var ghost = null, startX = 0, startY = 0, moved = false;
+    item.addEventListener("pointerdown", function (e) {
+      startX = e.clientX; startY = e.clientY; moved = false;
+      try { item.setPointerCapture(e.pointerId); } catch (err) {}
+    });
+    item.addEventListener("pointermove", function (e) {
+      if (!item.hasPointerCapture || !item.hasPointerCapture(e.pointerId)) return;
+      if (!moved && Math.abs(e.clientX - startX) + Math.abs(e.clientY - startY) < 10) return;
+      if (!moved) {
+        moved = true;
+        ghost = item.cloneNode(true);
+        ghost.classList.add("drag-ghost");
+        document.body.appendChild(ghost);
+        targetsFor(item).forEach(function (t) { t.classList.add("is-target"); });
+      }
+      ghost.style.left = e.clientX + "px";
+      ghost.style.top = e.clientY + "px";
+    });
+    function finish(e) {
+      if (!moved) return;
+      if (ghost) { ghost.remove(); ghost = null; }
+      var under = document.elementFromPoint(e.clientX, e.clientY);
+      var target = under && under.closest(".drop");
+      var ok = target && targetsFor(item).indexOf(target) !== -1;
+      clearPicked();
+      if (ok) dropOn(item, target);
+      setTimeout(function () { moved = false; }, 60);
+    }
+    item.addEventListener("pointerup", finish);
+    item.addEventListener("pointercancel", function () { if (ghost) { ghost.remove(); ghost = null; } clearPicked(); moved = false; });
+    item.addEventListener("click", function () {
+      if (moved) { moved = false; return; }          /* that was a drag, not a tap */
+      var targets = targetsFor(item);
+      if (targets.length === 1) { dropOn(item, targets[0]); return; }
+      if (picked === item) { clearPicked(); return; }
+      clearPicked();
+      picked = item;
+      item.classList.add("is-picked");
+      targets.forEach(function (t) { t.classList.add("is-target"); });
+    });
+  });
+  document.querySelectorAll(".drop").forEach(function (target) {
+    target.addEventListener("click", function () {
+      if (picked && targetsFor(picked).indexOf(target) !== -1) dropOn(picked, target);
+    });
+  });
+
+  /* ================= LEVEL 1: the robot loop ================= */
+  var l1 = { tab: "sensor", someoneHere: false, visitors: 0, timer: null, leaveTimer: null, faceIn: false };
+  var L1_INPUTS = {
+    sensor: { emoji: "🦇", cond: "cm < 60" },
+    remote: { emoji: "📡", cond: "button == 1" },
+    ai: { emoji: "🤖", cond: "message == 'F'" }
+  };
+  var l1Svg = $("l1-svg"), l1Slider = $("l1-slider");
+  function l1Idle() {
+    $("l1-lcd1").textContent = "Door guard: ON";
+    $("l1-lcd2").textContent = "Visitors: " + l1.visitors;
+    $("l1-led").classList.remove("is-on");
+    $("l1-buzz").textContent = "🔈";
+  }
+  function l1ShowConds(inputTrue) {
+    $("l1-a").classList.toggle("is-true", inputTrue);
+    $("l1-b").classList.toggle("is-true", !l1.someoneHere);
+    var yes = inputTrue && !l1.someoneHere;
+    $("l1-light").classList.toggle("is-yes", yes);
+    $("l1-light-t").textContent = yes ? "YES! Go!" : "not now";
+    return yes;
+  }
+  function l1Leave() {
+    l1.someoneHere = false;
+    l1Idle();
+    l1ShowConds(false);
+    $("l1-light-t").textContent = "waiting…";
+  }
+  function l1Signal(label, inputTrue) {
+    var tab = l1.tab;
+    $("l1-sense-val").textContent = label;
+    flyDot(l1Svg, $("l1-p1"), { label: label, color: "#2563eb", dur: 700 }, function () {
+      if (tab !== l1.tab) return;
+      if (!l1ShowConds(inputTrue)) return;
+      l1.someoneHere = true;
+      l1.visitors++;
+      flyDot(l1Svg, $("l1-p2"), { label: "hello!", color: "#16a34a", dur: 600 }, function () {
+        $("l1-lcd1").textContent = "Hello, human!";
+        $("l1-lcd2").textContent = "Visitor #" + l1.visitors;
+        $("l1-led").classList.add("is-on");
+        var buzzer = $("l1-buzz");
+        buzzer.textContent = "🔊";
+        buzzer.classList.remove("is-wiggle");
+        void buzzer.getBoundingClientRect();
+        buzzer.classList.add("is-wiggle");
+        playHello();
+        $("l1-b").classList.remove("is-true");
+        task("1." + tab);
+      });
+    });
+  }
+  function l1SetTab(tab) {
+    clearTimeout(l1.timer); clearTimeout(l1.leaveTimer);
+    l1.tab = tab;
+    l1.faceIn = false;
+    document.querySelectorAll(".tab").forEach(function (btn) { btn.classList.toggle("is-on", btn.dataset.tab === tab); });
+    document.querySelectorAll(".l1-ctl").forEach(function (box) { box.hidden = box.dataset.for !== tab; });
+    $("l1-sense-emoji").textContent = L1_INPUTS[tab].emoji;
+    $("l1-a").textContent = L1_INPUTS[tab].cond;
+    $("l1-ai-btn").textContent = "🙂 Step in front of the camera";
+    l1Slider.value = 200;
+    $("l1-sense-val").textContent = tab === "sensor" ? "cm = 200" : tab === "remote" ? "no button" : "nobody";
+    l1Leave();
+  }
+  document.querySelectorAll(".tab").forEach(function (btn) {
+    btn.addEventListener("click", function () { l1SetTab(btn.dataset.tab); });
+  });
+  l1Slider.addEventListener("input", function () {
+    var cm = Number(l1Slider.value);
+    $("l1-sense-val").textContent = "cm = " + cm;
+    clearTimeout(l1.timer);
+    l1.timer = setTimeout(function () {
+      if (cm > 80 && l1.someoneHere) { l1Leave(); return; }   /* they walked away */
+      l1Signal("cm = " + cm, cm < 60);
+    }, 220);
+  });
+  $("l1-remote-btn").addEventListener("click", function () {
+    clearTimeout(l1.leaveTimer);
+    buzz(880, 0, 0.05);
+    if (l1.someoneHere) l1Leave();
+    l1Signal("button 1", true);
+    l1.leaveTimer = setTimeout(function () { if (l1.tab === "remote") { $("l1-sense-val").textContent = "no button"; l1Leave(); } }, 4000);
+  });
+  $("l1-ai-btn").addEventListener("click", function () {
+    l1.faceIn = !l1.faceIn;
+    $("l1-ai-btn").textContent = l1.faceIn ? "🚶 Step away from the camera" : "🙂 Step in front of the camera";
+    if (l1.faceIn) { l1Signal("F (a face!)", true); }
+    else { $("l1-sense-val").textContent = "nobody"; l1Leave(); }
+  });
+  l1SetTab("sensor");
+
+  /* ================= LEVEL 2: the board ================= */
+  var HOTSPOTS = [
+    { id: "usb", x: 72, y: 127, title: "🔌 USB port", simple: "The door for code and power from the computer.", deeper: "Carries 5 V power and data." },
+    { id: "jack", x: 66, y: 325, title: "🔋 Round power jack", simple: "A second power door, for a battery.", deeper: "Recommended 7 to 12 V. The kit's 9 V battery fits here." },
+    { id: "chip", x: 425, y: 268, title: "🧠 Big black chip with 28 legs", simple: "THE BRAIN. Everything that thinks happens in here.", deeper: "ATmega328P microcontroller." },
+    { id: "translator", x: 172, y: 134, title: "🗣️ Small square chip near the USB port", simple: "The translator. It turns USB from the computer into words the brain understands.", deeper: "A second, smaller microcontroller (ATmega16U2 on the official UNO) acting as a USB-to-serial bridge." },
+    { id: "crystal", x: 258, y: 133, title: "⏱️ Silver oval marked 16.000", simple: "A clock that ticks 16 million times a second.", deeper: "A 16 MHz crystal. The brain gets its own 16 MHz beat from a tiny part right next to it." },
+    { id: "caps", x: 235, y: 322, title: "🛢️ Two round cans", simple: "Tiny water tanks for electricity. They smooth out bumps in the power.", deeper: "Electrolytic capacitors that filter the supply." },
+    { id: "regulator", x: 154, y: 321, title: "😌 Black part next to the power jack", simple: "The calmer. It takes a 9 V battery and calms it down to a steady 5 V.", deeper: "A voltage regulator." },
+    { id: "pins", x: 498, y: 61, title: "🚪 Rows of black sockets with numbers", simple: "The doors where wires plug in. Each one has a number.", deeper: "14 digital pins (0 to 13) and 6 analog inputs (A0 to A5)." },
+    { id: "lights", x: 338, y: 137, title: "💡 Tiny lights: ON, L, TX, RX", simple: "ON = power. L = the light you blinked in Step 1. TX and RX flash when data travels.", deeper: "L is wired to pin 13. TX/RX show serial traffic." },
+    { id: "reset", x: 105, y: 65, title: "🔴 Red button", simple: "Restart. The brain starts its code from the top.", deeper: "Reset." }
+  ];
+  var cityFound = load("insideRobotCity", {});
+  var cityG = $("city-g"), cityCard = $("city-card");
+  function renderCity() {
+    var count = 0;
+    HOTSPOTS.forEach(function (spot) {
+      var el = document.querySelector('.hot[data-id="' + spot.id + '"]');
+      el.classList.toggle("is-found", !!cityFound[spot.id]);
+      if (cityFound[spot.id]) count++;
+    });
+    $("city-count").textContent = count + " of " + HOTSPOTS.length + " found";
+    if (count === HOTSPOTS.length) task("2.hots");
+  }
+  function openSpot(spot, el) {
+    document.querySelectorAll(".hot.is-open").forEach(function (h) { h.classList.remove("is-open"); });
+    el.classList.add("is-open");
+    cityFound[spot.id] = true;
+    save("insideRobotCity", cityFound);
+    $("city-card-title").textContent = spot.title;
+    $("city-card-simple").textContent = spot.simple;
+    $("city-card-deeper").textContent = "🦉 " + spot.deeper;
+    cityCard.classList.remove("pop");
+    void cityCard.offsetWidth;
+    cityCard.classList.add("pop");
+    /* zoom in a little, centred on the part */
+    var scale = 1.2;
+    var tx = 320 - spot.x * scale, ty = 220 - spot.y * scale;
+    tx = Math.min(0, Math.max(640 - 640 * scale, tx));
+    ty = Math.min(0, Math.max(440 - 440 * scale, ty));
+    cityG.style.transform = "translate(" + tx + "px," + ty + "px) scale(" + scale + ")";
+    clearTimeout(openSpot.timer);
+    openSpot.timer = setTimeout(function () { cityG.style.transform = ""; }, 2200);   /* then drift back out */
+    buzz(988, 0, 0.06);
+    renderCity();
+  }
+  HOTSPOTS.forEach(function (spot) {
+    var g = document.createElementNS(SVG_NS, "g");
+    g.setAttribute("class", "hot");
+    g.setAttribute("data-id", spot.id);
+    g.setAttribute("role", "button");
+    g.setAttribute("tabindex", "0");
+    g.setAttribute("aria-label", spot.title);
+    g.innerHTML = '<circle cx="' + spot.x + '" cy="' + spot.y + '" r="30" fill="transparent"/>' +
+      '<circle class="ring" cx="' + spot.x + '" cy="' + spot.y + '" r="20"/>' +
+      '<circle class="core" cx="' + spot.x + '" cy="' + spot.y + '" r="8"/>';
+    g.addEventListener("click", function (e) { e.stopPropagation(); openSpot(spot, g); });
+    g.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openSpot(spot, g); } });
+    $("city-hots").appendChild(g);
+  });
+  $("city-svg").addEventListener("click", function () {      /* tap the board itself to zoom back out */
+    cityG.style.transform = "";
+    document.querySelectorAll(".hot.is-open").forEach(function (h) { h.classList.remove("is-open"); });
+  });
+  $("roads-btn").addEventListener("click", function () {
+    var on = !$("city-roads").classList.contains("is-on");
+    $("city-roads").classList.toggle("is-on", on);
+    $("roads-btn").setAttribute("aria-pressed", on ? "true" : "false");
+    $("roads-btn").textContent = on ? "🛣️ Hide the roads" : "🛣️ Show the roads";
+    if (on) flyDot($("city-g"), $("city-road-main"), { color: "#fde047", dur: 1600, label: "code!" });
+  });
+  renderCity();
+
+  var powerSvg = $("power-svg");
+  function setPower(mode) {
+    powerSvg.classList.toggle("is-usb", mode === "usb");
+    powerSvg.classList.toggle("is-bat", mode === "bat");
+    $("pw-say").textContent =
+      mode === "usb" ? "USB brings 5 volts straight in. The ON light glows and the brain wakes up." :
+      mode === "bat" ? "The battery pushes in 9 volts. The calmer turns it into a steady 5 volts, so the brain never gets too much." :
+      "Unplugged. Everything is dark and the brain is asleep.";
+    if (mode) { buzz(660, 0, 0.08); buzz(880, 0.1, 0.1); task("2.power"); }
+  }
+  $("pw-usb-btn").addEventListener("click", function () { setPower("usb"); });
+  $("pw-bat-btn").addEventListener("click", function () { setPower("bat"); });
+  $("pw-off-btn").addEventListener("click", function () { setPower(null); });
+
+  var pin13 = false;
+  $("p13-btn").addEventListener("click", function () {
+    pin13 = !pin13;
+    $("p13-btn").setAttribute("aria-pressed", pin13 ? "true" : "false");
+    $("p13-btn").textContent = "Pin 13 is " + (pin13 ? "HIGH" : "LOW") + ": tap to switch";
+    $("p13-v").textContent = pin13 ? "5 V" : "0 V";
+    $("p13-flow").style.visibility = pin13 ? "visible" : "hidden";
+    $("p13-led").classList.toggle("is-on", pin13);
+    $("pin-code").textContent = "digitalWrite(13, " + (pin13 ? "HIGH" : "LOW") + ");";
+    buzz(pin13 ? 880 : 440, 0, 0.06);
+  });
+  $("p10-btn").addEventListener("click", function () {
+    $("pin-code").textContent = "pulseIn(ECHO_PIN, HIGH)   // listening at pin 10...";
+    flyDot($("pin-svg"), $("p10-path"), { color: "#2563eb", dur: 800, label: "echo" }, function () {
+      var door = $("p10-door");
+      door.setAttribute("fill", "#4ade80");
+      $("pin-ear").textContent = "👂✨";
+      $("pin-code").textContent = "pulseIn(ECHO_PIN, HIGH)   // heard it! Pin 10 went HIGH";
+      buzz(1175, 0, 0.06);
+      setTimeout(function () { door.setAttribute("fill", "#cbd5e1"); $("pin-ear").textContent = "👂"; }, 1200);
+    });
+  });
+
+  /* ================= LEVEL 3: inside the chip ================= */
+  var BOOK = [
+    "void loop() {",
+    "  long cm = readDistanceCm();",
+    "  if (cm < TRIGGER_CM && !someoneHere) {",
+    "    someoneHere = true;",
+    "    visitors++;",
+    "    greet();",
+    "  }",
+    "  if (cm > TRIGGER_CM + 20 && someoneHere) {",
+    "    someoneHere = false;",
+    "  }",
+    "  delay(100);",
+    "}"
+  ];
+  var SPEEDS = [1000, 450, 160, 40, 0];
+  var SPEED_SAYS = ["Super slow: one line a second.", "Slow motion: about 2 lines a second.", "Faster: about 6 lines a second.", "Fast: about 25 lines a second.", "Still thousands of times slower than the real chip, and already a blur!"];
+  var rooms = $("rooms"), bookList = $("book-lines");
+  var worker = { pc: 0, pass: 0, cm: null, here: false, visitors: 0, running: false, plugged: true, timer: null, wasUnplugged: false };
+  BOOK.forEach(function (line) {
+    var li = document.createElement("li");
+    li.textContent = line;
+    bookList.appendChild(li);
+  });
+  function renderWorker(bumpVisitors) {
+    var lines = bookList.children;
+    for (var i = 0; i < lines.length; i++) lines[i].classList.toggle("is-now", worker.plugged && worker.running && i === worker.pc);
+    $("ram-cm").textContent = !worker.plugged ? "—" : worker.cm === null ? "?" : worker.cm;
+    $("ram-here").textContent = !worker.plugged ? "—" : String(worker.here);
+    var v = $("ram-visitors");
+    v.textContent = !worker.plugged ? "—" : worker.visitors;
+    if (bumpVisitors) { v.classList.remove("bump"); void v.offsetWidth; v.classList.add("bump"); }
+    rooms.classList.toggle("is-off", !worker.plugged);
+    rooms.classList.toggle("is-running", worker.plugged && worker.running);
+    $("worker-btn").textContent = worker.running ? "⏸ Pause the worker" : "▶ Start the worker";
+    $("worker-btn").disabled = !worker.plugged;
+    $("unplug-btn").textContent = worker.plugged ? "🔌 Unplug!" : "🔌 Plug back in";
+  }
+  /* Do the line the worker is standing on, then walk to the next one. */
+  function workerStep() {
+    var bumped = false;
+    switch (worker.pc) {
+      case 0: worker.pc = 1; break;
+      case 1: worker.cm = worker.pass % 2 === 0 ? 45 : 200; worker.pc = 2; break;   /* a visitor comes, then goes */
+      case 2: worker.pc = (worker.cm < 60 && !worker.here) ? 3 : 7; break;
+      case 3: worker.here = true; worker.pc = 4; break;
+      case 4: worker.visitors++; bumped = true; worker.pc = 5; break;
+      case 5: worker.pc = 7; break;
+      case 7: worker.pc = (worker.cm > 80 && worker.here) ? 8 : 10; break;
+      case 8: worker.here = false; worker.pc = 10; break;
+      default: worker.pc = 0; worker.pass++;
+    }
+    return bumped;
+  }
+  function workerTick() {
+    if (!worker.running || !worker.plugged) return;
+    var speed = Number($("speed").value);
+    var bumped = false;
+    var steps = speed === 5 ? 9 : 1;                 /* rocket speed: several lines per frame */
+    for (var i = 0; i < steps; i++) if (workerStep()) bumped = true;
+    if (bumped && speed < 4) buzz(880, 0, 0.04);
+    renderWorker(bumped);
+    worker.timer = setTimeout(workerTick, Math.max(16, SPEEDS[speed - 1]));
+  }
+  function setSpeedUi() {
+    var speed = Number($("speed").value);
+    $("speed-say").textContent = SPEED_SAYS[speed - 1];
+    rooms.classList.toggle("is-blur", speed === 5);
+    rooms.style.setProperty("--beat", [1, 0.5, 0.25, 0.12, 0.06][speed - 1] + "s");
+  }
+  $("speed").addEventListener("input", function () {
+    setSpeedUi();
+    if (worker.running) { clearTimeout(worker.timer); workerTick(); }
+  });
+  $("worker-btn").addEventListener("click", function () {
+    worker.running = !worker.running;
+    clearTimeout(worker.timer);
+    renderWorker();
+    if (worker.running) workerTick();
+  });
+  $("unplug-btn").addEventListener("click", function () {
+    clearTimeout(worker.timer);
+    if (worker.plugged) {
+      var had = worker.visitors;
+      worker.plugged = false;
+      worker.running = false;
+      worker.wasUnplugged = true;
+      buzz(220, 0, 0.25);
+      $("unplug-say").textContent = "Power off! The whiteboard is wiped" + (had ? " (goodbye, " + had + " visitors)" : "") + ". But look: the book still has every line.";
+    } else {
+      worker.plugged = true;
+      worker.pc = 0; worker.pass = 0; worker.cm = null; worker.here = false; worker.visitors = 0;
+      worker.running = true;
+      buzz(660, 0, 0.08); buzz(880, 0.1, 0.1);
+      $("unplug-say").textContent = "Power on! The worker starts at the top of the book again, and visitors starts from 0. The code survived; the count did not.";
+      if (worker.wasUnplugged) task("3.unplug");
+    }
+    renderWorker();
+    if (worker.running) workerTick();
+  });
+  setSpeedUi();
+  renderWorker();
+
+  var uploading = false;
+  function blinkLights(times) {
+    var tx = $("up-tx"), rx = $("up-rx");
+    for (var i = 0; i < times; i++) {
+      setTimeout(function (n) { tx.classList.toggle("is-on", n % 2 === 0); rx.classList.toggle("is-on", n % 2 === 1); }, i * 110, i);
+    }
+    setTimeout(function () { tx.classList.remove("is-on"); rx.classList.remove("is-on"); }, times * 110 + 50);
+  }
+  function uploadFinish() {
+    $("up-bar").setAttribute("width", "100");
+    $("up-door").style.visibility = "hidden";
+    $("up-code").textContent = "Done uploading";
+    $("up-say").textContent = "5. Done uploading! The worker starts reading the new book. You can unplug the computer now.";
+    playBadge();
+    uploading = false;
+    $("upload-btn").disabled = false;
+    $("upload-btn").textContent = "⬆️ Upload again";
+    task("3.upload");
+  }
+  $("upload-btn").addEventListener("click", function () {
+    if (uploading) return;
+    uploading = true;
+    $("upload-btn").disabled = true;
+    $("up-bar").setAttribute("width", "0");
+    $("up-code").textContent = "visitors++;";
+    $("up-say").textContent = "1. The code breaks into 0s and 1s...";
+    if (reducedMotion) { $("up-code").textContent = "0110 1001 0110"; uploadFinish(); return; }
+    var svg = $("up-svg"), bits = "0110100101101011";
+    setTimeout(function () { $("up-code").textContent = "0110 1001 0110"; buzz(440, 0, 0.05); }, 700);
+    setTimeout(function () {
+      $("up-say").textContent = "2. ...and they travel down the USB cable to the translator.";
+      for (var i = 0; i < 8; i++) {
+        setTimeout(function (n) { flyDot(svg, $("up-cable"), { label: bits.charAt(n), color: "#22d3ee", dur: 900, r: 8 }); }, i * 160, i);
+      }
+    }, 1500);
+    setTimeout(function () {
+      $("up-say").textContent = "3. The TX and RX lights blink while the dots stream across.";
+      blinkLights(26);
+    }, 2600);
+    setTimeout(function () {
+      $("up-say").textContent = "4. The brain restarts, and a tiny doorman who is always in the chip catches the dots and writes them into the book.";
+      $("up-door").style.visibility = "visible";
+      for (var i = 0; i < 8; i++) {
+        setTimeout(function (n) {
+          flyDot(svg, $("up-path2"), { label: bits.charAt(8 + n), color: "#22d3ee", dur: 500, r: 8 }, function () {
+            $("up-bar").setAttribute("width", String(Math.round((n + 1) / 8 * 100)));
+            buzz(1175, 0, 0.03);
+          });
+        }, i * 260, i);
+      }
+    }, 4300);
+    setTimeout(uploadFinish, 7300);
+  });
+
+  /* ================= LEVEL 4: sand that thinks ================= */
+  var mat = { kind: null, control: false };
+  var MATS = {
+    copper: { name: "copper", fill: "#ea580c", text: "#fff" },
+    rubber: { name: "rubber", fill: "#374151", text: "#fff" },
+    silicon: { name: "silicon", fill: "#7c3aed", text: "#fff" }
+  };
+  function renderMat() {
+    var on = mat.kind === "copper" || (mat.kind === "silicon" && mat.control);
+    var gap = $("mat-gap"), name = $("mat-name");
+    if (mat.kind) {
+      gap.setAttribute("fill", MATS[mat.kind].fill);
+      gap.setAttribute("stroke-dasharray", "none");
+      name.textContent = MATS[mat.kind].name;
+      name.style.fill = MATS[mat.kind].text;
+    }
+    $("mat-flow").style.visibility = on ? "visible" : "hidden";
+    $("mat-bulb").classList.toggle("is-on", on);
+    $("mat-ctl").hidden = mat.kind !== "silicon";
+    $("mat-ctl").setAttribute("aria-pressed", mat.control ? "true" : "false");
+    $("mat-ctl").textContent = "Control: " + (mat.control ? "ON" : "OFF");
+    $("mat-say").innerHTML =
+      mat.kind === "copper" ? "🟧 <b>Copper</b> is a conductor: the light is always on. Electricity flows freely." :
+      mat.kind === "rubber" ? "⚫ <b>Rubber</b> is an insulator: the light is always off. Electricity is blocked." :
+      mat.kind === "silicon" ? (mat.control ? "💎 <b>Silicon</b> lets it through now. <b>We</b> decide when it flows! That's what \"semiconductor\" means." : "💎 <b>Silicon</b>: the light is off... for now. Press the <b>Control</b> button.") :
+      "Pick a material.";
+  }
+  dropHandlers.mat = function (item) {
+    mat.kind = item;
+    mat.control = false;
+    buzz(item === "copper" ? 880 : 330, 0, 0.07);
+    renderMat();
+  };
+  $("mat-ctl").addEventListener("click", function () {
+    mat.control = !mat.control;
+    buzz(mat.control ? 880 : 330, 0, 0.07);
+    renderMat();
+  });
+
+  var trSvg = $("tr-svg"), trTap = $("tr-tap");
+  function setTransistor(on) {
+    trSvg.classList.toggle("is-on", on);
+    $("tr-flow").style.visibility = on ? "visible" : "hidden";
+    $("tr-lamp").classList.toggle("is-on", on);
+    $("tr-bit").textContent = on ? "1" : "0";
+    if (on) buzz(988, 0, 0.05);
+  }
+  trTap.addEventListener("pointerdown", function (e) {
+    e.preventDefault();
+    try { trTap.setPointerCapture(e.pointerId); } catch (err) {}
+    setTransistor(true);
+  });
+  ["pointerup", "pointercancel", "lostpointercapture"].forEach(function (name) {
+    trTap.addEventListener(name, function () { setTransistor(false); });
+  });
+  trTap.addEventListener("contextmenu", function (e) { e.preventDefault(); });
+  trTap.addEventListener("keydown", function (e) { if ((e.key === " " || e.key === "Enter") && !e.repeat) { e.preventDefault(); setTransistor(true); } });
+  trTap.addEventListener("keyup", function () { setTransistor(false); });
+
+  var gate = { mode: "and", a: false, b: false };
+  function renderGate() {
+    var isAnd = gate.mode === "and";
+    var lit = isAnd ? (gate.a && gate.b) : (gate.a || gate.b);
+    $("g-and").style.display = isAnd ? "" : "none";
+    $("g-or").style.display = isAnd ? "none" : "";
+    $("gate-and").setAttribute("aria-pressed", isAnd ? "true" : "false");
+    $("gate-or").setAttribute("aria-pressed", isAnd ? "false" : "true");
+    document.querySelectorAll(".sw").forEach(function (sw) { sw.classList.toggle("is-on", gate[sw.dataset.sw]); });
+    $("and-flow").style.visibility = isAnd && lit ? "visible" : "hidden";
+    $("or-flow-a").style.visibility = !isAnd && gate.a ? "visible" : "hidden";
+    $("or-flow-b").style.visibility = !isAnd && gate.b ? "visible" : "hidden";
+    $("gate-lamp").classList.toggle("is-on", lit);
+    $("sw-a").textContent = "A · Someone is close: " + (gate.a ? "YES" : "NO");
+    $("sw-b").textContent = "B · Not greeted yet: " + (gate.b ? "YES" : "NO");
+    $("sw-a").setAttribute("aria-pressed", gate.a ? "true" : "false");
+    $("sw-b").setAttribute("aria-pressed", gate.b ? "true" : "false");
+    $("gate-ca").classList.toggle("is-true", gate.a);
+    $("gate-cb").classList.toggle("is-true", gate.b);
+    $("gate-op").textContent = isAnd ? "&&" : "||";
+    $("gate-say").innerHTML = isAnd
+      ? "In a row: the lamp needs <b>both</b> switches on. That's AND, written <code class=\"inline\">&amp;&amp;</code>." + (lit ? " 💡 Both are on: hello!" : "")
+      : "Side by side: <b>either</b> switch can light the lamp. That's OR, written <code class=\"inline\">||</code>." + (lit ? " 💡 One is enough: hello!" : "");
+    if (lit) task(isAnd ? "4.and" : "4.or");
+    return lit;
+  }
+  function flipSwitch(which) {
+    gate[which] = !gate[which];
+    if (renderGate()) playHello(); else buzz(440, 0, 0.05);
+  }
+  $("sw-a").addEventListener("click", function () { flipSwitch("a"); });
+  $("sw-b").addEventListener("click", function () { flipSwitch("b"); });
+  document.querySelectorAll(".sw").forEach(function (sw) {
+    sw.addEventListener("click", function () { flipSwitch(sw.dataset.sw); });
+  });
+  $("gate-and").addEventListener("click", function () { gate.mode = "and"; gate.a = false; gate.b = false; renderGate(); });
+  $("gate-or").addEventListener("click", function () { gate.mode = "or"; gate.a = false; gate.b = false; renderGate(); });
+  renderGate();
+
+  var notIn = false;
+  $("not-btn").addEventListener("click", function () {
+    notIn = !notIn;
+    $("not-btn").setAttribute("aria-pressed", notIn ? "true" : "false");
+    $("not-btn").textContent = "someoneHere is " + notIn;
+    $("not-out").innerHTML = "so !someoneHere is <b>" + (!notIn) + "</b>";
+    buzz(notIn ? 440 : 880, 0, 0.06);
+  });
+
+  /* ================= LEVEL 5: small chips, giant chips ================= */
+  var ZOOM_STOPS = [
+    { count: 1, label: "💡 A light switch in your room", short: "💡 Light switch" },
+    { count: 2300, label: "🕰️ The first computer-on-a-chip (Intel 4004, 1971)", short: "🕰️ Intel 4004" },
+    { count: 28e9, label: "💻 Apple M4 chip (in recent Macs and iPads)", short: "💻 Apple M4" },
+    { count: 336e9, label: "🏭 Nvidia Rubin AI chip (2026)", short: "🏭 Nvidia Rubin" }
+  ];
+  var ZOOM_MAX = Math.log(ZOOM_STOPS[3].count) / Math.LN10;
+  var zoomSlider = $("zoom"), zoomCanvas = $("zoom-canvas"), zoomCtx = zoomCanvas.getContext("2d");
+  function stopPosition(stop) { return Math.round(Math.log(stop.count) / Math.LN10 / ZOOM_MAX * 1000); }
+  function nameNumber(n) {
+    if (n >= 1e9) return (Math.round(n / 1e8) / 10).toLocaleString() + " billion";
+    if (n >= 1e6) return (Math.round(n / 1e5) / 10).toLocaleString() + " million";
+    return Math.round(n).toLocaleString();
+  }
+  function renderZoom() {
+    var pos = Number(zoomSlider.value);
+    var stop = null;
+    ZOOM_STOPS.forEach(function (s) { if (Math.abs(stopPosition(s) - pos) <= 12) stop = s; });
+    var count = stop ? stop.count : Math.pow(10, pos / 1000 * ZOOM_MAX);
+    $("zoom-num").textContent = stop ? nameNumber(count) + (count === 1 ? " switch" : " switches") : "about " + nameNumber(count);
+    $("zoom-what").textContent = stop ? stop.label : "zooming...";
+    /* draw that many switches, until there are too many to draw */
+    var w = zoomCanvas.width, h = zoomCanvas.height;
+    zoomCtx.fillStyle = "#0b1020";
+    zoomCtx.fillRect(0, 0, w, h);
+    var cell = Math.sqrt(w * h / count);
+    if (count === 1) {
+      zoomCtx.fillStyle = "#fde047";
+      zoomCtx.beginPath(); zoomCtx.arc(w / 2, h / 2 - 20, 34, 0, Math.PI * 2); zoomCtx.fill();
+    } else if (cell >= 2.4) {
+      zoomCtx.fillStyle = "#fde047";
+      var r = Math.max(0.8, Math.min(8, cell * 0.3));
+      for (var y = cell / 2; y < h; y += cell) for (var x = cell / 2; x < w; x += cell) {
+        zoomCtx.beginPath(); zoomCtx.arc(x, y, r, 0, Math.PI * 2); zoomCtx.fill();
+      }
+    } else {
+      /* fog: far too many to see one by one */
+      var depth = Math.min(1, (Math.log(count) / Math.LN10 - 4.5) / (ZOOM_MAX - 4.5));
+      var fog = zoomCtx.createRadialGradient(w / 2, h / 2, 10, w / 2, h / 2, w * 0.7);
+      fog.addColorStop(0, "rgba(253, 224, 71, " + (0.75 + depth * 0.25) + ")");
+      fog.addColorStop(1, "rgba(234, 88, 12, " + (0.55 + depth * 0.45) + ")");
+      zoomCtx.fillStyle = fog;
+      zoomCtx.fillRect(0, 0, w, h);
+    }
+    if (pos >= 1000) task("5.zoom");
+  }
+  ZOOM_STOPS.forEach(function (stop) {
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = stop.short;
+    btn.addEventListener("click", function () { zoomSlider.value = stopPosition(stop); buzz(660, 0, 0.05); renderZoom(); });
+    $("zoom-stops").appendChild(btn);
+  });
+  zoomSlider.addEventListener("input", renderZoom);
+  renderZoom();
+
+  var PLAN_SAYS = {
+    micro: "📘 Yes! The code lives inside. Best at running one job forever on a little battery.",
+    mac: "📘 Yes, and it runs many programs at once. Best at everything: apps, video, AI.",
+    aichip: "💪 No plan of its own! A boss computer 🖥️ next to it keeps passing it work. Best at trillions of AI math steps."
+  };
+  dropHandlers.plan = function (item, where, target) {
+    target.querySelector(".pick-out").textContent = PLAN_SAYS[where];
+    target.classList.add("is-done");
+    buzz(where === "aichip" ? 330 : 880, 0, 0.08);
+  };
+  var BOARD_SAYS = {
+    uno: "✅ Runs!",
+    nano: "✅ Runs! Same code, as-is.",
+    esp32: "🔧 Runs with small changes, and now it can talk to your phone!"
+  };
+  dropHandlers.code = function (item, where, target) {
+    target.querySelector(".pick-out").textContent = BOARD_SAYS[where];
+    target.classList.add("is-done");
+    buzz(880, 0, 0.08);
+    task("5." + where);
+  };
+
+  /* ================= BOSS: explain it back ================= */
+  /* The first option is the right one; "order" says where each option is shown. */
+  var QUIZ = [
+    { q: "Where does your code live when the Arduino is unplugged?",
+      options: ["In the flash memory inside the chip", "In the USB cable", "On the MacBook only"], order: [1, 0, 2],
+      why: "Right! Flash memory is the instruction book. It keeps the code even with the power off.",
+      hint: "Not quite. The robot still works on a battery, far from the computer. So where must the code be?" },
+    { q: "Why does the visitor count go back to 0 when you unplug?",
+      options: ["RAM forgets without power", "The code gets deleted", "The sensor resets it"], order: [2, 1, 0],
+      why: "Yes! The count is on the whiteboard (RAM), and the whiteboard is wiped when the power goes.",
+      hint: "Good guess, but think of the unplug test: which room was wiped, and which stayed the same?" },
+    { q: "What does the silver oval marked 16.000 do?",
+      options: ["It's a clock that ticks 16 million times a second", "It stores the code", "It's the battery"], order: [0, 2, 1],
+      why: "Exactly. It's the heartbeat: every tick, the worker takes one tiny step.",
+      hint: "Close, but no. The number on it is a clue: 16.000 is about how fast something happens." },
+    { q: "A transistor is...",
+      options: ["A switch that electricity flips", "A tiny battery", "A kind of wire"], order: [1, 2, 0],
+      why: "Yes! A switch with no fingers. On is 1, off is 0.",
+      hint: "Not that one. Remember the tap you held down: what did it do to the flow?" },
+    { q: "In if (cm < 60 && !someoneHere), what does && mean?",
+      options: ["AND: both must be true", "OR: either one", "Add the numbers"], order: [2, 0, 1],
+      why: "Right! Two switches in a row. Both have to be on.",
+      hint: "Almost. Think of the two switches in a row: how many had to be on for the lamp?" },
+    { q: "Why can't the UNO find faces by itself in Chapter 3?",
+      options: ["It's too small and slow for AI, so the MacBook does the seeing and sends a letter", "It has no camera port", "Faces are against the rules"], order: [0, 1, 2],
+      why: "Yes. The UNO is the hands, and the MacBook is the AI brain. They work as a team.",
+      hint: "Good try. Think about how many switches the UNO has compared with the giant chips." },
+    { q: "Same brain as the UNO, size of a stick of gum?",
+      options: ["Nano", "ESP32", "M4"], order: [1, 2, 0],
+      why: "The Nano! Same chip as the UNO, so the same code runs as-is.",
+      hint: "Not quite. Which board ran your greeter code with no changes at all?" }
+  ];
+  var quizRight = load("insideRobotQuiz", {});
+  var quizBox = $("quiz");
+  function checkQuizDone() {
+    var all = true;
+    for (var i = 0; i < QUIZ.length; i++) if (!quizRight[i]) all = false;
+    if (all) task("6.quiz");
+  }
+  QUIZ.forEach(function (item, index) {
+    var card = document.createElement("div");
+    card.className = "q";
+    var title = document.createElement("h4");
+    title.textContent = (index + 1) + ". " + item.q;
+    var opts = document.createElement("div");
+    opts.className = "opts";
+    var why = document.createElement("p");
+    why.className = "why";
+    why.setAttribute("aria-live", "polite");
+    function markRight(btn) {
+      card.classList.add("is-right");
+      btn.classList.add("is-correct");
+      opts.querySelectorAll(".opt").forEach(function (o) { o.disabled = true; });
+      why.textContent = "✅ " + item.why;
+    }
+    item.order.forEach(function (optionIndex) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "opt";
+      btn.textContent = item.options[optionIndex];
+      btn.addEventListener("click", function () {
+        if (optionIndex === 0) {
+          markRight(btn);
+          playBadge();
+          quizRight[index] = true;
+          save("insideRobotQuiz", quizRight);
+          checkQuizDone();
+        } else {
+          btn.classList.add("is-wrong");
+          btn.disabled = true;
+          why.textContent = "🤔 " + item.hint;
+          buzz(220, 0, 0.12);
+        }
+      });
+      opts.appendChild(btn);
+    });
+    if (quizRight[index]) markRight(opts.children[item.order.indexOf(0)]);
+    card.appendChild(title); card.appendChild(opts); card.appendChild(why);
+    quizBox.appendChild(card);
+  });
+
+  renderProgress();
+</script>
+</body>
+</html>

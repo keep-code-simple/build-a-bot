@@ -189,6 +189,10 @@
   ol, ul { padding-left: 22px; }
   li { margin: 4px 0; }
 
+  .peek { display: inline-block; margin: 6px 0; padding: 8px 16px; border: 3px dashed #0e7490; border-radius: 99px; text-decoration: none; font-family: var(--round); font-weight: 700; color: var(--text); background: color-mix(in srgb, #0e7490 10%, var(--card)); }
+  .peek:hover { border-style: solid; }
+  .celebrate a { color: #fff; font-family: var(--round); font-weight: 800; }
+
   /* ---------- photos ---------- */
   .photos { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 12px 0 4px; }
   .photos figure { margin: 0; }
@@ -329,6 +333,7 @@
       <span class="chip">👥 2 builders</span>
       <span class="chip">🏅 6 badges to earn</span>
       <a class="chip chip-link" href="chapter-2-secret-code-bot.html">Chapter 2: Secret Code Bot →</a>
+      <a class="chip chip-link" href="inside-the-robot.html">🔬 Bonus: Inside the Robot</a>
     </div>
   </div>
   <svg class="robot" viewBox="0 0 200 222" role="img" aria-label="A friendly robot waving hello">
@@ -444,6 +449,7 @@
     </div>
     <p class="time">µs = microseconds, millionths of a second. Sound needs about 58 µs to travel 1 cm and bounce back.</p>
   </div>
+  <p><a class="peek" href="inside-the-robot.html#level1">🔬 Peek inside: how does a robot decide what to do? →</a></p>
 </section>
 
 <!-- ============ PARTS ============ -->
@@ -547,6 +553,7 @@
     <strong>🧒 Kid challenge: your first code change</strong>
     In the Blink code, change both <code class="inline">delay(1000)</code> to <code class="inline">delay(100)</code> and upload again. What happened? Now try <code class="inline">delay(2000)</code>.
   </div>
+  <p><a class="peek" href="inside-the-robot.html#level3">🔬 Peek inside: what really happened when you clicked Upload? →</a></p>
   <div class="tip">
     <strong>💡 No port showing up?</strong>
     Try a different USB cable. Some cables only charge and can't carry data.
@@ -922,6 +929,7 @@ long readDistanceCm() {
 }</pre>
   </div>
   <p><b>Test it:</b> walk up to it. It should play a tune, light the LED, and show a random greeting with your visitor number. Walk away and it resets to <i>Door guard: ON</i>.</p>
+  <p><a class="peek" href="inside-the-robot.html#level3">🔬 Peek inside: why does the visitor count go back to 0 when you unplug it? →</a></p>
 </section>
 
 <!-- ============ STEP 5 ============ -->
@@ -997,6 +1005,7 @@ long readDistanceCm() {
     <span class="trophy" aria-hidden="true">🏆</span>
     <b>Certified Robot Builders!</b>
     You built a robot that greets people. Nice work, team!
+    <p><a href="inside-the-robot.html">🔓 Bonus level unlocked: go inside your robot →</a></p>
   </div>
 </section>
 
