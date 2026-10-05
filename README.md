@@ -9,7 +9,7 @@ This is project #1 in a series of hands-on builds for two brothers.
 | Chapter | Gadget | Open this file | Input | Status |
 |---|---|---|---|---|
 | 1 | 🤖 Door Greeter Bot | `door-greeter-build-guide.html` | Ultrasonic sensor | Built and working |
-| 2 | 🔐 Secret Code Bot | `chapter-2-secret-code-bot.html` | IR remote | Ready to build |
+| 2 | 🔐 Secret Code Bot | `chapter-2-secret-code-bot.html` | IR remote | Built and working |
 | Bonus | 🔬 Inside the Robot | `inside-the-robot.html` | Nothing to build: tap, drag and slide | Play any time after Chapter 1 |
 
 Each chapter keeps the screen and buzzer wired the same way and swaps only the input. The rest of this README describes Chapter 1; Chapter 2's differences are below.

@@ -7,3 +7,7 @@ available-parts/
 # Original phone photos (they carry location data); web copies live in images/
 *.heic
 *.HEIC
+/*.jpeg
+/*.jpg
+/*.JPG
+/*.png
