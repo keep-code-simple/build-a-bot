@@ -3,3 +3,7 @@
 
 # ELEGOO's own downloads (their files, not ours to republish)
 available-parts/
+
+# Original phone photos (they carry location data); web copies live in images/
+*.heic
+*.HEIC

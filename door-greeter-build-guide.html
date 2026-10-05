@@ -189,6 +189,15 @@
   ol, ul { padding-left: 22px; }
   li { margin: 4px 0; }
 
+  /* ---------- photos ---------- */
+  .photos { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 12px 0 4px; }
+  .photos figure { margin: 0; }
+  .photos img { display: block; width: 100%; height: auto; border-radius: 18px; border: 4px solid var(--card); box-shadow: 0 5px 0 var(--line); }
+  .photos figure:nth-child(1) img { transform: rotate(-1.5deg); }
+  .photos figure:nth-child(2) img { transform: rotate(1.5deg); }
+  .photos figcaption { text-align: center; font-family: var(--round); font-weight: 700; margin-top: 10px; }
+  .photos figcaption span { display: block; font-family: inherit; font-weight: 400; color: var(--muted); font-size: 0.9rem; }
+
   /* ---------- parts ---------- */
   .parts { list-style: none; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .parts li { margin: 0; }
@@ -286,6 +295,7 @@
     h1 { font-size: 2rem; }
     .step-head { flex-direction: column; }
     .roles, .parts, .ideas { grid-template-columns: 1fr; }
+    .photos { gap: 10px; }
     .stop .lbl { display: none; }
     .stop .dot { width: 38px; height: 38px; font-size: 1.1rem; }
     .keys { grid-template-columns: repeat(4, 1fr); }
@@ -360,6 +370,22 @@
   </ol>
   <div class="bar"><div class="bar-fill" id="bar-fill"></div></div>
 </nav>
+
+<!-- ============ WHAT YOU'LL BUILD ============ -->
+<section class="card">
+  <h2><span aria-hidden="true">📸</span> What you'll build</h2>
+  <p>This is the real thing, built by two brothers at their desk. Yours will look a lot like it, wire spaghetti and all.</p>
+  <div class="photos">
+    <figure>
+      <img src="images/chapter-1-waiting.jpg" width="900" height="1200" loading="lazy" alt="The finished Door Greeter Bot on a desk: the ultrasonic sensor at the top, the UNO in the middle, and a blue screen at the bottom reading Door guard: ON, Visitors: 24">
+      <figcaption>Waiting for a visitor<span>The screen keeps count of everyone it has greeted.</span></figcaption>
+    </figure>
+    <figure>
+      <img src="images/chapter-1-greeting.jpg" width="900" height="1192" loading="lazy" alt="The same gadget a moment later: the blue screen now reads Hello, human! Visitor #27">
+      <figcaption>Someone walked up!<span>It plays a tune and picks a greeting.</span></figcaption>
+    </figure>
+  </div>
+</section>
 
 <!-- ============ BEFORE YOU START ============ -->
 <section class="card">

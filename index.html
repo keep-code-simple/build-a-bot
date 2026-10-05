@@ -313,6 +313,9 @@
     background: color-mix(in srgb, var(--c) 18%, var(--card)); font-size: 4.6rem; text-decoration: none;
   }
   .chapter-art span { transform: rotate(-6deg); transition: transform 0.2s; }
+  .chapter-art.photo { overflow: hidden; padding: 0; }
+  .chapter-art.photo img { width: 100%; height: 100%; min-height: 190px; object-fit: cover; object-position: 50% 78%; display: block; transition: transform 0.2s; }
+  .chapter:hover .chapter-art.photo img { transform: scale(1.06); }
   .chapter:hover .chapter-art span { transform: rotate(6deg) scale(1.1); }
   .chapter h2 { margin: 4px 0 6px; }
   .chapter h2 a { color: inherit; text-decoration: none; }
@@ -379,7 +382,7 @@
 <h2 class="section-title">Pick a chapter</h2>
 
 <section class="card chapter" style="--c:var(--s1)">
-  <a class="chapter-art" href="door-greeter-build-guide.html" aria-hidden="true" tabindex="-1"><span>🤖</span></a>
+  <a class="chapter-art photo" href="door-greeter-build-guide.html" aria-hidden="true" tabindex="-1"><img src="images/chapter-1-greeting.jpg" width="900" height="1192" alt=""></a>
   <div>
     <span class="step-num">Chapter 1</span>
     <h2><a href="door-greeter-build-guide.html">Door Greeter Bot</a></h2>
