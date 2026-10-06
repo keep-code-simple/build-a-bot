@@ -1,0 +1,31 @@
+{
+  "ntfy_server": "https://ntfy.sh",
+  "to_robot_topic": "bab-CHANGE-ME-run-setup_cloud-py",
+  "from_robot_topic": "bab-CHANGE-ME-run-setup_cloud-py",
+
+  "robot_name": "Door Greeter",
+  "voice": "Samantha",
+  "speech_rate": 0,
+  "visitor_greeting": "Hello, human!",
+
+  "quiet_hours": { "start": "21:00", "end": "07:00" },
+  "seconds_between_messages": 3,
+  "messages_that_can_wait": 5,
+  "visitor_text_cooldown_seconds": 60,
+
+  "schedule": [
+    { "time": "15:30", "days": ["mon", "tue", "wed", "thu", "fri"], "say": "Snack time!", "tune": "WIN" },
+    { "time": "19:45", "days": ["sun", "mon", "tue", "wed", "thu"], "say": "Twenty minutes to bedtime", "tune": "HELLO" }
+  ],
+
+  "faces": {
+    "camera": 0,
+    "sure_enough": 0.45,
+    "beat_second_by": 0.06,
+    "frames_needed": 3,
+    "frames_window": 5,
+    "person_cooldown_seconds": 120,
+    "friend_cooldown_seconds": 60,
+    "notify_names": false
+  }
+}

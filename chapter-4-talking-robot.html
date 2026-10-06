@@ -1,0 +1,3508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Talking Robot</title>
+<style>
+  :root {
+    --bg: #fff7e8;
+    --dots: #f6e3bd;
+    --card: #ffffff;
+    --text: #1f2340;
+    --muted: #5d6180;
+    --line: #e7dcc6;
+    --accent: #2563eb;
+    --accent-soft: #e3edff;
+    --good: #15803d;
+    --good-soft: #dcfce7;
+    --warn: #a16207;
+    --warn-soft: #fef3c7;
+    --code-bg: #1b1f3a;
+    --code-text: #e8eaff;
+    --s1: #2563eb;
+    --s2: #ea580c;
+    --s3: #7c3aed;
+    --s4: #db2777;
+    --s5: #15803d;
+    --s6: #f59e0b;
+    --round: ui-rounded, "SF Pro Rounded", "Arial Rounded MT Bold", "Chalkboard SE", system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14162b;
+      --dots: #1d2040;
+      --card: #20244a;
+      --text: #f1f2ff;
+      --muted: #b3b7da;
+      --line: #383d6e;
+      --accent: #8fb4ff;
+      --accent-soft: #263463;
+      --good: #6ee7a0;
+      --good-soft: #17402b;
+      --warn: #fcd34d;
+      --warn-soft: #453712;
+      --code-bg: #0e1024;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background-color: var(--bg);
+    background-image: radial-gradient(var(--dots) 2px, transparent 2.5px);
+    background-size: 26px 26px;
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 17px;
+    line-height: 1.6;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 0 16px 80px; }
+  h1, h2, h3, .step-num, .done-label, .stop .lbl, .role b, .key { font-family: var(--round); }
+  h1 { font-size: 2.6rem; line-height: 1.1; margin: 0 0 10px; }
+  h2 { font-size: 1.55rem; line-height: 1.2; margin: 0 0 10px; }
+  h3 { font-size: 1.1rem; margin: 24px 0 8px; }
+  a { color: var(--accent); }
+
+  /* ---------- hero ---------- */
+  .hero {
+    margin-top: 16px;
+    border-radius: 28px;
+    padding: 28px 28px 22px;
+    color: #fff;
+    background: linear-gradient(135deg, #2563eb 0%, #7c3aed 55%, #db2777 100%);
+    display: flex; align-items: center; gap: 20px;
+    box-shadow: 0 8px 0 rgba(31, 35, 64, 0.18);
+  }
+  .hero-text { flex: 1; min-width: 0; }
+  .hero .subtitle { font-size: 1.15rem; margin: 0 0 14px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { background: rgba(255,255,255,0.22); border-radius: 99px; padding: 3px 12px; font-size: 0.9rem; font-weight: 600; }
+  .chip-link { color: #fff; text-decoration: none; background: rgba(31,35,64,0.35); }
+  .chip-link:hover { background: rgba(31,35,64,0.55); }
+  .robot { width: 190px; flex-shrink: 0; }
+  .robot .arm { transform-origin: 160px 124px; animation: wave 1.4s ease-in-out infinite alternate; }
+  .robot .pupil { transform-origin: center; transform-box: fill-box; animation: blink 4s infinite; }
+  .robot .antenna { animation: glow 1.2s ease-in-out infinite alternate; }
+  @keyframes wave { from { transform: rotate(-14deg); } to { transform: rotate(22deg); } }
+  @keyframes blink { 0%, 92%, 100% { transform: scaleY(1); } 96% { transform: scaleY(0.1); } }
+  @keyframes glow { from { fill: #fda4af; } to { fill: #fff; } }
+
+  /* ---------- mission map ---------- */
+  .progress {
+    position: sticky; top: 0; z-index: 5;
+    background: var(--bg);
+    padding: 10px 0 12px;
+    border-bottom: 3px dashed var(--line);
+    margin: 14px 0 20px;
+  }
+  .progress-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 0.95rem; font-weight: 600; }
+  .reset-btn { background: none; border: 2px solid var(--line); color: var(--muted); border-radius: 99px; padding: 2px 12px; cursor: pointer; font-size: 0.85rem; }
+  .map { list-style: none; display: flex; justify-content: space-between; padding: 0; margin: 8px 0 8px; }
+  .map li { flex: 1; margin: 0; text-align: center; }
+  .stop { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; text-decoration: none; color: var(--muted); }
+  .stop .dot {
+    width: 44px; height: 44px; border-radius: 50%;
+    display: grid; place-items: center; font-size: 1.3rem;
+    background: var(--card); border: 3px solid var(--line);
+    filter: grayscale(1); opacity: 0.75;
+    transition: transform 0.25s, background 0.25s;
+  }
+  .stop .lbl { font-size: 0.8rem; font-weight: 700; }
+  .stop.is-done { color: var(--text); }
+  .stop.is-done .dot { background: var(--c); border-color: var(--c); filter: none; opacity: 1; transform: scale(1.12) rotate(-6deg); box-shadow: 0 3px 0 rgba(31,35,64,0.25); }
+  .bar { height: 12px; background: var(--line); border-radius: 99px; overflow: hidden; }
+  .bar-fill { height: 100%; width: 0; border-radius: 99px; background: linear-gradient(90deg, var(--s1), var(--s2), var(--s3), var(--s4), var(--s5), var(--s6)); background-size: 860px 100%; transition: width 0.4s; }
+
+  /* ---------- cards ---------- */
+  .card {
+    background: var(--card);
+    border: 2px solid var(--line);
+    border-radius: 22px;
+    padding: 22px 24px;
+    margin: 22px 0;
+    box-shadow: 0 5px 0 var(--line);
+    --c: var(--accent);
+  }
+  .card > h2 { display: flex; align-items: center; gap: 10px; }
+  .step { border-top: 10px solid var(--c); scroll-margin-top: 150px; --on: #fff; }
+  .step.is-done { border-color: var(--c); box-shadow: 0 5px 0 var(--c); }
+  .step-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+  .step-title { display: flex; gap: 14px; align-items: center; }
+  .step-emoji {
+    width: 64px; height: 64px; flex-shrink: 0; border-radius: 20px;
+    display: grid; place-items: center; font-size: 2rem;
+    background: color-mix(in srgb, var(--c) 18%, var(--card));
+    transform: rotate(-4deg);
+  }
+  .step-title h2 { margin: 2px 0 0; }
+  .step-num {
+    display: inline-block; background: var(--c); color: var(--on);
+    font-weight: 800; font-size: 0.85rem; letter-spacing: 0.04em; text-transform: uppercase;
+    border-radius: 99px; padding: 1px 12px;
+  }
+  .time { color: var(--muted); font-size: 0.92rem; }
+  .done-label {
+    display: flex; align-items: center; gap: 8px; white-space: nowrap;
+    border: 3px solid var(--c); border-radius: 99px; padding: 6px 16px; cursor: pointer;
+    font-size: 1rem; font-weight: 700;
+  }
+  .step.is-done .done-label { background: var(--c); color: var(--on); }
+  .done-label input { width: 20px; height: 20px; cursor: pointer; accent-color: var(--good); }
+
+  .roles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 10px 0; }
+  .role { border-radius: 16px; padding: 14px 16px; display: flex; gap: 12px; align-items: center; }
+  .role span { font-size: 2.2rem; }
+  .role b { display: block; font-size: 1.15rem; }
+  .role.builder { background: color-mix(in srgb, var(--s2) 16%, var(--card)); }
+  .role.coder { background: color-mix(in srgb, var(--s3) 16%, var(--card)); }
+  .swap { text-align: center; font-weight: 700; margin: 4px 0 0; }
+
+  table { border-collapse: collapse; width: 100%; margin: 8px 0 14px; font-size: 0.95rem; }
+  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 0.85rem; }
+  .pin { font-family: ui-monospace, Menlo, Consolas, monospace; font-weight: 700; }
+  td .pin, td.pin { color: var(--c); }
+  .table-scroll { overflow-x: auto; }
+
+  .tip, .kid, .warn { border-radius: 16px; padding: 14px 16px; margin: 16px 0; font-size: 0.97rem; border-left: 8px solid; }
+  .tip { background: var(--accent-soft); border-color: var(--accent); }
+  .kid { background: var(--good-soft); border-color: var(--good); }
+  .warn { background: var(--warn-soft); border-color: var(--warn); }
+  .tip strong, .kid strong, .warn strong { display: block; margin-bottom: 2px; font-family: var(--round); font-size: 1.05rem; }
+
+  .code-wrap { position: relative; margin: 12px 0; }
+  pre {
+    background: var(--code-bg); color: var(--code-text);
+    padding: 16px; border-radius: 16px; overflow-x: auto;
+    font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.85rem; line-height: 1.5;
+    margin: 0; border: 3px solid var(--c);
+  }
+  .copy-btn {
+    position: absolute; top: 10px; right: 10px;
+    background: var(--c); color: var(--on, #fff); border: none; border-radius: 99px;
+    padding: 6px 14px; cursor: pointer; font-size: 0.85rem; font-weight: 700;
+  }
+  .copy-btn:hover { filter: brightness(1.15); }
+  code.inline { font-family: ui-monospace, Menlo, Consolas, monospace; background: var(--accent-soft); padding: 1px 6px; border-radius: 6px; font-size: 0.9em; }
+
+  ol, ul { padding-left: 22px; }
+  li { margin: 4px 0; }
+
+  .peek { display: inline-block; margin: 6px 0; padding: 8px 16px; border: 3px dashed #0e7490; border-radius: 99px; text-decoration: none; font-family: var(--round); font-weight: 700; color: var(--text); background: color-mix(in srgb, #0e7490 10%, var(--card)); }
+  .peek:hover { border-style: solid; }
+  .celebrate a { color: #fff; font-family: var(--round); font-weight: 800; }
+
+  /* ---------- photos ---------- */
+  .photos { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 12px 0 4px; }
+  .photos figure { margin: 0; }
+  .photos img { display: block; width: 100%; height: auto; border-radius: 18px; border: 4px solid var(--card); box-shadow: 0 5px 0 var(--line); }
+  .photos figure:nth-child(1) img { transform: rotate(-1.5deg); }
+  .photos figure:nth-child(2) img { transform: rotate(1.5deg); }
+  .photos figcaption { text-align: center; font-family: var(--round); font-weight: 700; margin-top: 10px; }
+  .photos figcaption span { display: block; font-family: inherit; font-weight: 400; color: var(--muted); font-size: 0.9rem; }
+
+  /* ---------- parts ---------- */
+  .parts { list-style: none; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .parts li { margin: 0; }
+  .parts label {
+    display: flex; gap: 12px; align-items: center; height: 100%;
+    border: 2px solid var(--line); border-radius: 16px; padding: 10px 12px; cursor: pointer;
+  }
+  .parts label:has(input:checked) { background: var(--good-soft); border-color: var(--good); }
+  .parts svg { width: 56px; height: 56px; flex-shrink: 0; background: #fffdf6; border-radius: 14px; padding: 4px; }
+  .parts .txt { flex: 1; min-width: 0; font-weight: 600; line-height: 1.35; }
+  .parts .hint { color: var(--muted); font-size: 0.86rem; display: block; font-weight: 400; }
+  .parts input { width: 20px; height: 20px; flex-shrink: 0; accent-color: var(--good); }
+
+  /* ---------- diagrams (always on light "paper") ---------- */
+  .diagram {
+    background: #fffdf6; border: 2px dashed #d9cba8; border-radius: 16px;
+    padding: 8px; margin: 12px 0; overflow-x: auto;
+  }
+  .diagram svg { display: block; width: 100%; min-width: 540px; height: auto; font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
+  .diagram text { fill: #1f2340; font-size: 13px; }
+  .diagram .w, .diagram .w text { fill: #fff; font-weight: 700; }
+  .diagram .sm { font-size: 10px; }
+  .diagram .wire { fill: none; stroke-width: 5; stroke-linecap: round; }
+  .diagram figcaption, .cap { color: #5d6180; font-size: 0.88rem; padding: 4px 6px 2px; }
+  figure { margin: 0; }
+
+  /* ---------- echo demo ---------- */
+  .echo-demo input[type=range] { width: 100%; accent-color: var(--s2); height: 28px; }
+  .echo-readout { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; }
+  .echo-readout div { background: var(--accent-soft); border-radius: 14px; padding: 8px 14px; flex: 1; min-width: 150px; }
+  .echo-readout b { display: block; font-size: 1.4rem; color: var(--accent); font-family: var(--round); }
+  #echo-pulse path { fill: none; stroke: #2563eb; stroke-width: 4; stroke-linecap: round; }
+  #echo-pulse.back path { stroke: #ea580c; }
+  #echo-bubble { opacity: 0; transition: opacity 0.2s; }
+  .is-greeting #echo-bubble { opacity: 1; }
+
+  /* ---------- LCD lab ---------- */
+  .lcd-lab input[type=text] {
+    width: 100%; font: inherit; padding: 9px 14px; border-radius: 12px;
+    border: 2px solid var(--line); background: var(--card); color: var(--text);
+  }
+  .lcd {
+    display: inline-block; max-width: 100%; margin-top: 10px; padding: 12px 14px; border-radius: 10px;
+    background: #14532d; border: 4px solid #0b3a1e;
+  }
+  .lcd-screen { background: #bef264; padding: 6px; border-radius: 4px; display: grid; grid-template-columns: repeat(16, 1fr); gap: 2px; }
+  .lcd-screen span {
+    width: 1.05em; height: 1.5em; display: grid; place-items: center;
+    background: rgba(63, 98, 18, 0.14); color: #1a2e05;
+    font-family: ui-monospace, Menlo, Consolas, monospace; font-weight: 700; font-size: clamp(0.8rem, 3.6vw, 1.25rem);
+  }
+  .lcd-count { font-weight: 700; margin: 8px 0 0; }
+  .lcd-count.bad { color: #dc2626; }
+  .lcd-count.ok { color: var(--good); }
+
+  /* ---------- tune maker ---------- */
+  .keys { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; margin: 10px 0; }
+  .key {
+    border: none; border-radius: 12px 12px 18px 18px; padding: 14px 2px 10px; cursor: pointer;
+    background: var(--k); color: #fff; font-weight: 800; font-size: 1.1rem;
+    box-shadow: 0 5px 0 rgba(31,35,64,0.3);
+  }
+  .key small { display: block; font-family: ui-monospace, Menlo, monospace; font-size: 0.78rem; font-weight: 700; }
+  .key:active { transform: translateY(4px); box-shadow: 0 1px 0 rgba(31,35,64,0.3); }
+  .tune-out { background: var(--code-bg); color: var(--code-text); border-radius: 12px; padding: 10px 14px; font-family: ui-monospace, Menlo, monospace; font-size: 0.88rem; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .tune-out input { flex: 1; min-width: 0; font: inherit; color: inherit; background: rgba(255,255,255,0.12); border: 2px solid var(--c); border-radius: 8px; padding: 5px 8px; }
+  .tune-controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
+  .btn { border: none; border-radius: 99px; padding: 7px 16px; font: inherit; font-weight: 700; cursor: pointer; background: var(--c); color: #fff; }
+  .btn.ghost { background: none; border: 2px solid var(--line); color: var(--muted); }
+
+  details { border: 2px solid var(--line); border-radius: 14px; padding: 10px 14px; margin: 8px 0; background: var(--card); }
+  details[open] { border-color: var(--s2); }
+  summary { cursor: pointer; font-weight: 600; }
+  details p { margin: 8px 0 2px; }
+
+  .ideas { list-style: none; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .ideas li { margin: 0; border-radius: 16px; padding: 12px 14px; background: color-mix(in srgb, var(--k) 14%, var(--card)); border: 2px solid color-mix(in srgb, var(--k) 45%, var(--card)); }
+  .ideas .big { font-size: 1.7rem; display: block; }
+
+  .celebrate {
+    display: none; text-align: center; border-radius: 20px; padding: 22px; margin-top: 20px; color: #fff;
+    background: linear-gradient(135deg, #f59e0b, #db2777 60%, #7c3aed);
+  }
+  .celebrate.show { display: block; animation: pop 0.5s; }
+  .celebrate .trophy { font-size: 3rem; display: block; }
+  .celebrate b { font-family: var(--round); font-size: 1.5rem; display: block; }
+  @keyframes pop { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .confetti { position: fixed; top: -16px; width: 10px; height: 16px; z-index: 50; pointer-events: none; animation: fall linear forwards; }
+  @keyframes fall { to { transform: translateY(110vh) rotate(720deg); } }
+
+  @media (max-width: 620px) {
+    .hero { flex-direction: column-reverse; text-align: center; padding: 20px; }
+    .chips { justify-content: center; }
+    .robot { width: 130px; }
+    h1 { font-size: 2rem; }
+    .step-head { flex-direction: column; }
+    .roles, .parts, .ideas { grid-template-columns: 1fr; }
+    .photos { gap: 10px; }
+    .stop .lbl { display: none; }
+    .stop .dot { width: 38px; height: 38px; font-size: 1.1rem; }
+    .keys { grid-template-columns: repeat(4, 1fr); }
+    .card { padding: 18px 16px; }
+    .step { scroll-margin-top: 120px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .robot .arm, .robot .pupil, .robot .antenna, .celebrate.show { animation: none; }
+    #echo-pulse { display: none; }
+  }
+  @media print {
+    body { background: #fff; }
+    .progress, .copy-btn, .reset-btn, .echo-demo, .lcd-lab, .tune-controls, .robot { display: none; }
+    .card { break-inside: avoid; box-shadow: none; }
+    .hero { color: #000; background: none; box-shadow: none; padding: 0; }
+  }
+
+  /* ---------- Chapter 4 additions ---------- */
+  .hero { background: linear-gradient(135deg, #0e7490 0%, #2563eb 45%, #7c3aed 100%); }
+  .robot .arm { animation: wave 1.8s ease-in-out infinite alternate; }
+  @keyframes wave { from { transform: rotate(-4deg); } to { transform: rotate(14deg); } }
+  .robot .talk { animation: talk 0.9s steps(1) infinite; }
+  .robot .talk.t2 { animation-delay: 0.3s; }
+  .robot .talk.t3 { animation-delay: 0.6s; }
+  @keyframes talk { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
+
+  /* the real screen is blue with white letters */
+  .lcd-screen { background: #1d4ed8; }
+  .lcd-screen span { background: rgba(255,255,255,0.1); color: #fff; }
+
+  .btn { min-height: 44px; padding: 9px 18px; }
+  .btn:disabled { opacity: 0.5; cursor: default; }
+  .btn.on { background: var(--good); color: #fff; border-color: var(--good); }
+  @media (prefers-color-scheme: dark) { .btn.on { color: #06240f; } }
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 10px 0; }
+  .toy { border: 3px dashed color-mix(in srgb, var(--c) 55%, var(--card)); border-radius: 18px; padding: 14px 16px; margin: 16px 0; background: color-mix(in srgb, var(--c) 6%, var(--card)); }
+  .toy > h3 { margin-top: 0; }
+  .toy input[type=text], .toy input[type=time], .toy select {
+    font: inherit; padding: 9px 12px; min-height: 44px; border-radius: 12px; max-width: 100%;
+    border: 2px solid var(--line); background: var(--card); color: var(--text);
+  }
+  .toy input[type=text] { width: 100%; }
+  .toy input[type=range] { width: 100%; height: 44px; accent-color: var(--c); }
+  .readout { display: flex; gap: 10px; flex-wrap: wrap; margin: 8px 0; }
+  .readout div { background: var(--accent-soft); border-radius: 14px; padding: 8px 14px; flex: 1; min-width: 140px; }
+  .readout b { display: block; font-size: 1.25rem; color: var(--accent); font-family: var(--round); overflow-wrap: anywhere; }
+  .mono, .readout b.mono { font-family: ui-monospace, Menlo, Consolas, monospace; }
+  #step6 td .pin, #step6 td.pin { color: var(--warn); }
+  #who-toggle, #step6 .copy-btn { color: #3b2500; }
+  .win { border-radius: 16px; padding: 12px 16px; margin: 18px 0 4px; font-weight: 700; font-family: var(--round); background: color-mix(in srgb, var(--c) 16%, var(--card)); border: 2px solid var(--c); }
+  .code-wrap.cmd pre { padding-right: 92px; white-space: pre; }
+  details.code > summary { font-family: var(--round); }
+  details.code .code-wrap { margin-bottom: 4px; }
+  details.code pre { max-height: 460px; overflow: auto; }
+
+  /* grown-up corner: clearly not kid text */
+  details.grownup { border: 2px solid #64748b; background: color-mix(in srgb, #64748b 10%, var(--card)); border-radius: 16px; }
+  details.grownup[open] { border-color: #64748b; }
+  details.grownup > summary { font-family: var(--round); font-weight: 700; }
+  details.grownup > summary::after { content: " (for parents)"; font-weight: 400; color: var(--muted); font-size: 0.88rem; }
+
+  /* test-it checklists */
+  .checks { list-style: none; padding: 0; margin: 8px 0; }
+  .checks li { margin: 6px 0; }
+  .checks label { display: flex; gap: 12px; align-items: flex-start; min-height: 44px; border: 2px solid var(--line); border-radius: 14px; padding: 9px 12px; cursor: pointer; }
+  .checks label:has(input:checked) { background: var(--good-soft); border-color: var(--good); }
+  .checks input { width: 22px; height: 22px; flex-shrink: 0; margin-top: 2px; accent-color: var(--good); }
+
+  /* ---------- the full loop picture ---------- */
+  .diagram .lbl { font-weight: 700; font-size: 13px; }
+  .diagram .tiny, .diagram .tiny text { font-size: 10.5px; fill: #5d6180; }
+  .diagram .lane { fill: none; stroke: #94a3b8; stroke-width: 3; stroke-dasharray: 2 7; stroke-linecap: round; }
+  .diagram .lane.hot { stroke: #ea580c; stroke-dasharray: none; stroke-width: 4; }
+  .diagram .node { transition: transform 0.2s; transform-box: fill-box; transform-origin: center; }
+  .diagram .node.hot { transform: scale(1.08); }
+  .diagram .lcdtext { font-family: ui-monospace, Menlo, monospace; font-size: 9px; font-weight: 700; fill: #fff; }
+  #loop-packet { transition: opacity 0.2s; }
+  .loop-caption { min-height: 4.6em; font-weight: 600; background: var(--accent-soft); border-radius: 14px; padding: 10px 14px; margin: 8px 0; }
+  .loop-caption code { font-family: ui-monospace, Menlo, monospace; background: var(--code-bg); color: var(--code-text); padding: 2px 8px; border-radius: 6px; font-size: 0.9em; white-space: nowrap; }
+
+  /* ---------- pretend phone + pretend robot ---------- */
+  .sim4 { display: grid; grid-template-columns: minmax(0, 290px) minmax(0, 1fr); gap: 22px; align-items: start; }
+  .phone { background: #1f2340; border: 4px solid #4b5187; border-radius: 30px; padding: 12px 10px 14px; box-shadow: 0 7px 0 rgba(0,0,0,0.25); color: #fff; }
+  .phone-top { text-align: center; font-family: var(--round); font-weight: 700; font-size: 0.95rem; padding-bottom: 6px; }
+  .phone-chat { background: #f1f5f9; color: #1f2340; border-radius: 16px; height: 230px; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 6px; font-size: 0.9rem; line-height: 1.35; }
+  .bubble { max-width: 88%; padding: 6px 11px; border-radius: 16px; overflow-wrap: anywhere; }
+  .bubble.me { align-self: flex-end; background: #2563eb; color: #fff; border-bottom-right-radius: 4px; }
+  .bubble.bot { align-self: flex-start; background: #fff; border: 2px solid #cbd5e1; border-bottom-left-radius: 4px; }
+  .bubble.note { align-self: center; background: #fef3c7; color: #713f12; font-size: 0.8rem; border-radius: 10px; text-align: center; }
+  .quick { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
+  .quick button { border: none; border-radius: 99px; min-height: 44px; padding: 6px 12px; font: inherit; font-size: 0.85rem; font-weight: 700; cursor: pointer; background: #dfe2ff; color: #1f2340; }
+  .quick button.cmd { background: #fde68a; font-family: ui-monospace, Menlo, monospace; }
+  .phone-send { display: flex; gap: 6px; }
+  .phone-send input { flex: 1; min-width: 0; font: inherit; font-size: 16px; padding: 8px 12px; min-height: 44px; border-radius: 99px; border: none; background: #fff; color: #1f2340; }
+  .phone-send button { border: none; border-radius: 99px; min-height: 44px; min-width: 64px; font: inherit; font-weight: 800; cursor: pointer; background: #22c55e; color: #052e16; }
+  .sim-side { min-width: 0; }
+  .sim-side .lcd { margin-top: 0; }
+  .robot-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 8px 0; font-weight: 600; }
+  .led { width: 26px; height: 26px; border-radius: 50%; background: #7f1d1d; border: 3px solid #450a0a; flex-shrink: 0; }
+  .led.on { background: #ef4444; box-shadow: 0 0 14px 4px rgba(239,68,68,0.75); }
+  .says { background: var(--good-soft); border-left: 8px solid var(--good); border-radius: 14px; padding: 8px 12px; min-height: 44px; margin: 8px 0; font-weight: 600; overflow-wrap: anywhere; }
+  .wire { background: var(--code-bg); color: var(--code-text); border-radius: 14px; padding: 10px 12px; font-family: ui-monospace, Menlo, monospace; font-size: 0.8rem; line-height: 1.5; height: 172px; overflow: auto; white-space: pre; border: 3px solid var(--c); margin: 0; }
+  .wire .to { color: #93c5fd; }
+  .wire .from { color: #86efac; }
+  .wire .info { color: #fcd34d; }
+
+  /* ---------- small toys ---------- */
+  .dayband { position: relative; height: 26px; border-radius: 99px; overflow: hidden; background: linear-gradient(90deg, #1e1b4b 0 29.17%, #fde68a 29.17% 87.5%, #1e1b4b 87.5% 100%); margin-top: 4px; }
+  .dayband i { position: absolute; top: -2px; bottom: -2px; width: 4px; margin-left: -2px; background: #ef4444; border-radius: 2px; }
+  .dayband-labels { display: flex; justify-content: space-between; font-size: 0.78rem; color: var(--muted); }
+  .stopwatch { font-family: ui-monospace, Menlo, monospace; font-size: 2.4rem; font-weight: 800; text-align: center; background: var(--code-bg); color: #86efac; border-radius: 16px; padding: 6px; }
+  .laps { list-style: none; padding: 0; margin: 8px 0 0; display: flex; gap: 8px; flex-wrap: wrap; }
+  .laps li { margin: 0; background: var(--accent-soft); border-radius: 99px; padding: 3px 12px; font-weight: 600; font-size: 0.9rem; }
+  .days { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
+  .day { min-width: 48px; min-height: 44px; border-radius: 12px; border: 2px solid var(--line); background: var(--card); color: var(--muted); font: inherit; font-weight: 700; cursor: pointer; }
+  .day.on { background: var(--c); border-color: var(--c); color: #fff; }
+  .field-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: 8px 0; }
+  .field-row label { font-weight: 700; }
+  .alarm-list { list-style: none; padding: 0; margin: 8px 0; }
+  .alarm-list li { display: flex; gap: 10px; align-items: center; justify-content: space-between; margin: 6px 0; padding: 6px 8px 6px 14px; border-radius: 14px; background: var(--accent-soft); font-weight: 600; }
+  .alarm-list button { min-width: 44px; min-height: 44px; border-radius: 50%; border: none; cursor: pointer; background: none; font-size: 1.2rem; }
+  .scorebar { position: relative; height: 30px; border-radius: 10px; background: var(--line); margin: 4px 0 12px; overflow: hidden; }
+  .scorebar .fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--k); border-radius: 10px; }
+  .scorebar .mark { position: absolute; top: 0; bottom: 0; width: 4px; margin-left: -2px; background: var(--text); }
+  .verdict { font-family: var(--round); font-weight: 800; font-size: 1.35rem; text-align: center; border-radius: 16px; padding: 10px; margin: 10px 0; background: var(--good-soft); color: var(--good); }
+  .verdict.friend { background: var(--warn-soft); color: var(--warn); }
+  .frames { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
+  .frame { width: 56px; height: 56px; border-radius: 14px; border: 3px solid var(--line); background: var(--card); font-size: 1.5rem; cursor: pointer; }
+  .frame[data-a="1"] { border-color: #2563eb; background: color-mix(in srgb, #2563eb 18%, var(--card)); }
+  .frame[data-a="2"] { border-color: #db2777; background: color-mix(in srgb, #db2777 18%, var(--card)); }
+  .frame[data-a="f"] { border-color: #a16207; background: color-mix(in srgb, #f59e0b 18%, var(--card)); }
+  .numbers { display: grid; grid-template-columns: repeat(32, 1fr); gap: 2px; margin: 8px 0; }
+  .numbers i { aspect-ratio: 1; border-radius: 2px; }
+  .shortcut { display: grid; gap: 8px; margin: 12px 0; max-width: 460px; }
+  .sc-block { border-radius: 16px; padding: 10px 14px; background: color-mix(in srgb, var(--k) 16%, var(--card)); border: 2px solid color-mix(in srgb, var(--k) 55%, var(--card)); }
+  .sc-block b { font-family: var(--round); }
+  .sc-block table { margin: 6px 0 0; font-size: 0.9rem; }
+  .sc-block td { border: none; padding: 2px 8px 2px 0; }
+  .sc-arrow { text-align: center; line-height: 1; color: var(--muted); }
+  .who { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .who div { border-radius: 16px; padding: 12px; border: 3px solid var(--line); text-align: center; opacity: 0.45; transition: opacity 0.2s; }
+  .who div.on { opacity: 1; border-color: var(--c); background: color-mix(in srgb, var(--c) 12%, var(--card)); }
+  .who span { font-size: 2rem; display: block; }
+
+  @media (max-width: 620px) {
+    .sim4 { grid-template-columns: 1fr; }
+    .phone { max-width: 340px; margin: 0 auto; width: 100%; }
+    .numbers { grid-template-columns: repeat(16, 1fr); }
+    .who { grid-template-columns: 1fr; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .robot .talk { animation: none; opacity: 1; }
+    .diagram .node { transition: none; }
+  }
+  @media print {
+    .toy, .sim4, .btn-row { display: none; }
+    details.code pre { max-height: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <div class="hero-text">
+    <h1>The Talking Robot</h1>
+    <p class="subtitle">Chapter 4: your robot learns to talk, takes messages from a phone anywhere in the world, texts you back, announces snack time, and greets each brother by name.</p>
+    <div class="chips">
+      <a class="chip chip-link" href="index.html">🏠 Home</a>
+      <span class="chip">📖 Chapter 4</span>
+      <span class="chip">⏱ About 3 hours</span>
+      <span class="chip">👥 2 builders + a parent</span>
+      <span class="chip">🏅 6 badges to earn</span>
+      <a class="chip chip-link" href="chapter-3-robot-eyes.html">← Chapter 3: Robot Eyes</a>
+      <a class="chip chip-link" href="inside-the-robot.html">🔬 Bonus: Inside the Robot</a>
+    </div>
+  </div>
+  <svg class="robot" viewBox="0 0 200 222" role="img" aria-label="A friendly robot talking, with a phone buzzing next to it">
+    <line x1="100" y1="16" x2="100" y2="38" stroke="#fff" stroke-width="4"/>
+    <circle class="antenna" cx="100" cy="12" r="8" fill="#fda4af"/>
+    <rect x="22" y="112" width="20" height="58" rx="10" fill="#fcd34d"/>
+    <g class="arm">
+      <rect x="158" y="62" width="20" height="66" rx="10" fill="#fcd34d"/>
+      <rect x="154" y="16" width="30" height="50" rx="7" fill="#1f2340" stroke="#fff" stroke-width="2"/>
+      <rect x="158" y="22" width="22" height="34" rx="3" fill="#e0f2fe"/>
+      <rect x="161" y="26" width="16" height="7" rx="3.5" fill="#2563eb"/>
+      <rect x="161" y="36" width="12" height="7" rx="3.5" fill="#22c55e"/>
+      <circle cx="168" cy="66" r="11" fill="#fde68a"/>
+    </g>
+    <rect x="48" y="36" width="104" height="66" rx="14" fill="#38bdf8" stroke="#fff" stroke-width="3"/>
+    <circle cx="78" cy="62" r="15" fill="#e5e7eb" stroke="#64748b" stroke-width="3"/>
+    <circle cx="122" cy="62" r="15" fill="#e5e7eb" stroke="#64748b" stroke-width="3"/>
+    <circle class="pupil" cx="78" cy="62" r="6" fill="#1f2340"/>
+    <circle class="pupil" cx="122" cy="62" r="6" fill="#1f2340"/>
+    <path d="M84,86 q16,12 32,0" fill="#1f2340" stroke="#1f2340" stroke-width="3" stroke-linejoin="round"/>
+    <g fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round">
+      <path class="talk" d="M30,58 q-8,10 0,20"/>
+      <path class="talk t2" d="M20,50 q-13,18 0,36"/>
+      <path class="talk t3" d="M10,42 q-18,26 0,52"/>
+    </g>
+    <rect x="40" y="108" width="120" height="86" rx="16" fill="#fbbf24" stroke="#fff" stroke-width="3"/>
+    <rect x="56" y="122" width="88" height="34" rx="5" fill="#1d4ed8" stroke="#1e3a8a" stroke-width="3"/>
+    <text x="100" y="145" text-anchor="middle" font-family="ui-monospace, Menlo, monospace" font-weight="700" font-size="15" fill="#fff">HELLO!</text>
+    <circle cx="70" cy="175" r="7" fill="#ef4444" stroke="#fff" stroke-width="2"/>
+    <circle cx="130" cy="175" r="9" fill="#1f2340"/>
+    <circle cx="130" cy="175" r="3" fill="#94a3b8"/>
+    <rect x="58" y="196" width="30" height="20" rx="8" fill="#38bdf8"/>
+    <rect x="112" y="196" width="30" height="20" rx="8" fill="#38bdf8"/>
+  </svg>
+</header>
+
+<nav class="progress" aria-label="Your progress">
+  <div class="progress-row">
+    <span id="progress-label">0 of 6 steps done</span>
+    <button class="reset-btn" id="reset-btn" type="button">Reset checkmarks</button>
+  </div>
+  <ol class="map">
+    <li><a class="stop" data-stop="1" href="#step1" style="--c:var(--s1)"><span class="dot" aria-hidden="true">🗣️</span><span class="lbl">Speak</span></a></li>
+    <li><a class="stop" data-stop="2" href="#step2" style="--c:var(--s2)"><span class="dot" aria-hidden="true">📱</span><span class="lbl">Text</span></a></li>
+    <li><a class="stop" data-stop="3" href="#step3" style="--c:var(--s3)"><span class="dot" aria-hidden="true">🔔</span><span class="lbl">Reply</span></a></li>
+    <li><a class="stop" data-stop="4" href="#step4" style="--c:var(--s4)"><span class="dot" aria-hidden="true">⏰</span><span class="lbl">Alarm</span></a></li>
+    <li><a class="stop" data-stop="5" href="#step5" style="--c:var(--s5)"><span class="dot" aria-hidden="true">🧑</span><span class="lbl">Names</span></a></li>
+    <li><a class="stop" data-stop="6" href="#step6" style="--c:var(--s6)"><span class="dot" aria-hidden="true">🔊</span><span class="lbl">Solo</span></a></li>
+  </ol>
+  <div class="bar"><div class="bar-fill" id="bar-fill"></div></div>
+</nav>
+
+<!-- ============ BEFORE YOU START ============ -->
+<section class="card">
+  <h2><span aria-hidden="true">🚀</span> Before you start</h2>
+  <p><b>You need:</b> your Door Greeter from Chapter 1 with its "eyes" (the ultrasonic sensor) plugged in, a Mac, and a phone or iPad. The Mac must already have Python and uv from <a href="chapter-3-robot-eyes.html">Chapter 3</a>, Step 1.</p>
+  <p><b>Time:</b> about 3 hours. It works best as two Sundays: Steps 1 to 3, then Steps 4 and 5. Step 6 is a bonus that needs a small purchase.</p>
+  <p><b>Two jobs, swap every step:</b></p>
+  <div class="roles">
+    <div class="role builder"><span aria-hidden="true">📱</span><div><b>Messenger</b>works the phone, walks up to the robot, and tries to trick it.</div></div>
+    <div class="role coder"><span aria-hidden="true">⌨️</span><div><b>Coder</b>reads the step out loud, types the commands, and makes the code changes.</div></div>
+  </div>
+  <p class="swap">🔄 Swap jobs after every step!</p>
+  <div class="warn">
+    <strong>⚠️ Golden rule</strong>
+    Unplug the USB cable before moving any wires. Plug it back in to test.
+  </div>
+  <div class="warn">
+    <strong>🔒 Secret rule</strong>
+    In Step 2 the robot gets two secret mailbox names. They work like passwords: anyone who knows them can talk to your robot. Never post them, screenshot them, or put them on GitHub.
+  </div>
+  <div class="tip">
+    <strong>💡 Parent tip</strong>
+    Steps 2 and 5 have parent jobs: making the secret names, and checking that everyone agrees before the robot learns a face. The big idea to say out loud in this chapter: the robot has <b>two brains</b> that pass notes to each other.
+  </div>
+</section>
+
+<!-- ============ HOW IT WORKS ============ -->
+<section class="card" style="--c:var(--s2)">
+  <h2><span aria-hidden="true">🧠</span> How it works: two brains</h2>
+  <p>The robot has a <b>little brain</b> (the Arduino) for quick reflexes, and a <b>big brain</b> (the Mac) for talking, knowing faces and using the internet. They pass notes to each other down the USB cable.</p>
+  <figure class="diagram">
+    <svg id="loop-svg" viewBox="0 0 720 292" role="img" aria-label="The full loop: phone, cloud, Mac and Arduino, with messages going both ways">
+      <!-- the house -->
+      <rect x="330" y="18" width="378" height="262" rx="18" fill="#fef9c3" stroke="#ca8a04" stroke-width="2" stroke-dasharray="7 6"/>
+      <text x="344" y="38" class="lbl" style="fill:#854d0e">🏠 Your house: no doors in from the internet</text>
+
+      <!-- lanes -->
+      <path class="lane" id="lane-in-1" d="M92,118 H190"/>
+      <path class="lane" id="lane-in-2" d="M290,118 H372"/>
+      <path class="lane" id="lane-in-3" d="M476,118 H556"/>
+      <path class="lane" id="lane-out-3" d="M556,178 H476"/>
+      <path class="lane" id="lane-out-2" d="M372,178 H290"/>
+      <path class="lane" id="lane-out-1" d="M190,178 H92"/>
+      <g class="tiny" text-anchor="middle">
+        <text x="141" y="108">internet</text><text x="331" y="108">Mac asks first</text><text x="516" y="108">USB cable</text>
+        <text x="516" y="196">USB cable</text><text x="331" y="196">Mac reaches out</text><text x="141" y="196">internet</text>
+      </g>
+      <g fill="#94a3b8"><path d="M190,118 l-9,-5 v10 z"/><path d="M372,118 l-9,-5 v10 z"/><path d="M556,118 l-9,-5 v10 z"/><path d="M476,178 l9,-5 v10 z"/><path d="M290,178 l9,-5 v10 z"/><path d="M92,178 l9,-5 v10 z"/></g>
+
+      <!-- phone -->
+      <g class="node" id="node-phone">
+        <rect x="26" y="78" width="62" height="140" rx="12" fill="#1f2340" stroke="#4b5187" stroke-width="3"/>
+        <rect x="32" y="90" width="50" height="112" rx="4" fill="#e0f2fe"/>
+        <rect x="36" y="96" width="42" height="26" rx="6" fill="#fff" stroke="#cbd5e1" id="loop-bell" style="opacity:0"/>
+        <text x="57" y="114" text-anchor="middle" id="loop-bell-text" style="font-size:14px;opacity:0">🔔</text>
+        <circle cx="57" cy="210" r="3" fill="#94a3b8"/>
+      </g>
+      <text x="57" y="238" text-anchor="middle" class="lbl">Phone</text>
+      <text x="57" y="252" text-anchor="middle" class="tiny">anywhere!</text>
+
+      <!-- cloud -->
+      <g class="node" id="node-cloud">
+        <path d="M205,172 a26,26 0 0 1 4,-51 a34,34 0 0 1 64,-6 a28,28 0 0 1 2,57 z" fill="#e0f2fe" stroke="#38bdf8" stroke-width="3"/>
+        <rect x="212" y="134" width="56" height="26" rx="5" fill="#fff" stroke="#38bdf8" stroke-width="2"/>
+        <text x="240" y="152" text-anchor="middle" style="font-size:14px">📬📬</text>
+      </g>
+      <text x="240" y="238" text-anchor="middle" class="lbl">Cloud (ntfy)</text>
+      <text x="240" y="252" text-anchor="middle" class="tiny">two secret mailboxes</text>
+
+      <!-- mac -->
+      <g class="node" id="node-mac">
+        <rect x="380" y="84" width="88" height="62" rx="6" fill="#334155" stroke="#0f172a" stroke-width="3"/>
+        <rect x="386" y="90" width="76" height="50" rx="2" fill="#0f172a"/>
+        <text x="424" y="112" text-anchor="middle" style="font-size:11px;fill:#86efac;font-family:ui-monospace,Menlo,monospace">bridge.py</text>
+        <text x="424" y="130" text-anchor="middle" style="font-size:15px">🧠</text>
+        <path d="M368,150 h112 l8,14 h-128 z" fill="#94a3b8" stroke="#475569" stroke-width="2"/>
+        <g id="loop-voice" style="opacity:0" fill="none" stroke="#ea580c" stroke-width="3" stroke-linecap="round"><path d="M476,96 q7,9 0,18"/><path d="M484,90 q11,15 0,30"/></g>
+      </g>
+      <text x="424" y="238" text-anchor="middle" class="lbl">Mac: big brain</text>
+      <text x="424" y="252" text-anchor="middle" class="tiny">voice, faces, internet</text>
+      <text x="424" y="72" text-anchor="middle" class="tiny" style="fill:#854d0e">⏰ clock · 📷 camera</text>
+
+      <!-- arduino -->
+      <g class="node" id="node-arduino">
+        <rect x="562" y="92" width="118" height="92" rx="10" fill="#0f8a8f"/>
+        <rect x="574" y="102" width="94" height="34" rx="4" fill="#1d4ed8" stroke="#1e3a8a" stroke-width="2"/>
+        <text x="577" y="116" class="lcdtext" id="loop-lcd1">Talking Robot ON</text>
+        <text x="577" y="129" class="lcdtext" id="loop-lcd2">Visitors: 0</text>
+        <circle cx="586" cy="160" r="8" fill="#7f1d1d" id="loop-led"/>
+        <circle cx="620" cy="160" r="11" fill="#1f2340"/><circle cx="620" cy="160" r="3" fill="#94a3b8"/>
+        <rect x="642" y="150" width="30" height="20" rx="4" fill="#2563eb"/><circle cx="650" cy="160" r="5" fill="#e5e7eb"/><circle cx="664" cy="160" r="5" fill="#e5e7eb"/>
+        <text x="620" y="88" text-anchor="middle" id="loop-note" style="font-size:18px;opacity:0">🎵</text>
+      </g>
+      <text x="621" y="238" text-anchor="middle" class="lbl">Arduino: little brain</text>
+      <text x="621" y="252" text-anchor="middle" class="tiny">reflexes, screen, buzzer</text>
+
+      <!-- the travelling note -->
+      <g id="loop-packet" style="opacity:0" transform="translate(57,118)">
+        <circle r="17" fill="#fff" stroke="#ea580c" stroke-width="4"/>
+        <text id="loop-packet-icon" text-anchor="middle" y="6" style="font-size:17px">💬</text>
+      </g>
+    </svg>
+    <figcaption>Follow the orange bubble. Top row: a message goes <b>to</b> the robot. Bottom row: news comes back <b>from</b> the robot.</figcaption>
+  </figure>
+  <div class="btn-row">
+    <button class="btn" type="button" id="loop-msg" style="--c:var(--s1)">📱 Send "Dinner time!"</button>
+    <button class="btn" type="button" id="loop-visit" style="--c:var(--s3)">🚶 Walk up to the robot</button>
+  </div>
+  <p class="loop-caption" id="loop-caption" aria-live="polite">Tap a button and watch one note travel the whole loop.</p>
+  <ul>
+    <li><b>Reflex or thinking?</b> When someone walks up, the Arduino chirps and lights up <b>by itself, instantly</b>. The Mac does the slow, smart part. Your body works the same way: you pull your hand off a hot stove before your brain finishes thinking "hot!".</li>
+    <li><b>No doors into the house.</b> The Mac always reaches <b>out</b> to the cloud and asks "any messages for me?". Nothing on the internet can reach in.</li>
+    <li><b>One cable, one boss.</b> Only one program at a time can use the USB cable, so one Mac program (the <b>bridge</b>) does all the talking to the Arduino.</li>
+  </ul>
+  <p><a class="peek" href="inside-the-robot.html">🔬 Peek inside: how does a note travel down a wire? →</a></p>
+</section>
+
+<!-- ============ SIMULATOR ============ -->
+<section class="card" style="--c:var(--s3)">
+  <h2><span aria-hidden="true">🎮</span> Play it before you build it</h2>
+  <p>This pretend phone texts a pretend robot, using the <b>same notes</b> the real ones use. Type anything, or tap a quick button. Then press <b>Walk up</b> and watch the phone.</p>
+  <div class="sim4">
+    <div class="phone" aria-label="Pretend phone">
+      <div class="phone-top">📱 Texting the robot</div>
+      <div class="phone-chat" id="sim-chat" aria-live="polite"></div>
+      <div class="quick" id="sim-quick">
+        <button type="button" data-t="Dinner is ready, come downstairs">Dinner!</button>
+        <button type="button" data-t="I’m home 🎉">I’m home 🎉</button>
+        <button type="button" class="cmd" data-t="!beep">!beep</button>
+        <button type="button" class="cmd" data-t="!tune win">!tune win</button>
+        <button type="button" class="cmd" data-t="!led on">!led on</button>
+        <button type="button" class="cmd" data-t="!led off">!led off</button>
+        <button type="button" class="cmd" data-t="!status">!status</button>
+      </div>
+      <div class="phone-send">
+        <input type="text" id="sim-input" maxlength="140" placeholder="Type a message" autocomplete="off" aria-label="Message for the robot">
+        <button type="button" id="sim-send">Send</button>
+      </div>
+    </div>
+    <div class="sim-side">
+      <div class="lcd"><div class="lcd-screen" id="sim-screen" aria-hidden="true"></div></div>
+      <div class="robot-row"><span class="led" id="sim-led" aria-hidden="true"></span><span id="sim-led-text">LED off</span></div>
+      <div class="says" id="sim-says" aria-live="polite">🔈 The robot's voice shows up here.</div>
+      <div class="btn-row">
+        <button class="btn" type="button" id="sim-walk">🚶 Walk up</button>
+        <button class="btn ghost" type="button" id="sim-quiet" aria-pressed="false">🌙 Quiet hours: off</button>
+        <button class="btn ghost" type="button" id="sim-voice" aria-pressed="false">🔊 Real voice: off</button>
+      </div>
+      <p class="time" style="margin:4px 0">The notes on the USB cable:</p>
+      <div class="wire" id="sim-wire" role="log" aria-label="Notes on the USB cable"></div>
+    </div>
+  </div>
+  <p class="time">House rules, same as the real robot: 100 letters at most, one message every 3 seconds, and only 5 may wait in line. Try sending 10 in a row! (The pretend "don't text again" timer is 10 seconds. The real one is 60.)</p>
+</section>
+
+<!-- ============ PARTS ============ -->
+<section class="card">
+  <h2><span aria-hidden="true">🧰</span> Gather the parts</h2>
+  <p>Steps 1 to 5 need <b>no new parts</b>. Check them off as you find them.</p>
+  <ul class="parts">
+    <li><label>
+      <svg viewBox="0 0 48 48" aria-hidden="true"><rect x="3" y="8" width="42" height="32" rx="3" fill="#f8fafc" stroke="#94a3b8" stroke-width="2"/><rect x="24" y="13" width="18" height="12" rx="1" fill="#1d4ed8"/><circle cx="12" cy="19" r="5" fill="#1f2340"/><rect x="6" y="30" width="16" height="6" rx="2" fill="#0f8a8f"/><line x1="24" y1="33" x2="42" y2="33" stroke="#ef4444" stroke-width="2"/></svg>
+      <span class="txt">Your Chapter 1 gadget<span class="hint">UNO, breadboard, screen, knob and buzzer, all still wired.</span></span>
+      <input type="checkbox" class="part-box"></label></li>
+    <li><label>
+      <svg viewBox="0 0 48 48" aria-hidden="true"><rect x="3" y="12" width="42" height="24" rx="3" fill="#2563eb"/><circle cx="15" cy="24" r="8" fill="#e5e7eb" stroke="#64748b" stroke-width="2"/><circle cx="33" cy="24" r="8" fill="#e5e7eb" stroke="#64748b" stroke-width="2"/></svg>
+      <span class="txt">The ultrasonic sensor<span class="hint">The "eyes". If Chapter 2 took them out, Step 1 puts them back.</span></span>
+      <input type="checkbox" class="part-box"></label></li>
+    <li><label>
+      <svg viewBox="0 0 48 48" aria-hidden="true"><rect x="8" y="10" width="32" height="22" rx="3" fill="#334155"/><rect x="11" y="13" width="26" height="16" fill="#0f172a"/><path d="M4,36 h40 l-3,5 h-34 z" fill="#94a3b8"/><path d="M19,21 q5,-6 10,0" fill="none" stroke="#86efac" stroke-width="2"/></svg>
+      <span class="txt">A Mac, plus the USB cable<span class="hint">The Mac's own voice becomes the robot's voice.</span></span>
+      <input type="checkbox" class="part-box"></label></li>
+    <li><label>
+      <svg viewBox="0 0 48 48" aria-hidden="true"><rect x="14" y="3" width="20" height="42" rx="5" fill="#1f2340" stroke="#94a3b8" stroke-width="2"/><rect x="17" y="8" width="14" height="28" rx="2" fill="#e0f2fe"/><rect x="19" y="11" width="10" height="5" rx="2.5" fill="#2563eb"/><rect x="19" y="19" width="8" height="5" rx="2.5" fill="#22c55e"/><circle cx="24" cy="40" r="2" fill="#94a3b8"/></svg>
+      <span class="txt">An iPhone or iPad<span class="hint">For "Hey Siri, tell the robot". Any phone works with the free ntfy app.</span></span>
+      <input type="checkbox" class="part-box"></label></li>
+    <li><label>
+      <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M8,24 v-8 a7,7 0 0 1 14,0 v8 z" fill="#ef4444"/><rect x="6" y="23" width="18" height="3" rx="1" fill="#b91c1c"/><line x1="11" y1="26" x2="11" y2="44" stroke="#94a3b8" stroke-width="2"/><line x1="19" y1="26" x2="19" y2="38" stroke="#94a3b8" stroke-width="2"/><rect x="30" y="18" width="12" height="6" rx="2" fill="#d6a76a"/><line x1="26" y1="21" x2="46" y2="21" stroke="#94a3b8" stroke-width="2"/></svg>
+      <span class="txt">An LED on pin 7 (optional)<span class="hint">If you have one from Chapter 1, it lights up for visitors. No LED? Everything still works.</span></span>
+      <input type="checkbox" class="part-box"></label></li>
+    <li><label>
+      <svg viewBox="0 0 48 48" aria-hidden="true"><rect x="8" y="8" width="24" height="26" rx="2" fill="#1f2937"/><rect x="13" y="12" width="14" height="12" rx="1" fill="#94a3b8"/><g stroke="#fbbf24" stroke-width="2"><line x1="10" y1="34" x2="10" y2="42"/><line x1="16" y1="34" x2="16" y2="42"/><line x1="22" y1="34" x2="22" y2="42"/><line x1="28" y1="34" x2="28" y2="42"/></g><circle cx="38" cy="22" r="8" fill="#1f2340"/><circle cx="38" cy="22" r="3" fill="#94a3b8"/></svg>
+      <span class="txt">For the bonus Step 6: a DFPlayer Mini, a micro-SD card and a small speaker<span class="hint">A small purchase. The shopping list is in Step 6.</span></span>
+      <input type="checkbox" class="part-box"></label></li>
+  </ul>
+</section>
+
+<!-- ============ STEP 1 ============ -->
+<section class="card step" id="step1" style="--c:var(--s1)">
+  <div class="step-head">
+    <div class="step-title">
+      <span class="step-emoji" aria-hidden="true">🗣️</span>
+      <div>
+        <span class="step-num">Step 1</span>
+        <h2>The robot speaks</h2>
+        <span class="time">⏱ About 20 minutes · the Mac's voice</span>
+      </div>
+    </div>
+    <label class="done-label"><input type="checkbox" class="done-box" data-step="1"> Done</label>
+  </div>
+
+  <h3>Instant magic (no code!)</h3>
+  <p>Open <b>Terminal</b> (press ⌘ Space, type <i>Terminal</i>, press Return). Type this and press Return:</p>
+  <div class="code-wrap cmd"><button class="copy-btn" data-target="cmd-say1" type="button">Copy</button>
+<pre id="cmd-say1">say "Hello, I am a robot"</pre></div>
+  <p>The Mac talks! Now list every voice it knows, and try a very fast one:</p>
+  <div class="code-wrap cmd"><button class="copy-btn" data-target="cmd-say2" type="button">Copy</button>
+<pre id="cmd-say2">say -v '?'</pre></div>
+  <div class="code-wrap cmd"><button class="copy-btn" data-target="cmd-say3" type="button">Copy</button>
+<pre id="cmd-say3">say -r 300 "I am a very fast robot"</pre></div>
+
+  <h3>Check the wiring</h3>
+  <p>This chapter uses the <b>Chapter 1 wiring</b>. Nothing new to plug in.</p>
+  <figure class="diagram">
+    <svg viewBox="0 0 640 318" role="img" aria-label="Wiring picture: sensor on pins 9 and 10, buzzer on 8, optional LED on 7, screen on 12, 11, 5, 4, 3 and 2">
+      <rect x="20" y="20" width="150" height="278" rx="12" fill="#0f8a8f"/>
+      <text x="56" y="52" class="w" style="font-size:22px">UNO</text>
+      <g fill="#1f2340"><rect x="158" y="76" width="22" height="16"/><rect x="158" y="100" width="22" height="16"/><rect x="158" y="146" width="22" height="16"/><rect x="158" y="192" width="22" height="16"/><rect x="158" y="238" width="22" height="16"/></g>
+      <g class="w" text-anchor="end"><text x="150" y="89">9</text><text x="150" y="113">10</text><text x="150" y="159">8</text><text x="150" y="205">7</text><text x="150" y="251">12 11 5 4 3 2</text></g>
+      <text x="34" y="286" class="w sm">0 and 1: leave empty</text>
+
+      <rect x="430" y="62" width="190" height="62" rx="8" fill="#2563eb"/>
+      <circle cx="560" cy="93" r="20" fill="#e5e7eb" stroke="#64748b" stroke-width="3"/><circle cx="600" cy="93" r="14" fill="#e5e7eb" stroke="#64748b" stroke-width="3"/>
+      <text x="442" y="88" class="w">Sensor</text><text x="442" y="106" class="w sm">Trig · Echo</text>
+      <path class="wire" d="M180,84 H430" stroke="#f97316"/><path class="wire" d="M180,108 H430" stroke="#ca8a04"/>
+
+      <rect x="430" y="134" width="190" height="40" rx="8" fill="#1f2340"/>
+      <circle cx="590" cy="154" r="13" fill="#0f172a" stroke="#94a3b8" stroke-width="3"/>
+      <text x="442" y="159" class="w">Buzzer +</text>
+      <path class="wire" d="M180,154 H430" stroke="#16a34a"/>
+
+      <rect x="430" y="182" width="190" height="40" rx="8" fill="#fff" stroke="#94a3b8" stroke-width="2" stroke-dasharray="6 5"/>
+      <path d="M580,208 v-10 a10,10 0 0 1 20,0 v10 z" fill="#ef4444"/>
+      <text x="442" y="200" style="font-weight:700">LED (optional)</text><text x="442" y="214" class="sm">through a 220 Ω resistor</text>
+      <path class="wire" d="M180,200 H430" stroke="#ef4444" stroke-dasharray="2 10"/>
+
+      <rect x="430" y="230" width="190" height="62" rx="8" fill="#15803d"/>
+      <rect x="520" y="242" width="90" height="38" rx="3" fill="#1d4ed8"/>
+      <text x="442" y="258" class="w">Screen</text><text x="442" y="276" class="w sm">6 wires</text>
+      <path class="wire" d="M180,246 H430" stroke="#7c3aed" style="stroke-width:11"/>
+      <g text-anchor="middle" class="sm" style="font-weight:700"><text x="305" y="76">9 → Trig</text><text x="305" y="124">10 → Echo</text><text x="305" y="146">8 → buzzer</text><text x="305" y="192">7 → LED, if you have one</text><text x="305" y="266">RS 12 · E 11 · D4 5 · D5 4 · D6 3 · D7 2</text></g>
+    </svg>
+    <figcaption>Every part also needs its power wires to the <b>+</b> and <b>−</b> rails, just like in Chapter 1. Pins 0 and 1 stay empty: the USB cable uses them to talk to the Mac.</figcaption>
+  </figure>
+  <details>
+    <summary>🔐 Coming from Chapter 2 (Secret Code Bot)? Put the eyes back</summary>
+    <p>Unplug USB first. Chapter 2 took the sensor out and put a remote-control receiver on pin 7. This chapter's code uses pin 7 for the LED, so the receiver has to come out. Then put the sensor back exactly as in <a href="door-greeter-build-guide.html#step2">Chapter 1, Step 2</a>.</p>
+    <div class="table-scroll"><table>
+      <tr><th>Take out (IR receiver)</th><th>It was going to</th></tr>
+      <tr><td class="pin">Y</td><td>UNO pin <span class="pin">7</span></td></tr>
+      <tr><td class="pin">R</td><td><b>+</b> rail</td></tr>
+      <tr><td class="pin">G</td><td><b>−</b> rail</td></tr>
+    </table></div>
+    <div class="table-scroll"><table>
+      <tr><th>Put back (sensor pin)</th><th>Connect to</th></tr>
+      <tr><td class="pin">Vcc</td><td><b>+</b> rail</td></tr>
+      <tr><td class="pin">Trig</td><td>UNO pin <span class="pin">9</span></td></tr>
+      <tr><td class="pin">Echo</td><td>UNO pin <span class="pin">10</span></td></tr>
+      <tr><td class="pin">Gnd</td><td><b>−</b> rail</td></tr>
+    </table></div>
+    <p>The screen and the buzzer never moved, so leave them alone. Pin 7 is now free: add an LED there if you like, or leave it empty.</p>
+  </details>
+
+  <h3>Set up this chapter's Python (a parent job, once)</h3>
+  <p>In Terminal, run these one at a time. They make a private Python just for this chapter, like in Chapter 3.</p>
+  <div class="code-wrap cmd"><button class="copy-btn" data-target="cmd-cd" type="button">Copy</button>
+<pre id="cmd-cd">cd ~/"Claude Projects/Door Greeter Bot/chapter-4-code"</pre></div>
+  <div class="code-wrap cmd"><button class="copy-btn" data-target="cmd-venv" type="button">Copy</button>
+<pre id="cmd-venv">uv venv --python 3.12</pre></div>
+  <div class="code-wrap cmd"><button class="copy-btn" data-target="cmd-act" type="button">Copy</button>
+<pre id="cmd-act">source .venv/bin/activate</pre></div>
+  <div class="code-wrap cmd"><button class="copy-btn" data-target="cmd-pip" type="button">Copy</button>
+<pre id="cmd-pip">uv pip install -r requirements.txt</pre></div>
+  <div class="code-wrap cmd"><button class="copy-btn" data-target="cmd-check" type="button">Copy</button>
+<pre id="cmd-check">python -c "import cv2, serial, requests, lameenc; print('All set!')"</pre></div>
+  <p>You should see <b>All set!</b></p>
+  <div class="tip">
+    <strong>💡 Every time you open a new Terminal window</strong>
+    Run the <code class="inline">cd</code> line and the <code class="inline">source .venv/bin/activate</code> line again. You'll know it worked when the line in Terminal starts with <code class="inline">(chapter-4-code)</code>.
+  </div>
+
+  <h3>Upload the robot's new little brain</h3>
+  <p>In the Arduino IDE, open <code class="inline">chapter-4-code/robot_bridge/robot_bridge.ino</code> and upload it. (Or make a new sketch and paste the code from the box below.) The screen should say <b>Talking Robot ON</b>.</p>
+  <details class="code">
+    <summary>📄 See the whole sketch: robot_bridge.ino</summary>
+    <div class="code-wrap"><button class="copy-btn" data-target="code-ino" type="button">Copy code</button>
+<pre id="code-ino">// Chapter 4: Robot Bridge
+// The Arduino is the robot's LITTLE brain: quick reflexes, a screen and a buzzer.
+// The Mac is the BIG brain: talking, faces and the internet.
+// They pass notes down the USB cable. Every note is one short line of text.
+//
+// Notes the Mac can send (try them in the Serial Monitor: 9600 baud, "New Line"):
+//   PING                     -&gt; PONG
+//   SHOW Hello|I am a robot  -&gt; shows two lines on the screen
+//   BEEP 880 200             -&gt; one beep: pitch 100 to 5000, length 10 to 2000 ms
+//   TUNE HELLO               -&gt; HELLO, WIN, SAD or SIREN
+//   NOTES 523 659 784        -&gt; your own tune, up to 8 notes
+//   LED ON                   -&gt; ON, OFF or BLINK
+//   PLAY 1                   -&gt; voice file 1 from the SD card (Step 6 only)
+//   IDLE                     -&gt; back to the waiting screen
+//
+// Notes the Arduino sends back:
+//   READY, PONG, OK &lt;word&gt;, ERR &lt;why&gt;, EVENT VISITOR &lt;count&gt;, EVENT LEFT
+#include &lt;LiquidCrystal.h&gt;
+
+// Step 6 only: change this 0 to 1 when the DFPlayer Mini is wired in.
+#define USE_DFPLAYER 0
+
+#if USE_DFPLAYER
+#include &lt;SoftwareSerial.h&gt;
+#include &lt;DFRobotDFPlayerMini.h&gt;
+SoftwareSerial playerSerial(A1, A2);     // A1 listens to the player's TX, A2 talks to its RX
+DFRobotDFPlayerMini player;
+#endif
+
+// make_voice_files.py writes phrases.h: which sound files are greetings.
+#if __has_include("phrases.h")
+#include "phrases.h"
+#else
+#define PHRASE_GREETING_FIRST 1
+#define PHRASE_GREETING_LAST  1
+#endif
+
+LiquidCrystal lcd(12, 11, 5, 4, 3, 2);   // RS, E, D4, D5, D6, D7
+
+const int TRIG_PIN   = 9;
+const int ECHO_PIN   = 10;
+const int BUZZER_PIN = 8;
+const int LED_PIN    = 7;                // if you have an LED on pin 7. Fine without one.
+
+const int TRIGGER_CM = 60;               // how close before it counts as a visitor
+const int PLAYER_VOLUME = 22;            // 0 to 30 (Step 6 only)
+const unsigned long MAC_QUIET_MS = 60000;   // no note from the Mac for this long = "I'm on my own"
+
+// ---------- memory ----------
+char line[65];                // one note from the Mac: 64 letters plus the end mark
+byte lineLength = 0;
+bool lineTooLong = false;
+
+bool someoneHere = false;
+int visitors = 0;
+unsigned long lastSensorCheck = 0;
+
+bool macHasTalked = false;
+unsigned long lastMacNote = 0;
+
+int tuneNotes[8];             // the tune that is playing right now
+byte tuneLength = 0;
+byte tunePosition = 0;
+int tuneNoteMs = 150;
+unsigned long nextNoteAt = 0;
+
+bool ledBlinking = false;
+unsigned long lastBlink = 0;
+
+bool playerFound = false;
+
+void setup() {
+  pinMode(TRIG_PIN, OUTPUT);
+  pinMode(ECHO_PIN, INPUT);
+  pinMode(BUZZER_PIN, OUTPUT);
+  pinMode(LED_PIN, OUTPUT);
+  Serial.begin(9600);
+  lcd.begin(16, 2);
+  randomSeed(analogRead(A0));
+  showIdle();
+  findPlayer();
+  Serial.println(F("READY"));
+}
+
+void loop() {
+  readNotesFromMac();
+  playNextNote();
+  blinkLed();
+
+  if (millis() - lastSensorCheck &gt;= 100) {     // look 10 times a second
+    lastSensorCheck = millis();
+    checkForVisitor();
+  }
+}
+
+// ---------- reflexes: these never wait for the Mac ----------
+void checkForVisitor() {
+  long cm = readDistanceCm();
+
+  // Someone walked up
+  if (cm &lt; TRIGGER_CM &amp;&amp; !someoneHere) {
+    someoneHere = true;
+    visitors++;
+    Serial.print(F("EVENT VISITOR "));
+    Serial.println(visitors);
+
+    setLed(true);                              // the reflex: light up...
+    startTune(1319, 1760, 0, 0, 2, 70);        // ...and chirp
+
+    if (!macIsTalking()) {                     // no Mac? Do the greeting myself.
+      lcd.clear();
+      lcd.print(F("Hello, human!"));
+      lcd.setCursor(0, 1);
+      lcd.print(F("Visitor #"));
+      lcd.print(visitors);
+      playGreetingFile();
+    }
+  }
+
+  // They walked away
+  if (cm &gt; TRIGGER_CM + 20 &amp;&amp; someoneHere) {
+    someoneHere = false;
+    Serial.println(F("EVENT LEFT"));
+    setLed(false);
+    showIdle();
+  }
+}
+
+// Has the Mac sent a note in the last minute? Then it does the talking.
+bool macIsTalking() {
+  return macHasTalked &amp;&amp; (millis() - lastMacNote &lt; MAC_QUIET_MS);
+}
+
+long readDistanceCm() {
+  digitalWrite(TRIG_PIN, LOW);
+  delayMicroseconds(2);
+  digitalWrite(TRIG_PIN, HIGH);    // shout!
+  delayMicroseconds(10);
+  digitalWrite(TRIG_PIN, LOW);
+
+  long echoTime = pulseIn(ECHO_PIN, HIGH, 30000);  // listen for the echo
+  if (echoTime == 0) return 999;   // no echo = nothing nearby
+  return echoTime / 58;            // 58 microseconds per cm, there and back
+}
+
+// ---------- reading notes from the Mac ----------
+void readNotesFromMac() {
+  while (Serial.available() &gt; 0) {
+    char letter = Serial.read();
+
+    if (letter == '\n' || letter == '\r') {    // end of the note
+      if (lineTooLong) {
+        Serial.println(F("ERR TOO_LONG"));
+      } else if (lineLength &gt; 0) {
+        line[lineLength] = '\0';
+        obey(line);
+      }
+      lineLength = 0;
+      lineTooLong = false;
+    } else if (lineLength &lt; 64) {
+      line[lineLength] = letter;
+      lineLength++;
+    } else {
+      lineTooLong = true;                      // more than 64 letters: ignore the rest
+    }
+  }
+}
+
+// Does the note start with this word? If so, point "rest" at what comes after it.
+bool startsWith(char* note, const char* word, char*&amp; rest) {
+  size_t length = strlen(word);
+  if (strncasecmp(note, word, length) != 0) return false;
+  if (note[length] != ' ' &amp;&amp; note[length] != '\0') return false;
+  rest = note + length;
+  while (*rest == ' ') rest++;
+  return true;
+}
+
+// Read one whole number and move "text" past it. Gives -1 if there is no number.
+long nextNumber(char*&amp; text) {
+  while (*text == ' ') text++;
+  if (*text &lt; '0' || *text &gt; '9') return -1;
+  long number = 0;
+  while (*text &gt;= '0' &amp;&amp; *text &lt;= '9') {
+    if (number &lt; 100000) number = number * 10 + (*text - '0');
+    text++;
+  }
+  if (*text != ' ' &amp;&amp; *text != '\0') return -1;   // "88x" is not a number
+  return number;
+}
+
+void obey(char* note) {
+  char* rest;
+  macHasTalked = true;
+  lastMacNote = millis();
+
+  if (startsWith(note, "PING", rest)) {
+    Serial.println(F("PONG"));
+
+  } else if (startsWith(note, "SHOW", rest)) {
+    showText(rest);
+    Serial.println(F("OK SHOW"));
+
+  } else if (startsWith(note, "BEEP", rest)) {
+    long hz = nextNumber(rest);
+    long ms = nextNumber(rest);
+    if (hz &lt; 100 || hz &gt; 5000 || ms &lt; 10 || ms &gt; 2000) {
+      Serial.println(F("ERR RANGE"));
+    } else {
+      tuneLength = 0;                          // stop any tune
+      tone(BUZZER_PIN, hz, ms);
+      Serial.println(F("OK BEEP"));
+    }
+
+  } else if (startsWith(note, "TUNE", rest)) {
+    if (strcasecmp(rest, "HELLO") == 0)      startTune(523, 659, 784, 1047, 4, 150);
+    else if (strcasecmp(rest, "WIN") == 0)   startTune(784, 988, 1175, 1568, 4, 120);
+    else if (strcasecmp(rest, "SAD") == 0)   startTune(392, 370, 349, 330, 4, 250);
+    else if (strcasecmp(rest, "SIREN") == 0) startSiren();
+    else { Serial.println(F("ERR UNKNOWN")); return; }
+    Serial.println(F("OK TUNE"));
+
+  } else if (startsWith(note, "NOTES", rest)) {
+    int newNotes[8];
+    byte count = 0;
+    bool good = (*rest != '\0');
+    while (good &amp;&amp; *rest != '\0') {
+      long hz = nextNumber(rest);
+      if (hz &lt; 100 || hz &gt; 5000 || count == 8) good = false;
+      else { newNotes[count] = hz; count++; }
+      while (*rest == ' ') rest++;
+    }
+    if (!good) {
+      Serial.println(F("ERR RANGE"));
+    } else {
+      for (byte i = 0; i &lt; count; i++) tuneNotes[i] = newNotes[i];
+      beginTune(count, 150);
+      Serial.println(F("OK NOTES"));
+    }
+
+  } else if (startsWith(note, "LED", rest)) {
+    if (strcasecmp(rest, "ON") == 0)         setLed(true);
+    else if (strcasecmp(rest, "OFF") == 0)   setLed(false);
+    else if (strcasecmp(rest, "BLINK") == 0) ledBlinking = true;
+    else { Serial.println(F("ERR UNKNOWN")); return; }
+    Serial.println(F("OK LED"));
+
+  } else if (startsWith(note, "PLAY", rest)) {
+    long number = nextNumber(rest);
+    if (number &lt; 1 || number &gt; 9999) Serial.println(F("ERR RANGE"));
+    else if (!playerFound)           Serial.println(F("ERR NO_PLAYER"));
+    else {
+      playFile(number);
+      Serial.println(F("OK PLAY"));
+    }
+
+  } else if (startsWith(note, "IDLE", rest)) {
+    setLed(false);
+    showIdle();
+    Serial.println(F("OK IDLE"));
+
+  } else {
+    Serial.println(F("ERR UNKNOWN"));
+  }
+}
+
+// ---------- screen ----------
+void showIdle() {
+  lcd.clear();
+  lcd.print(F("Talking Robot ON"));
+  lcd.setCursor(0, 1);
+  lcd.print(F("Visitors: "));
+  lcd.print(visitors);
+}
+
+// "Hello|I am a robot" -&gt; line 1 and line 2. Each line is cut at 16 letters.
+void showText(char* text) {
+  lcd.clear();
+  byte row = 0;
+  byte column = 0;
+  for (; *text != '\0'; text++) {
+    if (*text == '|' &amp;&amp; row == 0) {            // the | means "next line"
+      row = 1;
+      column = 0;
+      lcd.setCursor(0, 1);
+    } else if (column &lt; 16) {
+      lcd.print(*text);
+      column++;
+    }
+  }
+}
+
+// ---------- LED ----------
+void setLed(bool on) {
+  ledBlinking = false;
+  digitalWrite(LED_PIN, on ? HIGH : LOW);
+}
+
+void blinkLed() {
+  if (ledBlinking &amp;&amp; millis() - lastBlink &gt;= 250) {
+    lastBlink = millis();
+    digitalWrite(LED_PIN, !digitalRead(LED_PIN));
+  }
+}
+
+// ---------- tunes: played one note at a time, so the robot keeps listening ----------
+void beginTune(byte length, int noteMs) {
+  tuneLength = length;
+  tunePosition = 0;
+  tuneNoteMs = noteMs;
+  nextNoteAt = millis();
+}
+
+void startTune(int a, int b, int c, int d, byte length, int noteMs) {
+  tuneNotes[0] = a;
+  tuneNotes[1] = b;
+  tuneNotes[2] = c;
+  tuneNotes[3] = d;
+  beginTune(length, noteMs);
+}
+
+void startSiren() {
+  for (byte i = 0; i &lt; 8; i++) tuneNotes[i] = (i % 2 == 0) ? 1200 : 800;
+  beginTune(8, 250);
+}
+
+void playNextNote() {
+  if (tunePosition &lt; tuneLength &amp;&amp; millis() &gt;= nextNoteAt) {
+    tone(BUZZER_PIN, tuneNotes[tunePosition], tuneNoteMs);
+    tunePosition++;
+    nextNoteAt = millis() + tuneNoteMs + tuneNoteMs / 5;   // a tiny gap between notes
+  }
+}
+
+// ---------- Step 6: the DFPlayer Mini (talking with no Mac) ----------
+void findPlayer() {
+#if USE_DFPLAYER
+  playerSerial.begin(9600);
+  playerFound = player.begin(playerSerial, true, true);
+  if (!playerFound) {
+    // Some clone chips never send "got it" answers, so try again without them...
+    player.begin(playerSerial, false, true);
+    playerFound = (player.readState() != -1);   // ...and ask a question to see if it's there
+  }
+  if (playerFound) player.volume(PLAYER_VOLUME);
+#endif
+}
+
+void playFile(int number) {
+#if USE_DFPLAYER
+  if (playerFound) player.playMp3Folder(number);   // plays /MP3/0001.mp3 and so on
+#else
+  (void)number;                                    // no player in this build
+#endif
+}
+
+void playGreetingFile() {
+  playFile(random(PHRASE_GREETING_FIRST, PHRASE_GREETING_LAST + 1));
+}</pre></div>
+  </details>
+
+  <h3>Pass it a note by hand</h3>
+  <p>Open the <b>Serial Monitor</b> (the magnifying glass at the top right of the IDE). Set it to <b>9600 baud</b> and <b>New Line</b>. You should see <code class="inline">READY</code>. Now <b>you</b> are the big brain: type each note and press Return.</p>
+  <div class="table-scroll"><table>
+    <tr><th>Type this note</th><th>The robot does</th><th>It answers</th></tr>
+    <tr><td class="pin">PING</td><td>Nothing. It's just checking in</td><td class="mono">PONG</td></tr>
+    <tr><td class="pin">SHOW Hello|I am a robot</td><td>Shows two lines. The <b>|</b> means "next line"</td><td class="mono">OK SHOW</td></tr>
+    <tr><td class="pin">BEEP 880 200</td><td>One beep: pitch 880, for 200 milliseconds</td><td class="mono">OK BEEP</td></tr>
+    <tr><td class="pin">TUNE HELLO</td><td>Plays a tune. Also try WIN, SAD and SIREN</td><td class="mono">OK TUNE</td></tr>
+    <tr><td class="pin">NOTES 523 659 784 1047</td><td>Plays your own tune, up to 8 notes</td><td class="mono">OK NOTES</td></tr>
+    <tr><td class="pin">LED ON</td><td>LED on pin 7 (if you have one). Also OFF and BLINK</td><td class="mono">OK LED</td></tr>
+    <tr><td class="pin">PLAY 1</td><td>Voice file 1 from the SD card (Step 6 only)</td><td class="mono">ERR NO_PLAYER</td></tr>
+    <tr><td class="pin">IDLE</td><td>Back to the waiting screen</td><td class="mono">OK IDLE</td></tr>
+    <tr><td class="pin">DANCE</td><td>Nothing. It doesn't know that word</td><td class="mono">ERR UNKNOWN</td></tr>
+    <tr><td class="pin">BEEP 5 200</td><td>Nothing. 5 is too low (100 to 5000 only)</td><td class="mono">ERR RANGE</td></tr>
+  </table></div>
+  <p>Now wave your hand in front of the sensor. The robot chirps <b>by itself</b> and reports <code class="inline">EVENT VISITOR 1</code>. Take your hand away: <code class="inline">EVENT LEFT</code>. That chirp is the reflex!</p>
+
+  <h3>Let the Mac pass the notes</h3>
+  <div class="warn">
+    <strong>⚠️ Close the Serial Monitor first</strong>
+    Only one program can use the USB cable. If the Serial Monitor is open, Python can't get through.
+  </div>
+  <div class="code-wrap cmd"><button class="copy-btn" data-target="cmd-sayit" type="button">Copy</button>
+<pre id="cmd-sayit">python say_it.py "Hello, I am a robot"</pre></div>
+  <p>The screen shows it <b>and</b> the Mac says it, at the same moment. For chat mode, leave the words off. It keeps asking "What should I say?":</p>
+  <div class="code-wrap cmd"><button class="copy-btn" data-target="cmd-chat" type="button">Copy</button>
+<pre id="cmd-chat">python say_it.py</pre></div>
+
+  <div class="toy">
+    <h3>🧪 Screen squeezer: will your sentence fit?</h3>
+    <p>The screen has 2 lines of 16 letters. The Mac wraps your words to fit, and swaps anything the screen can't draw (like emoji) for a <b>?</b></p>
+    <input type="text" id="wrap-input" value="Hello, I am a robot 🤖" maxlength="100" autocomplete="off" spellcheck="false" aria-label="A sentence to squeeze onto the screen">
+    <div><div class="lcd"><div class="lcd-screen" id="wrap-screen" aria-hidden="true"></div></div></div>
+    <div class="readout">
+      <div>The note the Mac sends <b class="mono" id="wrap-note">SHOW</b></div>
+      <div>Did it all fit? <b id="wrap-fit">Yes!</b></div>
+    </div>
+  </div>
+
+  <details class="code">
+    <summary>📄 Peek at the code: say_it.py</summary>
+    <div class="code-wrap"><button class="copy-btn" data-target="code-sayit" type="button">Copy code</button>
+<pre id="code-sayit"># Chapter 4, Step 1: The Robot Speaks
+# The screen shows your sentence AND the Mac says it out loud, at the same moment.
+#
+#   python say_it.py "Hello, I am a robot"     say one thing
+#   python say_it.py                           chat mode: it keeps asking
+#   python say_it.py --fake-arduino "Hi"       no robot plugged in? Pretend one.
+#
+# Close the Serial Monitor first: only one program can use the USB cable.
+
+import argparse
+
+from bridge import protocol
+from bridge.arduino_link import ArduinoLink, FakeArduino
+from bridge.settings import load_config
+from bridge.speech import SpeechQueue
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Make the robot show and say a sentence.")
+    parser.add_argument("words", nargs="*", help="what the robot should say")
+    parser.add_argument("--voice", help="a voice name from: say -v '?'")
+    parser.add_argument("--fake-arduino", action="store_true", help="use a pretend Arduino")
+    args = parser.parse_args()
+
+    config = load_config()
+    speech = SpeechQueue(args.voice or config.get("voice", ""), config.get("speech_rate", 0))
+    link = ArduinoLink(fake=FakeArduino() if args.fake_arduino else None).start()
+    if not link.wait_until_ready():
+        print("🤖 The robot isn't answering yet. I'll still talk, and the screen will catch up.")
+
+    def show_and_say(text):
+        line = protocol.show_wrapped(text)
+        print("🤖 Screen:", line[5:].replace("|", "  /  "))
+        speech.say(text, first=lambda: link.send(line))   # screen first, then the voice starts
+        speech.wait_until_quiet()
+
+    try:
+        if args.words:
+            show_and_say(" ".join(args.words))
+        else:
+            print("Chat mode! Type something and press Return. Press Return on an empty line to stop.")
+            while True:
+                text = input("What should I say? ").strip()
+                if not text:
+                    break
+                show_and_say(text)
+    except (KeyboardInterrupt, EOFError):
+        print()
+    link.stop()
+    speech.stop()
+
+
+if __name__ == "__main__":
+    main()</pre></div>
+  </details>
+  <details class="grownup">
+    <summary>🧑‍💼 Grown-up corner: why the text can't run as a command</summary>
+    <p>The script hands the words to <code class="inline">say</code> as a list of separate arguments and never goes through a shell. So a message like <code class="inline">"; rm -rf ~</code> is never run. It just gets read out loud. There's a test for exactly this in <code class="inline">tests/test_speech.py</code>.</p>
+  </details>
+  <div class="kid">
+    <strong>🧒 Kid challenge: voice lab</strong>
+    Find the funniest voice in the list. In Terminal, make the Mac say a tongue twister at speed 350. Then add a dramatic pause: <code class="inline">say "Wait for it [[slnc 1000]] robot!"</code>
+  </div>
+  <h3>✅ Test it on the real robot</h3>
+  <ul class="checks">
+    <li><label><input type="checkbox" class="check-box"><span>The screen changes at the same moment the voice starts.</span></label></li>
+    <li><label><input type="checkbox" class="check-box"><span>A long sentence wraps between words, not in the middle of one.</span></label></li>
+    <li><label><input type="checkbox" class="check-box"><span>An emoji shows up as a <b>?</b> and nothing breaks.</span></label></li>
+  </ul>
+  <p class="win">🏆 The win: type a sentence, and the robot shows it and says it out loud.</p>
+</section>
+
+<!-- ============ STEP 2 ============ -->
+<section class="card step" id="step2" style="--c:var(--s2)">
+  <div class="step-head">
+    <div class="step-title">
+      <span class="step-emoji" aria-hidden="true">📱</span>
+      <div>
+        <span class="step-num">Step 2</span>
+        <h2>Text the robot</h2>
+        <span class="time">⏱ About 30 minutes · phone + cloud</span>
+      </div>
+    </div>
+    <label class="done-label"><input type="checkbox" class="done-box" data-step="2"> Done</label>
+  </div>
+  <p>Now the phone joins in. Messages travel through a free message service called <b>ntfy</b> (say "notify"). Think of it as a mailbox in the cloud with a secret name.</p>
+
+  <h3>Make the secret mailboxes (a parent job, once)</h3>
+  <div class="code-wrap cmd"><button class="copy-btn" data-target="cmd-setup" type="button">Copy</button>
+<pre id="cmd-setup">python setup_cloud.py</pre></div>
+  <p>It makes a private file called <code class="inline">config.json</code> holding two secret names: one mailbox for messages <b>to</b> the robot and one for messages <b>from</b> it. Then it prints exactly what to type into the phone.</p>
+  <div class="warn">
+    <strong>🔒 Keep config.json private</strong>
+    The secret names are the only lock. If one ever leaks, a parent runs <code class="inline">python setup_cloud.py --new-topics</code> and updates the phone.
+  </div>
+
+  <h3>Build the "Tell the robot" Shortcut</h3>
+  <p>On the iPhone or iPad, open the <b>Shortcuts</b> app, tap <b>+</b>, and name the new shortcut <b>Tell the robot</b>. Add these two actions:</p>
+  <div class="shortcut" aria-label="The two actions in the Shortcut">
+    <div class="sc-block" style="--k:#2563eb"><b>1. Ask for Input</b> (Text)
+      <table><tr><td>Prompt</td><td><b>What should the robot say?</b></td></tr></table>
+    </div>
+    <div class="sc-arrow" aria-hidden="true">▼</div>
+    <div class="sc-block" style="--k:#16a34a"><b>2. Get Contents of URL</b>
+      <table>
+        <tr><td>URL</td><td class="mono"><b>https://ntfy.sh/</b></td></tr>
+        <tr><td>Method</td><td><b>POST</b></td></tr>
+        <tr><td>Request Body</td><td><b>JSON</b></td></tr>
+        <tr><td class="mono">topic</td><td>your secret <b>"to robot"</b> name</td></tr>
+        <tr><td class="mono">message</td><td><b>Provided Input</b> (pick it from the variables)</td></tr>
+      </table>
+    </div>
+  </div>
+  <p class="time">The URL is just the front door of ntfy, not the mailbox. The mailbox name goes in the <code class="inline">topic</code> box. To see the instructions again: <code class="inline">python setup_cloud.py --show</code></p>
+
+  <h3>Start the bridge</h3>
+  <p>The <b>bridge</b> is the big brain's main program. <code class="inline">caffeinate</code> keeps the Mac awake while it runs.</p>
+  <div class="code-wrap cmd"><button class="copy-btn" data-target="cmd-bridge" type="button">Copy</button>
+<pre id="cmd-bridge">caffeinate -i python robot_bridge.py</pre></div>
+  <p>Wait for <code class="inline">☁️ Listening for phone messages</code>. Then say <b>"Hey Siri, tell the robot"</b> and speak a sentence. The robot shows it and says it. It even works from the car, or from Grandma's house!</p>
+  <p>To stop the bridge, click the Terminal window and press <b>Control + C</b>.</p>
+
+  <h3>Secret commands</h3>
+  <p>A message that starts with <b>!</b> is a command instead of something to say:</p>
+  <div class="table-scroll"><table>
+    <tr><th>Text this</th><th>The robot does</th></tr>
+    <tr><td class="pin">!beep</td><td>One beep</td></tr>
+    <tr><td class="pin">!tune win</td><td>Plays a tune: hello, win, sad or siren</td></tr>
+    <tr><td class="pin">!led on</td><td>LED on. Also <span class="pin">!led off</span> and <span class="pin">!led blink</span></td></tr>
+    <tr><td class="pin">!status</td><td>Texts back how long it's been awake and how many visitors it's had (Step 3)</td></tr>
+  </table></div>
+
+  <h3>House rules</h3>
+  <p>A robot that never stops talking is annoying, so the bridge has rules:</p>
+  <ul>
+    <li><b>100 letters</b> at most. Longer messages get cut.</li>
+    <li><b>One message every 3 seconds.</b> Up to 5 wait in line. Extras are dropped, and the log says so.</li>
+    <li><b>Quiet hours</b> (9 at night to 7 in the morning): messages still show on the screen, but the robot doesn't say them.</li>
+  </ul>
+  <div class="toy">
+    <h3>🌙 Quiet hours checker</h3>
+    <p>Slide the clock. Will a phone message be spoken, or only shown?</p>
+    <input type="range" id="quiet-range" min="0" max="47" value="24" aria-label="Time of day">
+    <div class="dayband" aria-hidden="true"><i id="quiet-mark"></i></div>
+    <div class="dayband-labels" aria-hidden="true"><span>midnight</span><span>7:00</span><span>noon</span><span>21:00</span><span>midnight</span></div>
+    <div class="readout">
+      <div>The time is <b id="quiet-time">12:00</b></div>
+      <div>A phone message is <b id="quiet-result">shown and spoken</b></div>
+    </div>
+    <p class="time">Change the hours in <code class="inline">config.json</code>, on the <code class="inline">quiet_hours</code> line. Times use the 24-hour clock, so 9 at night is 21:00.</p>
+  </div>
+  <details class="code">
+    <summary>📄 Peek at the code: the house rules (bridge/rules.py)</summary>
+    <div class="code-wrap"><button class="copy-btn" data-target="code-rules" type="button">Copy code</button>
+<pre id="code-rules"># House rules: the robot must not be annoying.
+#   - Cooldown: don't do the same thing again too soon.
+#   - Quiet hours: show messages at night, but don't speak them.
+#   - Waiting line: one phone message every few seconds, and only a few may wait.
+# Every rule takes a clock, so the tests can use a pretend clock and "skip ahead" in time.
+
+import time
+from collections import deque
+from datetime import datetime
+
+
+class Cooldown:
+    """ready("kid-1") says True once, then False until the cooldown has passed."""
+
+    def __init__(self, seconds, clock=time.monotonic):
+        self.seconds = seconds
+        self.clock = clock
+        self.last_time = {}
+
+    def ready(self, key="everyone"):
+        now = self.clock()
+        if key in self.last_time and now - self.last_time[key] &lt; self.seconds:
+            return False
+        self.last_time[key] = now
+        return True
+
+
+def clock_time(text):
+    """ "21:00" -&gt; (21, 0) """
+    hour, minute = text.strip().split(":")
+    hour, minute = int(hour), int(minute)
+    if not (0 &lt;= hour &lt;= 23 and 0 &lt;= minute &lt;= 59):
+        raise ValueError(f"{text!r} is not a time. Use 24-hour times like 15:30.")
+    return hour, minute
+
+
+def in_quiet_hours(now, start="21:00", end="07:00"):
+    """Is 'now' (a datetime) inside quiet hours? They may cross midnight, like 21:00 to 07:00."""
+    start, end, current = clock_time(start), clock_time(end), (now.hour, now.minute)
+    if start == end:
+        return False                       # same time twice means "no quiet hours"
+    if start &lt; end:
+        return start &lt;= current &lt; end      # for example 13:00 to 14:00
+    return current &gt;= start or current &lt; end
+
+
+class WaitingLine:
+    """Phone messages wait here. At most 'size' can wait, and one comes out every 'gap' seconds."""
+
+    def __init__(self, gap=3, size=5, clock=time.monotonic):
+        self.gap = gap
+        self.size = size
+        self.clock = clock
+        self.line = deque()
+        self.last_out = None
+
+    def add(self, message):
+        """Join the line. Says False if the line is full (the message is dropped)."""
+        if len(self.line) &gt;= self.size:
+            return False
+        self.line.append(message)
+        return True
+
+    def next(self):
+        """The next message, or None if it isn't time yet (or nobody is waiting)."""
+        if not self.line:
+            return None
+        now = self.clock()
+        if self.last_out is not None and now - self.last_out &lt; self.gap:
+            return None
+        self.last_out = now
+        return self.line.popleft()
+
+
+def quiet_now(config, now=None):
+    """Read the quiet hours from the config and check the Mac's clock."""
+    hours = config.get("quiet_hours") or {}
+    if not hours.get("start") or not hours.get("end"):
+        return False
+    return in_quiet_hours(now or datetime.now(), hours["start"], hours["end"])</pre></div>
+  </details>
+  <details class="code">
+    <summary>📄 Peek at the code: the big brain (robot_bridge.py)</summary>
+    <div class="code-wrap"><button class="copy-btn" data-target="code-bridge" type="button">Copy code</button>
+<pre id="code-bridge"># Chapter 4, Steps 2 to 5: the Robot Bridge (the robot's BIG brain)
+#
+#   phone -&gt; cloud -&gt; THIS PROGRAM -&gt; USB cable -&gt; Arduino -&gt; screen, buzzer, voice
+#   phone &lt;- cloud &lt;- THIS PROGRAM &lt;- USB cable &lt;- Arduino    ("EVENT VISITOR 3")
+#
+# Start it:   caffeinate -i python robot_bridge.py
+# With faces: caffeinate -i python robot_bridge.py --faces
+# No robot?   python robot_bridge.py --fake-arduino
+# Stop it:    Control + C   (or Q in the camera window)
+#
+# Helpers each do one job and drop what they hear into ONE inbox:
+#   the USB link, the cloud listener, the alarm clock and (with --faces) the camera.
+# The brain takes things out of the inbox one at a time and decides what to do.
+
+import argparse
+import queue
+import threading
+import time
+from datetime import datetime
+
+from bridge import cloud, protocol, rules
+from bridge.arduino_link import ArduinoLink, FakeArduino
+from bridge.scheduler import Scheduler
+from bridge.settings import load_config
+from bridge.speech import SpeechQueue
+
+HEARTBEAT_SECONDS = 20      # how often we tell the Arduino "the Mac is still here"
+
+
+def stamp_log(text):
+    print(datetime.now().strftime("%H:%M:%S") + " " + text, flush=True)
+
+
+def how_long(seconds):
+    """ 3725 -&gt; "1 h 2 min" """
+    minutes = int(seconds) // 60
+    return f"{minutes // 60} h {minutes % 60} min" if minutes &gt;= 60 else f"{minutes} min"
+
+
+class Brain:
+    def __init__(self, config, link, speech, notifier=None, faces_on=False,
+                 clock=time.monotonic, now=datetime.now, log=stamp_log):
+        self.config = config
+        self.link = link                  # the USB link to the Arduino
+        self.speech = speech              # the voice
+        self.notifier = notifier          # texts the phone (None = phone features are off)
+        self.faces_on = faces_on
+        self.clock = clock                # a stopwatch (seconds)
+        self.now = now                    # the wall clock (date and time)
+        self.log = log
+
+        self.inbox = queue.Queue()        # everything that happens lands here
+        self.started = clock()
+        self.visitors = 0
+        self.last_heartbeat = None
+
+        face_rules = config.get("faces", {})
+        self.phone_line = rules.WaitingLine(config.get("seconds_between_messages", 3),
+                                            config.get("messages_that_can_wait", 5), clock)
+        self.visitor_texts = rules.Cooldown(config.get("visitor_text_cooldown_seconds", 60), clock)
+        self.person_greetings = rules.Cooldown(face_rules.get("person_cooldown_seconds", 120), clock)
+        self.friend_greetings = rules.Cooldown(face_rules.get("friend_cooldown_seconds", 60), clock)
+
+    # ---- the helpers call these (from their own threads) ----
+
+    def from_arduino(self, message):
+        self.inbox.put(("arduino", message))
+
+    def from_phone(self, text):
+        self.inbox.put(("phone", text))
+
+    def from_clock(self, item):
+        self.inbox.put(("clock", item))
+
+    def from_camera(self, person):
+        self.inbox.put(("face", person))
+
+    # ---- the brain's loop: call step() again and again ----
+
+    def step(self):
+        while True:
+            try:
+                kind, thing = self.inbox.get_nowait()
+            except queue.Empty:
+                break
+            if kind == "arduino":
+                self.on_arduino(thing)
+            elif kind == "phone":
+                self.on_phone(thing)
+            elif kind == "clock":
+                self.on_alarm(thing)
+            elif kind == "face":
+                self.on_face(thing)
+
+        message = self.phone_line.next()          # at most one phone message every 3 seconds
+        if message is not None:
+            self.do_phone_message(message)
+
+        if self.last_heartbeat is None or self.clock() - self.last_heartbeat &gt;= HEARTBEAT_SECONDS:
+            self.last_heartbeat = self.clock()
+            self.link.send(protocol.ping())
+
+    def quiet(self):
+        return rules.quiet_now(self.config, self.now())
+
+    def show_and_say(self, text, speak=True, then=None):
+        """Put text on the screen and say it, starting at the same moment."""
+        def update_screen():
+            self.link.send(protocol.show_wrapped(text))
+            if then:
+                self.link.send(then)
+        self.speech.say(text if speak else "", first=update_screen)
+
+    def text_phone(self, message):
+        if self.notifier:
+            self.notifier.send(self.config.get("robot_name", "Robot"), message)
+
+    # ---- news from the Arduino ----
+
+    def on_arduino(self, message):
+        kind = message["kind"]
+        if kind == "READY":
+            self.log("🤖 Robot: I'm awake!")
+        elif kind == "VISITOR":
+            self.visitors = message["count"]
+            self.log(f"🤖 Robot: visitor #{self.visitors}")
+            self.greet_visitor()
+        elif kind == "LEFT":
+            self.log("🤖 Robot: they walked away")
+        elif kind == "ERR":
+            self.log(f"🤖 Robot didn't like a note: {message['reason']}")
+        elif kind == "JUNK":
+            self.log(f"🤖 Robot said something odd: {message['text']}")
+        # PONG and OK answers are normal, so we stay quiet about them
+
+    def greet_visitor(self):
+        if not self.faces_on:                     # with --faces, the camera does the greeting
+            hello = self.config.get("visitor_greeting", "Hello, human!")
+            line = protocol.show(hello, f"Visitor #{self.visitors}")
+            words = f"{hello} You are visitor number {self.visitors}."
+            self.speech.say("" if self.quiet() else words, first=lambda: self.link.send(line))
+        if not self.notifier:
+            return
+        if self.visitor_texts.ready():
+            self.text_phone(f"🤖 Visitor #{self.visitors} at the door")
+        else:
+            self.log("🔕 Not texting again so soon (cooldown)")
+
+    # ---- messages from the phone ----
+
+    def on_phone(self, text):
+        text = text.strip()
+        if not text:
+            return
+        if len(text) &gt; protocol.MAX_SPOKEN:
+            self.log("✂️  That message was long, so I cut it to 100 letters")
+            text = text[:protocol.MAX_SPOKEN]
+        if self.phone_line.add(text):
+            self.log(f"📱 Phone said: {text}")
+        else:
+            self.log(f"🚫 Too many messages at once! Dropped: {text}")
+
+    def do_phone_message(self, text):
+        if text.startswith("!"):
+            self.do_phone_command(text[1:].lower().split())
+        elif self.quiet():
+            self.log("🤫 Quiet hours: showing it, not saying it")
+            self.show_and_say(text, speak=False)
+        else:
+            self.show_and_say(text)
+
+    def do_phone_command(self, words):
+        try:
+            if words == ["beep"]:
+                self.link.send(protocol.beep())
+            elif len(words) == 2 and words[0] == "tune":
+                self.link.send(protocol.tune(words[1]))
+            elif len(words) == 2 and words[0] == "led":
+                self.link.send(protocol.led(words[1]))
+            elif words == ["status"]:
+                status = f"Awake for {how_long(self.clock() - self.started)}. Visitors: {self.visitors}."
+                self.log("📊 " + status)
+                self.text_phone("📊 " + status)
+            else:
+                self.log("❓ I don't know that command: !" + " ".join(words))
+        except ValueError as problem:
+            self.log(f"❓ {problem}")
+
+    # ---- the alarm clock ----
+
+    def on_alarm(self, item):
+        self.log(f"⏰ Alarm: {item['say']}")
+        tune = protocol.tune(item["tune"]) if item["tune"] in protocol.TUNES else None
+        self.show_and_say(item["say"], then=tune)   # alarms are NOT stopped by quiet hours
+
+    # ---- faces (Step 5) ----
+
+    def on_face(self, person):
+        """person is a dictionary from people.json, or None for "friend"."""
+        if person is None:
+            if not self.friend_greetings.ready():
+                return
+            self.log("🧑 Hello, friend! (not sure who that is)")
+            line, tune, words = protocol.show("Hello, friend!", "Nice to see you"), protocol.tune("HELLO"), "Hello, friend!"
+        else:
+            if not self.person_greetings.ready(person["name"]):
+                return
+            self.log(f"🧑 I see {person['name']}!")
+            line = protocol.show(f"Hi {person['name']}!", person.get("catchphrase", ""))
+            try:
+                tune = protocol.notes(person.get("tune") or [523, 659, 784, 1047])
+            except ValueError:
+                tune = protocol.tune("HELLO")
+            words = f"Hi {person.get('say_as') or person['name']}! {person.get('catchphrase', '')}"
+            # PRIVACY: the name only leaves the house if notify_names is true in config.json
+            who = person["name"] if self.config.get("faces", {}).get("notify_names") else "Someone"
+            self.text_phone(f"🏠 {who} is home")
+
+        def update_screen():
+            self.link.send(line)
+            self.link.send(tune)
+        self.speech.say("" if self.quiet() else words, first=update_screen)
+
+
+# ---------- the camera loop (must run on the main thread on a Mac) ----------
+
+def watch_faces(brain, config, keep_going):
+    import cv2
+    from bridge import faces
+
+    face_rules = config.get("faces", {})
+    details, samples = faces.load_people()
+    if not details:
+        stamp_log("🧑 Nobody is enrolled yet, so everyone is a friend. Run enroll_face.py first.")
+    engine = faces.FaceEngine()
+    camera = faces.open_camera(face_rules.get("camera", 0))
+    doorman = faces.Doorman(face_rules.get("frames_needed", 3), face_rules.get("frames_window", 5))
+    stamp_log("📷 Camera on. Click the camera window and press Q to quit.")
+
+    while keep_going():
+        ok, frame = camera.read()
+        if not ok:
+            stamp_log("📷 Can't read the camera. See 'Camera won't open' in Troubleshooting.")
+            break
+        frame = cv2.flip(frame, 1)                       # mirror it, like a selfie
+        found = engine.find_faces(frame)
+        answer = None
+        if found:
+            numbers = engine.embedding(frame, found[0])  # the closest face
+            scores = faces.all_scores(numbers, samples, engine.compare)
+            answer = faces.decide(scores, face_rules.get("sure_enough", faces.SURE_ENOUGH),
+                                  face_rules.get("beat_second_by", faces.BEAT_SECOND_BY))
+            x, y, w, h = faces.box(found[0])
+            label = details[answer]["name"] if answer in details else "friend?"
+            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 4)
+            cv2.putText(frame, label, (x, y - 12), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+
+        winner = doorman.see(answer)                     # the same answer in 3 of the last 5 frames
+        if winner is not None:
+            brain.from_camera(details.get(winner))       # None means "friend"
+
+        brain.step()
+        cv2.imshow("Talking Robot - press Q to quit", frame)
+        if cv2.waitKey(1) &amp; 0xFF == ord("q"):
+            break
+
+    camera.release()
+    cv2.destroyAllWindows()
+
+
+# ---------- start everything ----------
+
+def main():
+    parser = argparse.ArgumentParser(description="The Talking Robot's big brain.")
+    parser.add_argument("--faces", action="store_true", help="turn on the camera and greet people by name")
+    parser.add_argument("--fake-arduino", action="store_true", help="use a pretend Arduino (no robot needed)")
+    parser.add_argument("--fake-visitor-every", type=int, default=20, metavar="SECONDS",
+                        help="with --fake-arduino: a pretend visitor this often (0 = never)")
+    args = parser.parse_args()
+
+    config = load_config()
+    stopping = threading.Event()
+    speech = SpeechQueue(config.get("voice", ""), config.get("speech_rate", 0), log=stamp_log)
+
+    # The cloud needs the two secret topics that setup_cloud.py makes.
+    notifier = None
+    cloud_on = (cloud.is_real_topic(config.get("to_robot_topic"))
+                and cloud.is_real_topic(config.get("from_robot_topic")))
+    if cloud_on:
+        notifier = cloud.PhoneNotifier(config["ntfy_server"], config["from_robot_topic"], log=stamp_log)
+    else:
+        stamp_log("☁️  No secret topics yet, so phone features are off. A parent runs: python setup_cloud.py")
+
+    fake = FakeArduino(args.fake_visitor_every) if args.fake_arduino else None
+    link = ArduinoLink(fake=fake, log=stamp_log)
+    brain = Brain(config, link, speech, notifier, faces_on=args.faces)
+    link.on_message = brain.from_arduino
+    link.start()
+
+    if cloud_on:
+        listener = cloud.PhoneListener(config["ntfy_server"], config["to_robot_topic"],
+                                       brain.from_phone, log=stamp_log)
+        threading.Thread(target=listener.run, daemon=True).start()
+
+    scheduler = Scheduler(config.get("schedule"), log=stamp_log)
+    threading.Thread(target=scheduler.run, args=(stopping, brain.from_clock), daemon=True).start()
+    stamp_log(f"⏰ {len(scheduler.items)} alarms set")
+    stamp_log("🧠 Bridge is running. Press Control + C to stop.")
+
+    try:
+        if args.faces:
+            watch_faces(brain, config, lambda: not stopping.is_set())
+        else:
+            while True:
+                brain.step()
+                time.sleep(0.05)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        stamp_log("👋 Shutting down...")
+        stopping.set()
+        link.send(protocol.idle())
+        time.sleep(0.3)                  # give the last note time to leave
+        link.stop()
+        speech.stop()
+
+
+if __name__ == "__main__":
+    main()</pre></div>
+  </details>
+  <details class="grownup">
+    <summary>🧑‍💼 Grown-up corner: this is a queue consumer</summary>
+    <p>The ntfy topic plays the role of an SNS topic or SQS queue. The bridge is a consumer that <b>polls outward</b>, for the same reason SQS consumers poll: no inbound ports, so nothing in the house is exposed. There are no router settings to change. ntfy topics are open to anyone who knows the name, so the names are the only lock: treat them like passwords.</p>
+  </details>
+  <div class="tip">
+    <strong>💡 No robot plugged in? Use a pretend one</strong>
+    <code class="inline">python robot_bridge.py --fake-arduino</code> runs the bridge with a pretend Arduino that gets a pretend visitor every 20 seconds. Great for trying the phone parts on the sofa.
+  </div>
+  <div class="kid">
+    <strong>🧒 Kid challenge: break the rules (on purpose)</strong>
+    Send 10 messages as fast as you can. Watch the bridge's log in Terminal: how many did the robot say? How many were dropped? Why is that a good rule to have?
+  </div>
+  <h3>✅ Test it on the real robot</h3>
+  <ul class="checks">
+    <li><label><input type="checkbox" class="check-box"><span>A phone message is spoken within about 3 seconds.</span></label></li>
+    <li><label><input type="checkbox" class="check-box"><span>Turn the Mac's Wi-Fi off and on again: the bridge reconnects by itself within 30 seconds.</span></label></li>
+    <li><label><input type="checkbox" class="check-box"><span>Ten messages in a row: no crash, 5 at most wait in line, and the rest are logged as dropped.</span></label></li>
+    <li><label><input type="checkbox" class="check-box"><span>In quiet hours, a message shows on the screen but isn't spoken.</span></label></li>
+    <li><label><input type="checkbox" class="check-box"><span>Pull the USB cable out and push it back in: the bridge keeps running and reconnects.</span></label></li>
+  </ul>
+  <p class="win">🏆 The win: say "Hey Siri, tell the robot..." from anywhere, and the robot speaks it.</p>
+</section>
+
+<!-- ============ STEP 3 ============ -->
+<section class="card step" id="step3" style="--c:var(--s3)">
+  <div class="step-head">
+    <div class="step-title">
+      <span class="step-emoji" aria-hidden="true">🔔</span>
+      <div>
+        <span class="step-num">Step 3</span>
+        <h2>The robot texts back</h2>
+        <span class="time">⏱ About 20 minutes · notifications</span>
+      </div>
+    </div>
+    <label class="done-label"><input type="checkbox" class="done-box" data-step="3"> Done</label>
+  </div>
+  <p><b>No new code!</b> The bridge already does this. The phone just needs to listen to the second mailbox.</p>
+  <ol>
+    <li>On the phone, install the free <b>ntfy</b> app (or open <code class="inline">ntfy.sh/app</code> in Safari).</li>
+    <li>Subscribe to your secret <b>"from robot"</b> name. A parent can show it with <code class="inline">python setup_cloud.py --show</code>.</li>
+    <li>With the bridge running, walk up to the robot. The phone buzzes: <b>🤖 Visitor #24 at the door</b>.</li>
+    <li>Text the robot <code class="inline">!status</code>. It texts back how long it's been awake and how many visitors it's had.</li>
+  </ol>
+  <p>That's the <b>full round trip</b>: phone → cloud → Mac → Arduino → Mac → cloud → phone.</p>
+  <div class="tip">
+    <strong>💡 Why only one buzz?</strong>
+    The robot texts about visitors at most <b>once a minute</b>. Nobody wants 40 buzzes while you test it. The number is <code class="inline">visitor_text_cooldown_seconds</code> in <code class="inline">config.json</code>.
+  </div>
+  <div class="toy">
+    <h3>⏱️ Latency stopwatch</h3>
+    <p>The delay between "send" and "robot speaks" is called <b>latency</b>. Engineers fight for every millisecond of it. Tap <b>Start</b> when you press send, and <b>Stop</b> when the robot talks.</p>
+    <div class="stopwatch" id="sw-time" aria-live="off">0.00 s</div>
+    <div class="btn-row">
+      <button class="btn" type="button" id="sw-go">▶ Start</button>
+      <button class="btn ghost" type="button" id="sw-clear">Clear times</button>
+      <span class="time" id="sw-best"></span>
+    </div>
+    <ul class="laps" id="sw-laps" aria-label="Your times"></ul>
+  </div>
+  <div class="kid">
+    <strong>🧒 Kid challenge: measure the latency</strong>
+    Time it three ways: phone on home Wi-Fi, phone on mobile data, and walking up to the robot until the phone buzzes. Which is fastest? Where do you think the time goes?
+  </div>
+  <h3>✅ Test it on the real robot</h3>
+  <ul class="checks">
+    <li><label><input type="checkbox" class="check-box"><span>The notification arrives within about 5 seconds.</span></label></li>
+    <li><label><input type="checkbox" class="check-box"><span>Walk past 5 times in one minute: the phone buzzes once, not 5 times.</span></label></li>
+    <li><label><input type="checkbox" class="check-box"><span>With the Wi-Fi off, the robot still chirps for visitors, and the log says it couldn't send.</span></label></li>
+  </ul>
+  <p class="win">🏆 The win: walk up to the robot and your phone buzzes.</p>
+</section>
+
+<!-- ============ STEP 4 ============ -->
+<section class="card step" id="step4" style="--c:var(--s4)">
+  <div class="step-head">
+    <div class="step-title">
+      <span class="step-emoji" aria-hidden="true">⏰</span>
+      <div>
+        <span class="step-num">Step 4</span>
+        <h2>Robot alarm clock</h2>
+        <span class="time">⏱ About 15 minutes · a schedule</span>
+      </div>
+    </div>
+    <label class="done-label"><input type="checkbox" class="done-box" data-step="4"> Done</label>
+  </div>
+  <p>The clock is just another input, like the sensor or the phone. Give the robot a list of times, and it announces each one with the screen, a tune and its voice.</p>
+  <p>The list lives in <code class="inline">config.json</code> under <code class="inline">schedule</code>. It starts out like this:</p>
+  <div class="code-wrap"><button class="copy-btn" data-target="code-sched" type="button">Copy code</button>
+<pre id="code-sched">  "schedule": [
+    { "time": "15:30", "days": ["mon", "tue", "wed", "thu", "fri"], "say": "Snack time!", "tune": "WIN" },
+    { "time": "19:45", "days": ["sun", "mon", "tue", "wed", "thu"], "say": "Twenty minutes to bedtime", "tune": "HELLO" }
+  ],</pre></div>
+
+  <div class="toy">
+    <h3>🛠️ Alarm builder</h3>
+    <p>Build your own alarms here, then copy the result over the <code class="inline">schedule</code> part of <code class="inline">config.json</code>.</p>
+    <div class="field-row">
+      <label for="al-time">Time</label><input type="time" id="al-time" value="15:30">
+      <label for="al-tune">Tune</label>
+      <select id="al-tune"><option>WIN</option><option>HELLO</option><option>SAD</option><option>SIREN</option></select>
+    </div>
+    <div class="days" id="al-days" role="group" aria-label="Days">
+      <button type="button" class="day on" data-d="mon" aria-pressed="true">Mon</button>
+      <button type="button" class="day on" data-d="tue" aria-pressed="true">Tue</button>
+      <button type="button" class="day on" data-d="wed" aria-pressed="true">Wed</button>
+      <button type="button" class="day on" data-d="thu" aria-pressed="true">Thu</button>
+      <button type="button" class="day on" data-d="fri" aria-pressed="true">Fri</button>
+      <button type="button" class="day" data-d="sat" aria-pressed="false">Sat</button>
+      <button type="button" class="day" data-d="sun" aria-pressed="false">Sun</button>
+    </div>
+    <label for="al-say"><b>What should it say?</b></label>
+    <input type="text" id="al-say" value="Snack time!" maxlength="100" autocomplete="off">
+    <div><div class="lcd"><div class="lcd-screen" id="al-screen" aria-hidden="true"></div></div></div>
+    <div class="btn-row">
+      <button class="btn" type="button" id="al-preview">▶ Preview</button>
+      <button class="btn" type="button" id="al-add" style="--c:var(--good)">＋ Add to my list</button>
+      <span class="time" id="al-hint"></span>
+    </div>
+    <ul class="alarm-list" id="al-list" aria-label="My alarms"></ul>
+    <div class="code-wrap"><button class="copy-btn" data-target="al-json" type="button">Copy code</button>
+<pre id="al-json"></pre></div>
+  </div>
+  <p>After changing <code class="inline">config.json</code>, stop the bridge (Control + C) and start it again so it reads the new list.</p>
+  <div class="tip">
+    <strong>💡 Alarms beat quiet hours</strong>
+    Phone messages go silent at night, but alarms don't. Your family picked those times on purpose. A "wake up!" alarm at 7:00 will really speak.
+  </div>
+  <details class="code">
+    <summary>📄 Peek at the code: the alarm clock (bridge/scheduler.py)</summary>
+    <div class="code-wrap"><button class="copy-btn" data-target="code-scheduler" type="button">Copy code</button>
+<pre id="code-scheduler"># The robot's alarm clock.
+# Every 20 seconds it looks at the clock and asks: "is anything on my list due this minute?"
+# The clock is passed in, so the tests can use a pretend clock.
+
+from datetime import datetime
+
+from . import rules
+
+DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+CHECK_EVERY = 20        # seconds
+
+
+def check_item(item):
+    """Make sure one schedule line makes sense. Returns a tidy copy, or raises ValueError."""
+    hour, minute = rules.clock_time(str(item.get("time", "")))
+    days = [str(day).lower()[:3] for day in item.get("days", DAYS)]
+    for day in days:
+        if day not in DAYS:
+            raise ValueError(f"{day!r} is not a day. Use: {', '.join(DAYS)}")
+    if not str(item.get("say", "")).strip():
+        raise ValueError("there is nothing to say")
+    return {"hour": hour, "minute": minute, "days": days,
+            "say": str(item["say"]), "tune": str(item.get("tune", "")).upper()}
+
+
+class Scheduler:
+    def __init__(self, items, clock=datetime.now, log=print):
+        self.clock = clock
+        self.items = []
+        self.already_fired = set()         # (which item, which day, which minute)
+        for item in items or []:
+            try:
+                self.items.append(check_item(item))
+            except (ValueError, AttributeError, KeyError) as problem:
+                log(f"⏰ Skipping a schedule line: {problem}")
+
+    def due(self):
+        """The items that should fire right now. Each one fires only once in its minute."""
+        now = self.clock()
+        today = DAYS[now.weekday()]
+        firing = []
+        for number, item in enumerate(self.items):
+            right_minute = (now.hour, now.minute) == (item["hour"], item["minute"])
+            stamp = (number, now.date(), now.hour, now.minute)
+            if right_minute and today in item["days"] and stamp not in self.already_fired:
+                self.already_fired.add(stamp)
+                firing.append(item)
+        # forget old days so the memory never grows
+        self.already_fired = {stamp for stamp in self.already_fired if stamp[1] == now.date()}
+        return firing
+
+    def run(self, stopping, on_fire):
+        """The scheduler thread: check, then nap, until told to stop."""
+        while not stopping.is_set():
+            for item in self.due():
+                on_fire(item)
+            stopping.wait(CHECK_EVERY)</pre></div>
+  </details>
+  <details class="grownup">
+    <summary>🧑‍💼 Grown-up corner: time is an event source</summary>
+    <p>This is EventBridge Scheduler or cron: time is just another event source that wakes the system. The scheduler takes its clock as a parameter, which is why it can be unit-tested with a fake clock instead of waiting for 3:30.</p>
+  </details>
+  <div class="kid">
+    <strong>🧒 Kid challenge: test it in 2 minutes</strong>
+    Don't wait until 3:30! Add an alarm for two minutes from now, restart the bridge, and watch the clock. Then make one for something real: homework time, feeding a pet, or 5 minutes before the school bus.
+  </div>
+  <h3>✅ Test it on the real robot</h3>
+  <ul class="checks">
+    <li><label><input type="checkbox" class="check-box"><span>The alarm goes off within 30 seconds of the set time.</span></label></li>
+    <li><label><input type="checkbox" class="check-box"><span>It goes off exactly once, and only on the days you picked.</span></label></li>
+  </ul>
+  <p class="win">🏆 The win: the robot announces "Snack time!" all by itself.</p>
+</section>
+
+<!-- ============ STEP 5 ============ -->
+<section class="card step" id="step5" style="--c:var(--s5)">
+  <div class="step-head">
+    <div class="step-title">
+      <span class="step-emoji" aria-hidden="true">🧑</span>
+      <div>
+        <span class="step-num">Step 5</span>
+        <h2>It knows my name</h2>
+        <span class="time">⏱ About 45 minutes · the Mac's camera</span>
+      </div>
+    </div>
+    <label class="done-label"><input type="checkbox" class="done-box" data-step="5"> Done</label>
+  </div>
+  <p>The finale: the robot recognizes each brother and plays his own entrance, with his name on the screen, his theme tune, and his catchphrase.</p>
+  <div class="warn">
+    <strong>✋ Ask first</strong>
+    Your face is yours. The robot only learns the faces of people who say <b>yes</b>. It stays on this Mac, it's never uploaded, and you can delete it any time.
+  </div>
+
+  <h3>How a computer "knows" a face</h3>
+  <p>The AI turns a face into <b>128 numbers</b>, called an <b>embedding</b>. It's like a fingerprint made of numbers. The robot never compares pictures. It compares numbers with numbers, and gets a <b>score</b> for how alike they are.</p>
+  <div class="toy">
+    <h3>🔢 Face fingerprints</h3>
+    <p>These are pretend fingerprints: 128 numbers, drawn as colours. Tap to compare.</p>
+    <div class="numbers" id="fp-a" aria-hidden="true"></div>
+    <div class="numbers" id="fp-b" aria-hidden="true"></div>
+    <div class="btn-row">
+      <button class="btn" type="button" data-fp="same" style="--c:#2563eb">Kid 1 again</button>
+      <button class="btn" type="button" data-fp="brother" style="--c:#db2777">His brother</button>
+      <button class="btn" type="button" data-fp="stranger" style="--c:#a16207">A stranger</button>
+    </div>
+    <div class="readout">
+      <div>Top row: Kid 1's saved numbers. Bottom row: <b id="fp-who">Kid 1 again</b></div>
+      <div>How alike? (the score) <b id="fp-score">0.00</b></div>
+    </div>
+    <p class="time">Even the same person never gets a perfect 1.00: the light changes, you smile, you turn your head. And brothers score closer to each other than strangers do.</p>
+  </div>
+
+  <h3>We write the rule</h3>
+  <p>The AI is never 100% sure. It only gives scores, and <b>we</b> choose the rule for "sure enough". Brothers look alike, so our rule is strict: <b>saying "friend" is better than saying the wrong brother's name.</b></p>
+  <div class="toy">
+    <h3>🎚️ Sure enough?</h3>
+    <p>Slide the scores the AI gives for the face it sees. What does the robot say?</p>
+    <label for="sc-1"><b>Looks like Kid 1:</b> <span id="sc-1v">0.62</span></label>
+    <input type="range" id="sc-1" min="0" max="100" value="62">
+    <div class="scorebar" style="--k:#2563eb" aria-hidden="true"><div class="fill" id="sc-1bar"></div><div class="mark" id="sc-1mark"></div></div>
+    <label for="sc-2"><b>Looks like Kid 2:</b> <span id="sc-2v">0.30</span></label>
+    <input type="range" id="sc-2" min="0" max="100" value="30">
+    <div class="scorebar" style="--k:#db2777" aria-hidden="true"><div class="fill" id="sc-2bar"></div><div class="mark" id="sc-2mark"></div></div>
+    <div class="verdict" id="sc-verdict" aria-live="polite">Hi Kid 1!</div>
+    <p id="sc-why" class="time"></p>
+    <label for="sc-t"><b>Rule 1, "sure enough":</b> the best score must be at least <span id="sc-tv">0.45</span></label>
+    <input type="range" id="sc-t" min="20" max="90" value="45">
+    <label for="sc-m"><b>Rule 2, "clear winner":</b> and beat second place by at least <span id="sc-mv">0.06</span></label>
+    <input type="range" id="sc-m" min="0" max="30" value="6">
+    <p class="time">The black line on each bar is Rule 1. Try 0.50 and 0.48: both are "sure enough", but it's too close to call, so the robot says friend.</p>
+  </div>
+  <p>One more safety rule: a single camera frame can be wrong, so the robot waits until the <b>same answer shows up in 3 of the last 5 frames</b>.</p>
+  <div class="toy">
+    <h3>🎞️ 3 out of 5</h3>
+    <p>Tap each frame to change what the AI saw in it: <span aria-hidden="true">🟦</span> Kid 1, <span aria-hidden="true">🟪</span> Kid 2, 🤷 friend, or nothing.</p>
+    <div class="frames" id="fr-row"></div>
+    <div class="verdict" id="fr-verdict" aria-live="polite"></div>
+  </div>
+
+  <h3>Download the two AI models (once)</h3>
+  <p>These are the "trained brains": a face finder and a fingerprint maker. Run these in the <code class="inline">chapter-4-code</code> folder.</p>
+  <div class="code-wrap cmd"><button class="copy-btn" data-target="cmd-mk" type="button">Copy</button>
+<pre id="cmd-mk">mkdir -p models</pre></div>
+  <div class="code-wrap cmd"><button class="copy-btn" data-target="cmd-m1" type="button">Copy</button>
+<pre id="cmd-m1">curl -L -o models/face_detection_yunet_2023mar.onnx https://media.githubusercontent.com/media/opencv/opencv_zoo/main/models/face_detection_yunet/face_detection_yunet_2023mar.onnx</pre></div>
+  <div class="code-wrap cmd"><button class="copy-btn" data-target="cmd-m2" type="button">Copy</button>
+<pre id="cmd-m2">curl -L -o models/face_recognition_sface_2021dec.onnx https://media.githubusercontent.com/media/opencv/opencv_zoo/main/models/face_recognition_sface/face_recognition_sface_2021dec.onnx</pre></div>
+
+  <h3>Teach it a face</h3>
+  <div class="code-wrap cmd"><button class="copy-btn" data-target="cmd-enroll" type="button">Copy</button>
+<pre id="cmd-enroll">python enroll_face.py</pre></div>
+  <p>It asks for:</p>
+  <ul>
+    <li>the <b>name</b> to show on the screen,</li>
+    <li><b>how to say it</b>, spelled the way it sounds, so the Mac pronounces it right,</li>
+    <li>a <b>catchphrase</b>, like "The legend has arrived!" (16 letters fit the screen),</li>
+    <li>a <b>theme tune</b>: up to 8 notes, typed as letters like <code class="inline">C E G C2</code> (C2 is high C).</li>
+  </ul>
+  <p>Then the camera opens and coaches you: look straight, turn a little left, a little right, smile! It saves <b>20 fingerprints</b> in about 15 seconds. <b>No photos are ever saved</b>, only the numbers. Do it once for each brother.</p>
+  <div class="warn">
+    <strong>⚠️ The first time</strong>
+    The Mac asks whether Terminal may use the camera. Click <b>Allow</b>, then run the command again.
+  </div>
+
+  <h3>Watch the AI think</h3>
+  <div class="code-wrap cmd"><button class="copy-btn" data-target="cmd-cal" type="button">Copy</button>
+<pre id="cmd-cal">python calibrate_faces.py</pre></div>
+  <p>The camera shows a <b>live score bar for each brother</b>. Take turns in front of it. Seeing those numbers wobble is the real lesson. Click the camera window and press <b>Q</b> to quit.</p>
+
+  <h3>Go live</h3>
+  <div class="code-wrap cmd"><button class="copy-btn" data-target="cmd-faces" type="button">Copy</button>
+<pre id="cmd-faces">caffeinate -i python robot_bridge.py --faces</pre></div>
+  <p>Walk in front of the Mac: <b>"Hi Kid 1! The legend has arrived!"</b> with the screen, the theme tune and the voice. A stranger, or anyone it isn't sure about, gets "Hello, friend!".</p>
+  <p>The numbers that set the rule are in <code class="inline">config.json</code>:</p>
+  <div class="code-wrap"><button class="copy-btn" data-target="code-facecfg" type="button">Copy code</button>
+<pre id="code-facecfg">  "faces": {
+    "camera": 0,
+    "sure_enough": 0.45,
+    "beat_second_by": 0.06,
+    "frames_needed": 3,
+    "frames_window": 5,
+    "person_cooldown_seconds": 120,
+    "friend_cooldown_seconds": 60,
+    "notify_names": false
+  }</pre></div>
+
+  <h3>Forget a face</h3>
+  <div class="code-wrap cmd"><button class="copy-btn" data-target="cmd-forget" type="button">Copy</button>
+<pre id="cmd-forget">python forget_face.py "Kid 1"</pre></div>
+  <p>That deletes a person completely: their numbers and their details. Use the name they were enrolled with.</p>
+
+  <div class="tip">
+    <strong>💡 What stays private</strong>
+    Everything about faces happens on this Mac, with no internet. When a brother comes home, the phone only gets "Someone is home", not his name, unless a parent sets <code class="inline">notify_names</code> to <code class="inline">true</code>.
+  </div>
+  <div class="kid">
+    <strong>🧒 Think about it: can it be fooled?</strong>
+    Hold up a photo of your brother on a phone. This robot can't tell a real face from a picture of one! That's why real face unlock on phones uses special 3D cameras. Would you trust this robot to guard a door?
+  </div>
+  <details class="code">
+    <summary>📄 Peek at the code: the face rules (bridge/faces.py)</summary>
+    <div class="code-wrap"><button class="copy-btn" data-target="code-faces" type="button">Copy code</button>
+<pre id="code-faces"># Face recognition, all on this Mac. Nothing is uploaded and no photos are saved.
+#
+# How it works:
+#   1. A "face finder" AI draws a box around each face.
+#   2. A "fingerprint maker" AI turns a face into 128 numbers (an EMBEDDING).
+#   3. We compare numbers with numbers. Close numbers = probably the same person.
+#
+# The AI only gives SCORES. The rule for "sure enough to say a name" is ours, and it is strict:
+# saying "friend" is always better than saying the wrong brother's name.
+
+import json
+import re
+import time
+from collections import deque
+from pathlib import Path
+
+import numpy as np
+
+HERE = Path(__file__).resolve().parent.parent
+MODELS = HERE / "models"
+FACES = HERE / "faces"                  # PRIVATE: one file of numbers per person
+PEOPLE_FILE = HERE / "people.json"      # PRIVATE: names, catchphrases and tunes
+
+FINDER_MODEL = "face_detection_yunet_2023mar.onnx"
+FINGERPRINT_MODEL = "face_recognition_sface_2021dec.onnx"
+
+FRIEND = "friend"
+SURE_ENOUGH = 0.45       # the best score must be at least this...
+BEAT_SECOND_BY = 0.06    # ...and beat the next person by at least this
+
+
+# ---------- the decision rule (plain maths, no camera needed) ----------
+
+def similarity(a, b):
+    """Cosine similarity: 1.0 = pointing the same way, 0 = nothing alike."""
+    a, b = np.asarray(a, dtype=float).ravel(), np.asarray(b, dtype=float).ravel()
+    return float(a @ b / (np.linalg.norm(a) * np.linalg.norm(b) + 1e-9))
+
+
+def person_score(face, samples, compare=similarity):
+    """How much does this face look like one person? The average of their 3 best matches."""
+    scores = sorted((compare(face, sample) for sample in samples), reverse=True)
+    best = scores[:3]
+    return sum(best) / len(best) if best else 0.0
+
+
+def all_scores(face, people, compare=similarity):
+    """people is {person_id: [samples]}. Gives back {person_id: score}."""
+    return {who: person_score(face, samples, compare) for who, samples in people.items()}
+
+
+def decide(scores, sure_enough=SURE_ENOUGH, beat_second_by=BEAT_SECOND_BY):
+    """Pick a name ONLY if the AI is sure and nobody else is close. Otherwise: friend."""
+    if not scores:
+        return FRIEND
+    ranked = sorted(scores.items(), key=lambda pair: pair[1], reverse=True)
+    best_name, best = ranked[0]
+    second = ranked[1][1] if len(ranked) &gt; 1 else -1.0
+    tiny = 1e-9                          # computers are a hair off with decimals
+    if best &gt;= sure_enough - tiny and best - second &gt;= beat_second_by - tiny:
+        return best_name
+    return FRIEND
+
+
+class FrameVote:
+    """One frame can be wrong. Wait until the same answer shows up in 3 of the last 5 frames."""
+
+    def __init__(self, needed=3, window=5):
+        self.needed = needed
+        self.recent = deque(maxlen=window)
+
+    def add(self, answer):
+        """Add this frame's answer (None = no face). Returns the winner, or None if not sure yet."""
+        self.recent.append(answer)
+        for candidate in set(self.recent):
+            if candidate is not None and list(self.recent).count(candidate) &gt;= self.needed:
+                return candidate
+        return None
+
+    def clear(self):
+        self.recent.clear()
+
+
+class Doorman:
+    """Decides WHEN to greet. Feed it every frame's answer; it says who to greet, or None.
+
+    - A name needs 3 of the last 5 frames.
+    - "friend" also has to wait 2 seconds, in case the AI just needs a better look.
+    - Everyone is greeted once per visit. A new visit starts after 5 seconds with no face.
+    """
+
+    def __init__(self, needed=3, window=5, clock=None, friend_wait=2, gone_after=5):
+        self.vote = FrameVote(needed, window)
+        self.clock = clock or time.monotonic
+        self.friend_wait = friend_wait
+        self.gone_after = gone_after
+        self.visit_started = None          # None = nobody is here
+        self.last_face = 0
+        self.greeted = set()
+
+    def see(self, answer):
+        """answer is a person's id, FRIEND, or None when there is no face in the frame."""
+        now = self.clock()
+        if answer is None:
+            if self.visit_started is not None and now - self.last_face &gt; self.gone_after:
+                self.visit_started = None  # they left: the next face is a new visit
+                self.greeted.clear()
+                self.vote.clear()
+        else:
+            if self.visit_started is None:
+                self.visit_started = now
+            self.last_face = now
+
+        winner = self.vote.add(answer)
+        if winner is None or winner in self.greeted:
+            return None
+        if winner == FRIEND and (self.greeted or now - self.visit_started &lt; self.friend_wait):
+            return None
+        self.greeted.add(winner)
+        return winner
+
+
+# ---------- saving and forgetting people ----------
+
+def make_id(name):
+    """ "Kid 1" -&gt; "kid-1": a safe file name."""
+    return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-") or "person"
+
+
+def load_people(people_file=PEOPLE_FILE, faces_folder=FACES):
+    """Returns (details, samples): details[id] = name and catchphrase, samples[id] = their numbers."""
+    people_file, faces_folder = Path(people_file), Path(faces_folder)
+    details = json.loads(people_file.read_text()) if people_file.exists() else {}
+    samples = {}
+    for who in list(details):
+        numbers_file = faces_folder / f"{who}.npy"
+        if numbers_file.exists():
+            samples[who] = np.load(numbers_file)
+        else:
+            del details[who]            # a name with no numbers can't be recognized
+    return details, samples
+
+
+def save_person(who, info, embeddings, people_file=PEOPLE_FILE, faces_folder=FACES):
+    people_file, faces_folder = Path(people_file), Path(faces_folder)
+    faces_folder.mkdir(exist_ok=True)
+    np.save(faces_folder / f"{who}.npy", np.asarray(embeddings, dtype=np.float32))
+    details = json.loads(people_file.read_text()) if people_file.exists() else {}
+    details[who] = info
+    people_file.write_text(json.dumps(details, indent=2) + "\n")
+
+
+def forget_person(name, people_file=PEOPLE_FILE, faces_folder=FACES):
+    """Delete every trace of a person. Returns True if there was something to delete."""
+    people_file, faces_folder = Path(people_file), Path(faces_folder)
+    details = json.loads(people_file.read_text()) if people_file.exists() else {}
+    matches = [who for who, info in details.items()
+               if name.lower() in (who, info.get("name", "").lower())]
+    matches = matches or [make_id(name)]
+    found = False
+    for who in matches:
+        numbers_file = faces_folder / f"{who}.npy"
+        if numbers_file.exists():
+            numbers_file.unlink()
+            found = True
+        if details.pop(who, None) is not None:
+            found = True
+    if people_file.exists():
+        if details:
+            people_file.write_text(json.dumps(details, indent=2) + "\n")
+        else:
+            people_file.unlink()        # nobody left: remove the file too
+    return found
+
+
+# ---------- the camera part (needs OpenCV and the two model files) ----------
+
+class FaceEngine:
+    def __init__(self, models=MODELS):
+        import cv2                       # only needed when the camera is really used
+        self.cv2 = cv2
+        finder, fingerprint = Path(models) / FINDER_MODEL, Path(models) / FINGERPRINT_MODEL
+        if not finder.exists() or not fingerprint.exists():
+            raise SystemExit("Missing the face models. Do the 'download the models' part of Step 5.")
+        self.finder = cv2.FaceDetectorYN.create(str(finder), "", (320, 320), 0.8)
+        self.fingerprinter = cv2.FaceRecognizerSF.create(str(fingerprint), "")
+
+    def find_faces(self, frame):
+        """Every face in the picture, biggest (closest) first. Each face is a row of numbers."""
+        height, width = frame.shape[:2]
+        self.finder.setInputSize((width, height))
+        _, faces = self.finder.detect(frame)
+        if faces is None:
+            return []
+        return sorted(faces, key=lambda face: face[2] * face[3], reverse=True)
+
+    def embedding(self, frame, face):
+        """Turn one face into its 128 numbers."""
+        straightened = self.fingerprinter.alignCrop(frame, face)
+        return self.fingerprinter.feature(straightened).copy()
+
+    def compare(self, a, b):
+        """OpenCV's own cosine score for two embeddings."""
+        a = np.asarray(a, dtype=np.float32).reshape(1, -1)
+        b = np.asarray(b, dtype=np.float32).reshape(1, -1)
+        return float(self.fingerprinter.match(a, b, self.cv2.FaceRecognizerSF_FR_COSINE))
+
+
+def box(face):
+    """The face's rectangle as whole numbers: x, y, width, height."""
+    return int(face[0]), int(face[1]), int(face[2]), int(face[3])
+
+
+def open_camera(number=0):
+    import cv2
+    camera = cv2.VideoCapture(number)
+    if not camera.isOpened():
+        raise SystemExit("Can't open the camera. See 'Camera won't open' in Troubleshooting.")
+    return camera</pre></div>
+  </details>
+  <details class="grownup">
+    <summary>🧑‍💼 Grown-up corner: what is stored, and where</summary>
+    <p>Two OpenCV models run locally: YuNet finds faces and SFace turns each one into a 128-number embedding. Only embeddings are stored, in <code class="inline">faces/</code>, plus names, catchphrases and tunes in <code class="inline">people.json</code>. Both are in <code class="inline">.gitignore</code>, along with <code class="inline">config.json</code>. OpenCV suggests treating a cosine score of 0.363 or more as "same person". This project uses a stricter 0.45 plus a 0.06 lead over the runner-up, because siblings score close to each other and a wrong name is worse than no name.</p>
+  </details>
+  <div class="kid">
+    <strong>🧒 Kid challenge: the brother test</strong>
+    Swap hats, borrow glasses, make weird faces, walk in together. Can it still tell you apart? When does it give up and say "friend"? Then change <code class="inline">sure_enough</code> from 0.45 to 0.30 and try again. What goes wrong?
+  </div>
+  <h3>✅ Test it on the real robot</h3>
+  <ul class="checks">
+    <li><label><input type="checkbox" class="check-box"><span>Each brother is greeted by name in at least 8 of 10 normal walk-ups.</span></label></li>
+    <li><label><input type="checkbox" class="check-box"><span>20 "brother swap" tries: never the wrong name. If it's unsure, it says friend.</span></label></li>
+    <li><label><input type="checkbox" class="check-box"><span>After <code class="inline">forget_face.py</code>, that person's file in <code class="inline">faces/</code> and their entry in <code class="inline">people.json</code> are gone.</span></label></li>
+    <li><label><input type="checkbox" class="check-box"><span>A parent runs <code class="inline">git status</code>: nothing from <code class="inline">faces/</code>, <code class="inline">people.json</code> or <code class="inline">config.json</code> shows up.</span></label></li>
+  </ul>
+  <p class="win">🏆 The win: the robot greets each brother by name, with his own entrance.</p>
+</section>
+
+<!-- ============ STEP 6 ============ -->
+<section class="card step" id="step6" style="--c:var(--s6); --on:#3b2500">
+  <div class="step-head">
+    <div class="step-title">
+      <span class="step-emoji" aria-hidden="true">🔊</span>
+      <div>
+        <span class="step-num">Step 6 · Bonus</span>
+        <h2>Talk without the Mac</h2>
+        <span class="time">⏱ About 45 minutes · needs new parts</span>
+      </div>
+    </div>
+    <label class="done-label"><input type="checkbox" class="done-box" data-step="6"> Done</label>
+  </div>
+  <p>So far the Mac does all the talking. Unplug it and the robot goes quiet. A tiny sound-player board fixes that: the robot carries its own voice on a memory card.</p>
+
+  <h3>Shopping list</h3>
+  <div class="table-scroll"><table>
+    <tr><th>Part</th><th>Notes</th></tr>
+    <tr><td><b>DFPlayer Mini</b> MP3 module</td><td>A tiny board with a micro-SD slot and a built-in amplifier. Copies exist, and some behave a little differently.</td></tr>
+    <tr><td><b>Micro-SD card</b>, 32 GB or smaller</td><td>Formatted <b>FAT32</b>.</td></tr>
+    <tr><td><b>Small speaker</b>, 4 to 8 Ω, under 3 W</td><td>Check the label on any speaker you already have. It might work.</td></tr>
+    <tr><td><b>1 kΩ resistor</b></td><td>Already in the kit.</td></tr>
+  </table></div>
+
+  <h3>Wire the sound player</h3>
+  <p>Unplug USB first. The Chapter 1 wiring all stays.</p>
+  <figure class="diagram">
+    <svg viewBox="0 0 660 270" role="img" aria-label="Wiring picture: DFPlayer VCC to the plus rail, GND to the minus rail, RX through a 1 kilo-ohm resistor to A2, TX to A1, and the two speaker pins to the speaker">
+      <rect x="20" y="25" width="150" height="220" rx="12" fill="#0f8a8f"/>
+      <text x="58" y="60" class="w" style="font-size:22px">UNO</text>
+      <g fill="#1f2340"><rect x="158" y="82" width="22" height="16"/><rect x="158" y="122" width="22" height="16"/><rect x="158" y="162" width="22" height="16"/><rect x="158" y="202" width="22" height="16"/></g>
+      <g class="w" text-anchor="end"><text x="150" y="95">5V</text><text x="150" y="135">A2</text><text x="150" y="175">A1</text><text x="150" y="215">GND</text></g>
+
+      <rect x="350" y="45" width="130" height="200" rx="8" fill="#1f2937"/>
+      <rect x="410" y="178" width="58" height="58" rx="4" fill="#94a3b8"/><text x="439" y="211" text-anchor="middle" class="sm" style="font-weight:700">SD card</text>
+      <text x="415" y="38" text-anchor="middle" style="font-weight:700">DFPlayer Mini</text>
+      <g fill="#fbbf24"><rect x="340" y="82" width="22" height="16"/><rect x="340" y="122" width="22" height="16"/><rect x="340" y="162" width="22" height="16"/><rect x="340" y="202" width="22" height="16"/><rect x="468" y="102" width="22" height="16"/><rect x="468" y="142" width="22" height="16"/></g>
+      <g class="w"><text x="368" y="95">VCC</text><text x="368" y="135">RX</text><text x="368" y="175">TX</text><text x="368" y="215">GND</text></g>
+      <g class="w" text-anchor="end"><text x="462" y="115" class="sm">SPK_1</text><text x="462" y="155" class="sm">SPK_2</text></g>
+
+      <path class="wire" d="M180,90 H340" stroke="#ef4444"/>
+      <path class="wire" d="M180,130 H228" stroke="#2563eb"/>
+      <path d="M228,130 l6,-9 l10,18 l10,-18 l10,18 l10,-18 l10,18 l6,-9" fill="none" stroke="#b45309" stroke-width="4" stroke-linejoin="round"/>
+      <path class="wire" d="M296,130 H340" stroke="#2563eb"/>
+      <path class="wire" d="M180,170 H340" stroke="#16a34a"/>
+      <path class="wire" d="M180,210 H340" stroke="#1f2340"/>
+      <g text-anchor="middle" class="sm" style="font-weight:700"><text x="260" y="82">red · through the + rail</text><text x="262" y="112">1 kΩ resistor</text><text x="260" y="162">A1 ← TX</text><text x="260" y="202">black · through the − rail</text></g>
+
+      <circle cx="590" cy="130" r="48" fill="#1f2340"/><circle cx="590" cy="130" r="30" fill="#334155"/><circle cx="590" cy="130" r="10" fill="#94a3b8"/>
+      <text x="590" y="200" text-anchor="middle" style="font-weight:700">Speaker</text>
+      <path class="wire" d="M490,110 C520,110 520,116 544,118" stroke="#ea580c"/>
+      <path class="wire" d="M490,150 C520,150 520,144 544,142" stroke="#7c3aed"/>
+    </svg>
+    <figcaption>This shows which pin connects to what, not where the pins sit on the board. Find each pin by its <b>name</b> on the pin chart that comes with your module.</figcaption>
+  </figure>
+  <div class="table-scroll"><table>
+    <tr><th>DFPlayer pin</th><th>Goes to</th></tr>
+    <tr><td class="pin">VCC</td><td><b>+</b> rail (5 V)</td></tr>
+    <tr><td class="pin">GND</td><td><b>−</b> rail</td></tr>
+    <tr><td class="pin">RX</td><td><b>1 kΩ resistor</b> → UNO <span class="pin">A2</span></td></tr>
+    <tr><td class="pin">TX</td><td>UNO <span class="pin">A1</span></td></tr>
+    <tr><td class="pin">SPK_1</td><td>One speaker wire</td></tr>
+    <tr><td class="pin">SPK_2</td><td>The other speaker wire</td></tr>
+  </table></div>
+  <div class="warn">
+    <strong>⚠️ Speaker wires go to the two SPK pins only</strong>
+    Never connect a speaker wire to GND or the − rail. And pins 0 and 1 on the UNO stay empty, because the USB cable uses them.
+  </div>
+
+  <h3>Record the robot's voice</h3>
+  <ol>
+    <li>Run the voice maker once. The first time, it makes a file called <code class="inline">phrases.json</code> for you, starting from these examples:</li>
+  </ol>
+  <div class="code-wrap"><button class="copy-btn" data-target="code-phrases" type="button">Copy code</button>
+<pre id="code-phrases">{
+  "voice": "Samantha",
+  "greetings": [
+    "Hello, human!",
+    "Welcome back!",
+    "Halt! What is the password?",
+    "Robot says hi!",
+    "Nice socks."
+  ],
+  "others": [
+    "Hi Kid 1! The legend has arrived!",
+    "Hi Kid 2! Ready for adventure?",
+    "Why did the robot go on holiday? To recharge its batteries!"
+  ]
+}</pre></div>
+  <div class="code-wrap cmd"><button class="copy-btn" data-target="cmd-voice" type="button">Copy</button>
+<pre id="cmd-voice">python make_voice_files.py</pre></div>
+  <ol start="2">
+    <li>Open <code class="inline">phrases.json</code>, write your own greetings and jokes, and run it again. Every phrase becomes a sound file in <code class="inline">sd_card/MP3/</code>, read by the Mac's own voice: <code class="inline">0001.mp3</code>, <code class="inline">0002.mp3</code> and so on.</li>
+    <li>Copy the whole <b>MP3</b> folder onto the SD card. Put the card in the DFPlayer.</li>
+  </ol>
+
+  <h3>Switch on the sound player in the sketch</h3>
+  <ol>
+    <li>In the Arduino IDE: <b>Tools → Manage Libraries</b>, search for <b>DFRobotDFPlayerMini</b>, and install it.</li>
+    <li>Near the top of <code class="inline">robot_bridge.ino</code>, change the <b>0</b> to a <b>1</b> on this line:</li>
+  </ol>
+  <div class="code-wrap"><button class="copy-btn" data-target="code-flag" type="button">Copy code</button>
+<pre id="code-flag">// Step 6 only: change this 0 to 1 when the DFPlayer Mini is wired in.
+#define USE_DFPLAYER 0</pre></div>
+  <ol start="3">
+    <li>Upload. In the Serial Monitor, type <code class="inline">PLAY 1</code>. The robot talks, and answers <code class="inline">OK PLAY</code>!</li>
+    <li>Unplug the robot from the Mac and power it from a USB power bank. Walk up: <b>it talks, with no computer at all.</b></li>
+  </ol>
+
+  <div class="toy">
+    <h3>🔌 Who does the talking?</h3>
+    <p>If the Mac sent the Arduino any note in the last 60 seconds, the Arduino lets the Mac talk. If the Mac has gone quiet, the Arduino speaks for itself. So you never get two greetings at once.</p>
+    <div class="btn-row">
+      <button class="btn" type="button" id="who-toggle">🔌 Unplug the Mac</button>
+      <button class="btn" type="button" id="who-walk" style="--c:var(--s3)">🚶 Walk up</button>
+    </div>
+    <div class="who">
+      <div id="who-mac" class="on"><span aria-hidden="true">💻</span><b>Mac</b><br>says the greeting with its big voice</div>
+      <div id="who-ard"><span aria-hidden="true">🤖</span><b>Arduino</b><br>plays a greeting from the SD card</div>
+    </div>
+    <p class="loop-caption" id="who-caption" aria-live="polite">The Mac is plugged in and the bridge is running.</p>
+  </div>
+  <details class="code">
+    <summary>📄 Peek at the code: make_voice_files.py</summary>
+    <div class="code-wrap"><button class="copy-btn" data-target="code-voice" type="button">Copy code</button>
+<pre id="code-voice"># Chapter 4, Step 6: turn the robot's phrases into sound files for the SD card
+# The Mac's own voice reads every phrase in phrases.json into sd_card/MP3/0001.mp3, 0002.mp3...
+# It also writes robot_bridge/phrases.h so the Arduino knows which numbers are greetings.
+# Only NUMBERS go into the Arduino sketch. No names, no words.
+#
+#   python make_voice_files.py
+
+import json
+import shutil
+import subprocess
+import tempfile
+import wave
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+PHRASES_FILE = HERE / "phrases.json"               # PRIVATE: your own phrases
+EXAMPLE_FILE = HERE / "phrases.example.json"
+MP3_FOLDER = HERE / "sd_card" / "MP3"
+HEADER_FILE = HERE / "robot_bridge" / "phrases.h"
+
+
+def number_phrases(phrases):
+    """Give every phrase a number: greetings first, then the others. Returns (list, numbers)."""
+    greetings = [text for text in phrases.get("greetings", []) if text.strip()]
+    others = [text for text in phrases.get("others", []) if text.strip()]
+    if not greetings:
+        raise SystemExit("phrases.json needs at least one greeting.")
+    numbers = {"GREETING_FIRST": 1, "GREETING_LAST": len(greetings)}
+    if others:
+        numbers["OTHER_FIRST"] = len(greetings) + 1
+        numbers["OTHER_LAST"] = len(greetings) + len(others)
+    numbers["COUNT"] = len(greetings) + len(others)
+    return greetings + others, numbers
+
+
+def header_text(numbers):
+    """The phrases.h file: numbers only."""
+    lines = ["// Made by make_voice_files.py. Numbers only: no names or words in here.",
+             "// File 1 is sd_card/MP3/0001.mp3, file 2 is 0002.mp3, and so on."]
+    lines += [f"#define PHRASE_{name} {number}" for name, number in numbers.items()]
+    return "\n".join(lines) + "\n"
+
+
+def speak_to_mp3(text, voice, mp3_file, work_folder):
+    """say -&gt; AIFF sound file -&gt; WAV sound file -&gt; MP3."""
+    import lameenc                                  # the MP3 squasher
+
+    aiff, wav = Path(work_folder) / "voice.aiff", Path(work_folder) / "voice.wav"
+    text = text.lstrip("-")                         # so it can't be mistaken for an option
+    command = ["say", "-o", str(aiff), text]
+    if voice:
+        command[1:1] = ["-v", voice]
+    subprocess.run(command, check=True)             # a list, never shell=True
+    subprocess.run(["afconvert", "-f", "WAVE", "-d", "LEI16@22050", str(aiff), str(wav)], check=True)
+
+    with wave.open(str(wav), "rb") as sound:
+        encoder = lameenc.Encoder()
+        encoder.set_bit_rate(64)
+        encoder.set_in_sample_rate(sound.getframerate())
+        encoder.set_channels(sound.getnchannels())
+        encoder.set_quality(2)                      # 2 = best quality
+        mp3 = encoder.encode(sound.readframes(sound.getnframes())) + encoder.flush()
+    Path(mp3_file).write_bytes(mp3)
+
+
+def main():
+    if not PHRASES_FILE.exists():
+        shutil.copy(EXAMPLE_FILE, PHRASES_FILE)
+        print("📝 Made phrases.json from the example. Edit it and run me again to use your own phrases.")
+    phrases = json.loads(PHRASES_FILE.read_text())
+    texts, numbers = number_phrases(phrases)
+
+    shutil.rmtree(MP3_FOLDER, ignore_errors=True)   # start clean so old files don't linger
+    MP3_FOLDER.mkdir(parents=True)
+    with tempfile.TemporaryDirectory() as work_folder:
+        for number, text in enumerate(texts, start=1):
+            mp3_file = MP3_FOLDER / f"{number:04d}.mp3"
+            speak_to_mp3(text, phrases.get("voice", ""), mp3_file, work_folder)
+            print(f"🔊 {mp3_file.name}  {text}")
+
+    HEADER_FILE.write_text(header_text(numbers))
+    print(f"✅ {len(texts)} sound files are in sd_card/MP3/")
+    print("✅ Wrote robot_bridge/phrases.h. Upload robot_bridge.ino again so the Arduino gets the new numbers.")
+    print("Next: copy the whole MP3 folder onto the SD card.")
+
+
+if __name__ == "__main__":
+    main()</pre></div>
+  </details>
+  <details class="grownup">
+    <summary>🧑‍💼 Grown-up corner: graceful degradation</summary>
+    <p>When the cloud or the big brain is gone, the device keeps doing its core job locally. The sketch gets only numbers from <code class="inline">make_voice_files.py</code> (which file numbers are greetings), never names or words, so nothing personal ends up in the Arduino code.</p>
+  </details>
+  <div class="kid">
+    <strong>🧒 Kid challenge: robot radio</strong>
+    Add a joke to <code class="inline">phrases.json</code>, make the files again, and find its number in the list the script prints. Then play it from the Serial Monitor with <code class="inline">PLAY</code> and that number.
+  </div>
+  <h3>✅ Test it on the real robot</h3>
+  <ul class="checks">
+    <li><label><input type="checkbox" class="check-box"><span>On a power bank with no Mac, walking up plays a greeting within 1 second.</span></label></li>
+    <li><label><input type="checkbox" class="check-box"><span>Plugged into the Mac with the bridge running, there's never a double greeting.</span></label></li>
+    <li><label><input type="checkbox" class="check-box"><span>With the DFPlayer unplugged, everything else still works.</span></label></li>
+  </ul>
+  <p class="win">🏆 The win: unplugged, on a battery, the robot still talks.</p>
+  <div class="celebrate" id="celebrate">
+    <span class="trophy" aria-hidden="true">🏆</span>
+    <b>Certified Robot Whisperers!</b>
+    You connected the real world to the internet and back again: a robot that talks, listens, texts and knows your name. Amazing work, team!
+  </div>
+</section>
+
+<!-- ============ HONEST NOTES ============ -->
+<section class="card">
+  <h2><span aria-hidden="true">🔬</span> What's been tested, and what you get to test</h2>
+  <p>Real engineers say exactly what they have and haven't tried. Here's the honest list for this chapter.</p>
+  <div class="kid">
+    <strong>✅ Tested on a Mac, without the real robot</strong>
+    The Arduino sketch compiles for the UNO, with and without the sound-player code. The Python has 176 automatic tests using a pretend Arduino, a pretend internet and a pretend clock. The voice-file maker and the two face models were run for real.
+  </div>
+  <div class="warn">
+    <strong>🧪 Not tested yet: that's your job!</strong>
+    Nothing here has run on your real robot yet. Still to try: how fast the real voice starts, the Siri Shortcut on your phone, how well the camera tells you two apart, and whichever DFPlayer you buy. The "Test it on the real robot" lists in each step are your lab notebook.
+  </div>
+  <details>
+    <summary>Run the robot's own tests</summary>
+    <p>In the <code class="inline">chapter-4-code</code> folder, with the private Python switched on:</p>
+    <div class="code-wrap cmd"><button class="copy-btn" data-target="cmd-pytest" type="button">Copy</button>
+<pre id="cmd-pytest">python -m pytest</pre></div>
+    <p>A row of green dots means every test passed. Each dot is one tiny experiment the computer ran for you.</p>
+  </details>
+  <details>
+    <summary>The pin map</summary>
+    <div class="table-scroll"><table>
+      <tr><th>UNO pin</th><th>Goes to</th></tr>
+      <tr><td class="pin">9 / 10</td><td>Sensor Trig / Echo</td></tr>
+      <tr><td class="pin">8</td><td>Passive buzzer</td></tr>
+      <tr><td class="pin">7</td><td>220 Ω resistor → LED (optional)</td></tr>
+      <tr><td class="pin">12, 11, 5, 4, 3, 2</td><td>Screen (same as Chapter 1)</td></tr>
+      <tr><td class="pin">A1</td><td>DFPlayer TX (Step 6 only)</td></tr>
+      <tr><td class="pin">A2</td><td>1 kΩ resistor → DFPlayer RX (Step 6 only)</td></tr>
+      <tr><td class="pin">0, 1</td><td>Leave empty: the USB link to the Mac</td></tr>
+    </table></div>
+  </details>
+</section>
+
+<!-- ============ TROUBLESHOOTING ============ -->
+<section class="card">
+  <h2><span aria-hidden="true">🕵️</span> Troubleshooting</h2>
+  <p>Detective time. Tap a problem to see what to check.</p>
+  <details>
+    <summary>"Can't reach the robot" or "the Arduino is busy"</summary>
+    <p>Check the USB cable. Then close the Serial Monitor in the Arduino IDE: only one program can use the cable. The bridge keeps trying by itself, so you don't need to restart it.</p>
+  </details>
+  <details>
+    <summary>The Serial Monitor shows nothing when I type a note</summary>
+    <p>Set it to <b>9600 baud</b> and <b>New Line</b> (the two menus at the top right of the Serial Monitor). With "No Line Ending", the robot never knows your note is finished.</p>
+  </details>
+  <details>
+    <summary>The robot answers ERR something</summary>
+    <p><code class="inline">ERR UNKNOWN</code>: it doesn't know that word. Check the spelling. <code class="inline">ERR RANGE</code>: a number is too big, too small or missing. <code class="inline">ERR TOO_LONG</code>: the note has more than 64 letters. <code class="inline">ERR NO_PLAYER</code>: there's no sound player yet (that's Step 6).</p>
+  </details>
+  <details>
+    <summary>Uploading a sketch fails because the port is busy</summary>
+    <p>Python is still using the Arduino. Click the Terminal window, press <b>Control + C</b> to stop the bridge, then upload.</p>
+  </details>
+  <details>
+    <summary>"command not found: uv" or "No module named ..."</summary>
+    <p>For uv: close Terminal and open a new window. For "No module": you skipped the "every time" lines. Run the <code class="inline">cd</code> line and <code class="inline">source .venv/bin/activate</code> again.</p>
+  </details>
+  <details>
+    <summary>The screen changes but the Mac doesn't talk</summary>
+    <p>Check the Mac's volume. Try <code class="inline">say hello</code> in Terminal. Is it quiet hours (9 at night to 7 in the morning)? Then phone messages are shown but not spoken, on purpose.</p>
+  </details>
+  <details>
+    <summary>The screen shows a ? in my message</summary>
+    <p>The little screen can only draw plain letters, numbers and punctuation. Emoji and some special letters become a <b>?</b>. The voice still reads the whole message.</p>
+  </details>
+  <details>
+    <summary>My phone message never arrives</summary>
+    <p>Is the bridge running, and does its log say "Listening for phone messages"? In the Shortcut, check the URL is exactly <code class="inline">https://ntfy.sh/</code>, the Method is POST, the body is JSON, and the <code class="inline">topic</code> box holds the "to robot" name with no extra spaces. A parent can print the names again with <code class="inline">python setup_cloud.py --show</code>.</p>
+  </details>
+  <details>
+    <summary>The log says "Lost the cloud"</summary>
+    <p>The Wi-Fi dropped. The bridge tries again by itself, waiting 1, 2, 4 and up to 30 seconds between tries. You don't need to do anything.</p>
+  </details>
+  <details>
+    <summary>The log says "phone features are off"</summary>
+    <p>There's no <code class="inline">config.json</code> yet. A parent runs <code class="inline">python setup_cloud.py</code> (Step 2).</p>
+  </details>
+  <details>
+    <summary>The phone doesn't buzz when I walk up</summary>
+    <p>Is the phone subscribed to the <b>"from robot"</b> name (not the "to robot" one)? Did it already buzz in the last minute? The robot only texts about visitors once a minute. Also check that the phone allows notifications from the ntfy app.</p>
+  </details>
+  <details>
+    <summary>My alarm didn't go off</summary>
+    <p>The bridge must be running at that time, and it only reads <code class="inline">config.json</code> when it starts, so restart it after changes. Use 24-hour times like <code class="inline">15:30</code> and three-letter days like <code class="inline">mon</code>. If the Mac was asleep, start the bridge with <code class="inline">caffeinate -i</code> in front.</p>
+  </details>
+  <details>
+    <summary>"config.json has a typo"</summary>
+    <p>JSON is fussy. Look for a missing comma between items, a missing quote mark, or an extra comma after the last item in a list.</p>
+  </details>
+  <details>
+    <summary>The camera won't open, or it opens the iPhone's camera</summary>
+    <p>The first time, the Mac asks for permission: click Allow and run it again. If you clicked Don't Allow, go to <b>System Settings → Privacy &amp; Security → Camera</b> and turn on <b>Terminal</b>. If the iPhone's camera opens instead, change <code class="inline">"camera": 0</code> to <code class="inline">1</code> in <code class="inline">config.json</code>.</p>
+  </details>
+  <details>
+    <summary>It keeps calling me "friend"</summary>
+    <p>Light matters: face a window or a lamp. Run <code class="inline">python calibrate_faces.py</code> and watch your score. If it's usually under 0.45, enroll again in the spot where the robot will live. That works better than lowering the rule.</p>
+  </details>
+  <details>
+    <summary>It said the wrong brother's name</summary>
+    <p>Make the rule stricter: raise <code class="inline">sure_enough</code> or <code class="inline">beat_second_by</code> a little in <code class="inline">config.json</code>, and enroll both brothers again in good light. Wrong names are the one mistake this robot should never make.</p>
+  </details>
+  <details>
+    <summary>Step 6: no sound from the speaker</summary>
+    <p>Is the card FAT32, with a folder named exactly <b>MP3</b> holding <code class="inline">0001.mp3</code>? Did you change <code class="inline">USE_DFPLAYER</code> to 1 and upload again? Check RX and TX aren't swapped, the resistor is on the RX wire, and the speaker is on the two SPK pins. If <code class="inline">PLAY 1</code> answers <code class="inline">ERR NO_PLAYER</code>, the Arduino can't hear the module at all: check its power wires.</p>
+  </details>
+</section>
+
+<!-- ============ GROWN-UP CORNER ============ -->
+<section class="card">
+  <h2><span aria-hidden="true">🧑‍💼</span> Grown-up corner</h2>
+  <details class="grownup">
+    <summary>The same architecture you build at work</summary>
+    <div class="table-scroll"><table>
+      <tr><th>This project</th><th>The cloud world</th></tr>
+      <tr><td>ntfy "to robot" topic</td><td>SNS topic / SQS queue</td></tr>
+      <tr><td>The bridge streaming from ntfy</td><td>A consumer long-polling: outbound only, no open ports</td></tr>
+      <tr><td><code class="inline">robot_bridge.py</code></td><td>A small service (or Lambda) that consumes, decides and produces</td></tr>
+      <tr><td>USB serial line</td><td>A private channel to a device</td></tr>
+      <tr><td>The Arduino</td><td>An IoT "thing"</td></tr>
+      <tr><td><code class="inline">EVENT VISITOR</code> lines</td><td>Device telemetry</td></tr>
+      <tr><td>Schedule thread</td><td>EventBridge Scheduler / cron</td></tr>
+      <tr><td>Cooldowns and rate limits</td><td>Throttling and dedup</td></tr>
+      <tr><td>Retries with backoff</td><td>Retry policy</td></tr>
+      <tr><td>The Arduino talks on its own when the Mac is gone</td><td>Graceful degradation</td></tr>
+      <tr><td><code class="inline">faces/</code> and <code class="inline">config.json</code></td><td>Sensitive data and secrets: never in the repo</td></tr>
+    </table></div>
+    <p>The production version of this pattern is AWS IoT Core: MQTT topics plus device shadows. An ESP32 could later replace the Mac as the bridge, with Wi-Fi built in.</p>
+  </details>
+  <details class="grownup">
+    <summary>Privacy checklist before anything goes on GitHub</summary>
+    <p>These must be in <code class="inline">.gitignore</code>, and none of them should ever appear in <code class="inline">git status</code>:</p>
+    <div class="code-wrap"><button class="copy-btn" data-target="code-ignore" type="button">Copy code</button>
+<pre id="code-ignore">chapter-4-code/config.json
+chapter-4-code/people.json
+chapter-4-code/phrases.json
+chapter-4-code/faces/
+chapter-4-code/models/
+chapter-4-code/sd_card/
+chapter-4-code/robot_bridge/phrases.h
+**/.venv/
+**/__pycache__/
+**/.pytest_cache/
+*.onnx
+*.tflite
+*.task</pre></div>
+    <p>Secret topics live only in <code class="inline">config.json</code>. Faces are embeddings only, local only, deletable, and only for people who said yes. The log never prints the topic names.</p>
+  </details>
+</section>
+
+<!-- ============ ROUND 2 ============ -->
+<section class="card">
+  <h2><span aria-hidden="true">✨</span> Round 2 ideas</h2>
+  <p>Once the Talking Robot works, here's where to take it next:</p>
+  <ul class="ideas">
+    <li style="--k:var(--s1)"><span class="big" aria-hidden="true">🃏</span><b>A new secret command:</b> add <code class="inline">!joke</code> to <code class="inline">do_phone_command</code> in <code class="inline">robot_bridge.py</code> so the robot tells a random joke.</li>
+    <li style="--k:var(--s2)"><span class="big" aria-hidden="true">🎭</span><b>Robot moods:</b> pick a different voice for mornings and evenings, or a spooky one in October.</li>
+    <li style="--k:var(--s5)"><span class="big" aria-hidden="true">🚪</span><b>Goodbye too:</b> make the robot say "See you later!" when it gets <code class="inline">EVENT LEFT</code>.</li>
+    <li style="--k:var(--s3)"><span class="big" aria-hidden="true">📡</span><b>Lose the Mac:</b> an ESP32 board has Wi-Fi built in and could be the bridge all by itself one day.</li>
+  </ul>
+</section>
+
+</div>
+
+<script>
+  var STORAGE_KEY = "talkingRobotDone";
+  var PARTS_KEY = "talkingRobotParts";
+  var CHECKS_KEY = "talkingRobotChecks";
+  var ALARMS_KEY = "talkingRobotAlarms";
+  var boxes = document.querySelectorAll(".done-box");
+  var partBoxes = document.querySelectorAll(".part-box");
+  var checkBoxes = document.querySelectorAll(".check-box");
+  var barFill = document.getElementById("bar-fill");
+  var progressLabel = document.getElementById("progress-label");
+  var celebrate = document.getElementById("celebrate");
+  var reducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function loadState(key) {
+    try { return JSON.parse(localStorage.getItem(key) || "{}") || {}; }
+    catch (e) { return {}; }
+  }
+  function saveState(key, state) {
+    try { localStorage.setItem(key, JSON.stringify(state)); }
+    catch (e) { /* storage not available, that's fine */ }
+  }
+
+  var state = loadState(STORAGE_KEY);
+  var partState = loadState(PARTS_KEY);
+  var checkState = loadState(CHECKS_KEY);
+
+  function updateProgress() {
+    var done = 0;
+    boxes.forEach(function (box) {
+      var card = box.closest(".step");
+      card.classList.toggle("is-done", box.checked);
+      var stop = document.querySelector('.stop[data-stop="' + box.dataset.step + '"]');
+      if (stop) stop.classList.toggle("is-done", box.checked);
+      if (box.checked) done++;
+    });
+    barFill.style.width = (done / boxes.length * 100) + "%";
+    progressLabel.textContent = done + " of " + boxes.length + " steps done";
+    celebrate.classList.toggle("show", done === boxes.length);
+    return done;
+  }
+
+  function confetti() {
+    if (reducedMotion) return;
+    var colors = ["#2563eb", "#ea580c", "#7c3aed", "#db2777", "#16a34a", "#f59e0b"];
+    for (var i = 0; i < 80; i++) {
+      var bit = document.createElement("i");
+      bit.className = "confetti";
+      bit.style.left = (Math.random() * 100) + "vw";
+      bit.style.background = colors[i % colors.length];
+      bit.style.animationDuration = (2 + Math.random() * 2) + "s";
+      bit.style.animationDelay = (Math.random() * 0.8) + "s";
+      document.body.appendChild(bit);
+      setTimeout(function (el) { el.remove(); }, 5200, bit);
+    }
+  }
+
+  boxes.forEach(function (box) {
+    box.checked = !!state[box.dataset.step];
+    box.addEventListener("change", function () {
+      state[box.dataset.step] = box.checked;
+      saveState(STORAGE_KEY, state);
+      if (updateProgress() === boxes.length && box.checked) confetti();
+    });
+  });
+
+  function rememberBoxes(list, memory, key) {
+    list.forEach(function (box, i) {
+      box.checked = !!memory[i];
+      box.addEventListener("change", function () {
+        memory[i] = box.checked;
+        saveState(key, memory);
+      });
+    });
+  }
+  rememberBoxes(partBoxes, partState, PARTS_KEY);
+  rememberBoxes(checkBoxes, checkState, CHECKS_KEY);
+
+  document.getElementById("reset-btn").addEventListener("click", function () {
+    [state, partState, checkState].forEach(function (memory) {
+      Object.keys(memory).forEach(function (k) { delete memory[k]; });
+    });
+    saveState(STORAGE_KEY, state);
+    saveState(PARTS_KEY, partState);
+    saveState(CHECKS_KEY, checkState);
+    boxes.forEach(function (box) { box.checked = false; });
+    partBoxes.forEach(function (box) { box.checked = false; });
+    checkBoxes.forEach(function (box) { box.checked = false; });
+    updateProgress();
+  });
+
+  updateProgress();
+
+  /* Copy buttons */
+  function fallbackCopy(text) {
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand("copy"); } catch (e) {}
+    document.body.removeChild(ta);
+  }
+  function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text).catch(function () { fallbackCopy(text); });
+    }
+    fallbackCopy(text);
+    return Promise.resolve();
+  }
+  document.querySelectorAll(".copy-btn").forEach(function (btn) {
+    var label = btn.textContent;
+    btn.addEventListener("click", function () {
+      var code = document.getElementById(btn.dataset.target).textContent;
+      copyText(code).then(function () {
+        btn.textContent = "Copied!";
+        setTimeout(function () { btn.textContent = label; }, 1500);
+      });
+    });
+  });
+
+  /* ---------- Chapter 4: shared helpers ---------- */
+  function byId(id) { return document.getElementById(id); }
+
+  /* A pretend 16x2 LCD */
+  var LCD_COLS = 16;
+  function makeLcd(screen) {
+    for (var c = 0; c < LCD_COLS * 2; c++) screen.appendChild(document.createElement("span"));
+  }
+  function lcdShow(screen, line1, line2) {
+    var cells = screen.children;
+    for (var i = 0; i < LCD_COLS; i++) {
+      cells[i].textContent = line1.charAt(i);
+      cells[LCD_COLS + i].textContent = line2.charAt(i);
+    }
+  }
+
+  /* The same text rules as bridge/protocol.py */
+  var LOOKALIKES = [["\u2018", "'"], ["\u2019", "'"], ["\u201c", '"'], ["\u201d", '"'],
+                    ["\u2013", "-"], ["\u2014", "-"], ["\u2026", "..."], ["\u00a0", " "]];
+  function cleanForLcd(text) {
+    LOOKALIKES.forEach(function (pair) { text = text.split(pair[0]).join(pair[1]); });
+    var cleaned = "";
+    for (var i = 0; i < text.length; i++) {
+      var letter = text.charAt(i), code = text.charCodeAt(i);
+      if (letter === "\r" || letter === "\n" || letter === "\t") letter = " ";
+      else if (letter === "|") letter = "/";
+      else if (code < 32 || code > 126) {
+        if (cleaned.charAt(cleaned.length - 1) === "?") continue;
+        letter = "?";
+      }
+      cleaned += letter;
+    }
+    return cleaned.split(/\s+/).filter(Boolean).join(" ");
+  }
+  function wrapForLcd(text) {
+    var lines = ["", ""], row = 0, fits = true;
+    var words = cleanForLcd(text).split(" ").filter(Boolean);
+    for (var w = 0; w < words.length; w++) {
+      var word = words[w];
+      while (row < 2) {
+        var gap = lines[row] ? " " : "";
+        if (lines[row].length + gap.length + word.length <= LCD_COLS) { lines[row] += gap + word; break; }
+        if (!lines[row]) { lines[row] = word.slice(0, LCD_COLS); fits = false; break; }
+        row++;
+      }
+      if (row === 2) { fits = false; break; }
+    }
+    return { line1: lines[0], line2: lines[1], fits: fits };
+  }
+  function showNote(line1, line2) {
+    return "SHOW " + cleanForLcd(line1).slice(0, LCD_COLS) + "|" + cleanForLcd(line2 || "").slice(0, LCD_COLS);
+  }
+
+  /* Buzzer sounds, timed like the sketch */
+  var audioCtx = null;
+  function buzz(freq, delaySec, durSec) {
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    try {
+      if (!audioCtx) audioCtx = new AC();
+      if (audioCtx.state === "suspended") audioCtx.resume();
+      var osc = audioCtx.createOscillator();
+      var gain = audioCtx.createGain();
+      osc.type = "square";
+      osc.frequency.value = freq;
+      gain.gain.value = 0.06;
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      var start = audioCtx.currentTime + (delaySec || 0);
+      osc.start(start);
+      osc.stop(start + durSec);
+    } catch (e) { /* no sound, that's fine */ }
+  }
+  var TUNES = {
+    HELLO: { notes: [523, 659, 784, 1047], ms: 150 },
+    WIN: { notes: [784, 988, 1175, 1568], ms: 120 },
+    SAD: { notes: [392, 370, 349, 330], ms: 250 },
+    SIREN: { notes: [1200, 800, 1200, 800, 1200, 800, 1200, 800], ms: 250 },
+    CHIRP: { notes: [1319, 1760], ms: 70 }
+  };
+  function playTune(name) {
+    var tune = TUNES[name];
+    if (!tune) return;
+    tune.notes.forEach(function (freq, i) { buzz(freq, i * tune.ms * 1.2 / 1000, tune.ms / 1000); });
+  }
+
+  /* The browser's own voice. Only ever used after a tap. */
+  var canSpeak = !!(window.speechSynthesis && window.SpeechSynthesisUtterance);
+  var voiceOn = canSpeak;
+  function speak(text) {
+    if (!voiceOn || !canSpeak) return false;
+    try {
+      window.speechSynthesis.speak(new window.SpeechSynthesisUtterance(text.slice(0, 100)));
+      return true;
+    } catch (e) { return false; }
+  }
+
+  /* ---------- the full loop picture ---------- */
+  (function () {
+    var packet = byId("loop-packet"), icon = byId("loop-packet-icon"), caption = byId("loop-caption");
+    var msgBtn = byId("loop-msg"), visitBtn = byId("loop-visit");
+    var lcd1 = byId("loop-lcd1"), lcd2 = byId("loop-lcd2");
+    var busy = false, visitors = 23;
+    var PHONE = [57, 118], CLOUD = [240, 118], MAC = [424, 118], ARD = [621, 118];
+    var PHONE2 = [57, 178], CLOUD2 = [240, 178], MAC2 = [424, 178], ARD2 = [621, 178];
+
+    function show(id, on) { byId(id).style.opacity = on ? 1 : 0; }
+    function hot(id, on) { byId(id).classList.toggle("hot", on); }
+    function clearHot() {
+      ["node-phone", "node-cloud", "node-mac", "node-arduino", "lane-in-1", "lane-in-2", "lane-in-3",
+       "lane-out-1", "lane-out-2", "lane-out-3"].forEach(function (id) { hot(id, false); });
+    }
+    function resetPicture() {
+      clearHot();
+      show("loop-bell", false); show("loop-bell-text", false); show("loop-voice", false); show("loop-note", false);
+      byId("loop-led").setAttribute("fill", "#7f1d1d");
+      lcd1.textContent = "Talking Robot ON";
+      lcd2.textContent = "Visitors: " + visitors;
+    }
+    function place(point) { packet.setAttribute("transform", "translate(" + point[0] + "," + point[1] + ")"); }
+    function travel(from, to, done) {
+      var steps = reducedMotion ? 1 : 30, n = 0;
+      place(from);
+      var timer = setInterval(function () {
+        n++;
+        var t = n / steps;
+        place([from[0] + (to[0] - from[0]) * t, from[1] + (to[1] - from[1]) * t]);
+        if (n >= steps) { clearInterval(timer); done(); }
+      }, 30);
+    }
+    /* Each stop: say something, light something up, wait, then move on. */
+    function runTrip(stops) {
+      busy = true;
+      msgBtn.disabled = visitBtn.disabled = true;
+      resetPicture();
+      var i = 0;
+      function next() {
+        if (i === stops.length) {
+          packet.style.opacity = 0;
+          clearHot();
+          busy = false;
+          msgBtn.disabled = visitBtn.disabled = false;
+          return;
+        }
+        var stop = stops[i++];
+        function arrive() {
+          clearHot();
+          hot(stop.node, true);
+          caption.innerHTML = stop.say;
+          if (stop.then) stop.then();
+          setTimeout(next, stop.wait || 2200);
+        }
+        packet.style.opacity = 1;
+        if (stop.from) {
+          clearHot();
+          hot(stop.lane, true);
+          travel(stop.from, stop.to, arrive);
+        } else {
+          place(stop.to);
+          arrive();
+        }
+      }
+      next();
+    }
+
+    msgBtn.addEventListener("click", function () {
+      if (busy) return;
+      icon.textContent = "💬";
+      runTrip([
+        { to: PHONE, node: "node-phone", say: "📱 You say <b>\"Dinner time!\"</b> The phone drops it into the secret <b>\"to robot\"</b> mailbox." },
+        { from: PHONE, to: CLOUD, lane: "lane-in-1", node: "node-cloud", say: "☁️ The cloud keeps it safe in the mailbox for a moment...", wait: 1600 },
+        { from: CLOUD, to: MAC, lane: "lane-in-2", node: "node-mac", say: "💻 The Mac had asked <b>\"any messages for me?\"</b> and gets it. It writes a note for the Arduino: <code>SHOW Dinner time!|</code>" },
+        { from: MAC, to: ARD, lane: "lane-in-3", node: "node-arduino", wait: 3200,
+          say: "🤖 The Arduino puts it on the screen and answers <code>OK SHOW</code>. At the same moment, the Mac's voice says it out loud.",
+          then: function () { lcd1.textContent = "Dinner time!"; lcd2.textContent = ""; show("loop-voice", true); buzz(880, 0, 0.08); } }
+      ]);
+    });
+
+    visitBtn.addEventListener("click", function () {
+      if (busy) return;
+      visitors++;
+      icon.textContent = "📝";
+      runTrip([
+        { to: ARD2, node: "node-arduino", wait: 2600,
+          say: "⚡ <b>Reflex!</b> The sensor spots you. The Arduino chirps and lights up <b>right away</b>, without asking the Mac.",
+          then: function () { byId("loop-led").setAttribute("fill", "#ef4444"); show("loop-note", true); playTune("CHIRP"); } },
+        { from: ARD2, to: MAC2, lane: "lane-out-3", node: "node-mac", wait: 3000,
+          say: "📝 Then it passes a note up the cable: <code>EVENT VISITOR " + visitors + "</code>. The Mac says hello with its big voice.",
+          then: function () { lcd1.textContent = "Hello, human!"; lcd2.textContent = "Visitor #" + visitors; show("loop-voice", true); } },
+        { from: MAC2, to: CLOUD2, lane: "lane-out-2", node: "node-cloud", say: "☁️ The Mac reaches out and drops a message into the <b>\"from robot\"</b> mailbox.", wait: 1800 },
+        { from: CLOUD2, to: PHONE2, lane: "lane-out-1", node: "node-phone", wait: 3200,
+          say: "🔔 Bzzt! The phone shows <b>Visitor #" + visitors + " at the door</b>. That's the full loop!",
+          then: function () { show("loop-bell", true); show("loop-bell-text", true); } }
+      ]);
+    });
+    resetPicture();
+  })();
+
+  /* ---------- pretend phone + pretend robot (same rules as robot_bridge.py) ---------- */
+  (function () {
+    var MAX_LETTERS = 100, GAP_MS = 3000, LINE_SIZE = 5, COOLDOWN_MS = 10000;
+    var chat = byId("sim-chat"), input = byId("sim-input"), screen = byId("sim-screen");
+    var led = byId("sim-led"), ledText = byId("sim-led-text"), says = byId("sim-says"), wire = byId("sim-wire");
+    var quietBtn = byId("sim-quiet"), voiceBtn = byId("sim-voice");
+    var waiting = [], lastOut = -Infinity, lastText = -Infinity, started = Date.now();
+    var visitors = 0, quiet = false, blinkTimer = null, leaveTimer = null;
+
+    makeLcd(screen);
+    function idleScreen() { lcdShow(screen, "Talking Robot ON", "Visitors: " + visitors); }
+    function bubble(kind, text) {
+      var b = document.createElement("div");
+      b.className = "bubble " + kind;
+      b.textContent = text;
+      chat.appendChild(b);
+      while (chat.children.length > 30) chat.removeChild(chat.firstChild);
+      chat.scrollTop = chat.scrollHeight;
+    }
+    function log(kind, text) {
+      var row = document.createElement("div");
+      row.className = kind;
+      row.textContent = (kind === "to" ? "Mac → Arduino: " : kind === "from" ? "Arduino → Mac: " : "") + text;
+      wire.appendChild(row);
+      while (wire.children.length > 40) wire.removeChild(wire.firstChild);
+      wire.scrollTop = wire.scrollHeight;
+    }
+    function sendNote(note, answer) { log("to", note); log("from", answer); }
+    function setLed(mode) {
+      clearInterval(blinkTimer);
+      if (mode === "BLINK") {
+        blinkTimer = setInterval(function () { led.classList.toggle("on"); }, 250);
+        ledText.textContent = "LED blinking";
+      } else {
+        led.classList.toggle("on", mode === "ON");
+        ledText.textContent = mode === "ON" ? "LED on" : "LED off";
+      }
+    }
+    function robotSays(words) {
+      if (quiet) { says.textContent = "🤫 Quiet hours: shown on the screen, not spoken."; return; }
+      var spoken = speak(words);
+      says.textContent = (spoken ? "🔊 " : "🔈 ") + "\"" + words + "\"";
+    }
+    function showAndSay(text) {
+      var wrapped = wrapForLcd(text);
+      sendNote("SHOW " + wrapped.line1 + "|" + wrapped.line2, "OK SHOW");
+      lcdShow(screen, wrapped.line1, wrapped.line2);
+      robotSays(text);
+    }
+    function howLong(ms) {
+      var minutes = Math.floor(ms / 60000);
+      return minutes >= 60 ? Math.floor(minutes / 60) + " h " + (minutes % 60) + " min" : minutes + " min";
+    }
+    function doCommand(words) {
+      var tune = (words[1] || "").toUpperCase();
+      if (words.length === 1 && words[0] === "beep") {
+        sendNote("BEEP 880 200", "OK BEEP"); buzz(880, 0, 0.2);
+      } else if (words.length === 2 && words[0] === "tune" && TUNES[tune] && tune !== "CHIRP") {
+        sendNote("TUNE " + tune, "OK TUNE"); playTune(tune);
+      } else if (words.length === 2 && words[0] === "led" && /^(ON|OFF|BLINK)$/.test(tune)) {
+        sendNote("LED " + tune, "OK LED"); setLed(tune);
+      } else if (words.length === 1 && words[0] === "status") {
+        var status = "📊 Awake for " + howLong(Date.now() - started) + ". Visitors: " + visitors + ".";
+        log("info", "(no note needed: the Mac answers this one)");
+        bubble("bot", status);
+      } else {
+        log("info", "❓ I don't know that command: !" + words.join(" "));
+      }
+    }
+    function handle(text) {
+      if (text.charAt(0) === "!") doCommand(text.slice(1).toLowerCase().split(/\s+/).filter(Boolean));
+      else showAndSay(text);
+    }
+    function pump() {
+      if (!waiting.length || Date.now() - lastOut < GAP_MS) return;
+      lastOut = Date.now();
+      handle(waiting.shift());
+    }
+    function phoneSends(text) {
+      text = text.replace(/^\s+|\s+$/g, "");
+      if (!text) return;
+      if (text.length > MAX_LETTERS) {
+        text = text.slice(0, MAX_LETTERS);
+        bubble("note", "✂️ Cut to 100 letters");
+      }
+      bubble("me", text);
+      if (waiting.length >= LINE_SIZE) {
+        bubble("note", "🚫 Too many at once! That one was dropped.");
+        return;
+      }
+      waiting.push(text);
+      pump();
+      if (waiting.length) bubble("note", "⏳ Waiting in line (" + waiting.length + " of " + LINE_SIZE + ")");
+    }
+    function walkUp() {
+      visitors++;
+      clearTimeout(leaveTimer);
+      log("from", "EVENT VISITOR " + visitors);
+      setLed("ON");
+      playTune("CHIRP");
+      sendNote(showNote("Hello, human!", "Visitor #" + visitors), "OK SHOW");
+      lcdShow(screen, "Hello, human!", "Visitor #" + visitors);
+      robotSays("Hello, human! You are visitor number " + visitors + ".");
+      if (Date.now() - lastText >= COOLDOWN_MS) {
+        lastText = Date.now();
+        bubble("bot", "🤖 Visitor #" + visitors + " at the door");
+      } else {
+        log("info", "🔕 Not texting again so soon (cooldown)");
+      }
+      leaveTimer = setTimeout(function () {
+        log("from", "EVENT LEFT");
+        setLed("OFF");
+        idleScreen();
+      }, 3500);
+    }
+
+    byId("sim-send").addEventListener("click", function () { phoneSends(input.value); input.value = ""; });
+    input.addEventListener("keydown", function (e) { if (e.key === "Enter") byId("sim-send").click(); });
+    byId("sim-quick").addEventListener("click", function (e) {
+      var key = e.target.closest("button");
+      if (key) phoneSends(key.dataset.t);
+    });
+    byId("sim-walk").addEventListener("click", walkUp);
+    quietBtn.addEventListener("click", function () {
+      quiet = !quiet;
+      quietBtn.textContent = "🌙 Quiet hours: " + (quiet ? "on" : "off");
+      quietBtn.classList.toggle("on", quiet);
+      quietBtn.setAttribute("aria-pressed", quiet);
+    });
+    function showVoice() {
+      voiceBtn.textContent = canSpeak ? "🔊 Real voice: " + (voiceOn ? "on" : "off") : "🔇 No voice in this browser";
+      voiceBtn.classList.toggle("on", voiceOn);
+      voiceBtn.setAttribute("aria-pressed", voiceOn);
+      voiceBtn.disabled = !canSpeak;
+    }
+    voiceBtn.addEventListener("click", function () {
+      voiceOn = !voiceOn;
+      if (!voiceOn && canSpeak) { try { window.speechSynthesis.cancel(); } catch (e) {} }
+      showVoice();
+    });
+    showVoice();
+    setInterval(pump, 250);
+    idleScreen();
+    log("from", "READY");
+    bubble("note", "Say hi to your robot!");
+  })();
+
+  /* ---------- Step 1: screen squeezer ---------- */
+  (function () {
+    var input = byId("wrap-input"), screen = byId("wrap-screen");
+    makeLcd(screen);
+    function update() {
+      var wrapped = wrapForLcd(input.value);
+      lcdShow(screen, wrapped.line1, wrapped.line2);
+      byId("wrap-note").textContent = "SHOW " + wrapped.line1 + "|" + wrapped.line2;
+      var swapped = cleanForLcd(input.value) !== input.value.replace(/\s+/g, " ").replace(/^ | $/g, "");
+      byId("wrap-fit").textContent = !wrapped.fits ? "❌ Too long: the end is cut off (the voice still says it all)"
+        : swapped ? "✅ Yes, with some letters swapped" : "✅ Yes!";
+    }
+    input.addEventListener("input", update);
+    update();
+  })();
+
+  /* ---------- Step 2: quiet hours checker (21:00 to 07:00, like config.example.json) ---------- */
+  (function () {
+    var range = byId("quiet-range");
+    function inQuietHours(hour, minute) {
+      var now = hour * 60 + minute, start = 21 * 60, end = 7 * 60;
+      return now >= start || now < end;
+    }
+    function update() {
+      var half = Number(range.value), hour = Math.floor(half / 2), minute = (half % 2) * 30;
+      byId("quiet-time").textContent = hour + ":" + (minute ? "30" : "00");
+      byId("quiet-mark").style.left = (half / 48 * 100) + "%";
+      byId("quiet-result").textContent = inQuietHours(hour, minute) ? "🤫 shown, not spoken" : "🗣️ shown and spoken";
+    }
+    range.addEventListener("input", update);
+    update();
+  })();
+
+  /* ---------- Step 3: latency stopwatch ---------- */
+  (function () {
+    var display = byId("sw-time"), go = byId("sw-go"), laps = byId("sw-laps"), best = byId("sw-best");
+    var startedAt = null, timer = null, times = [];
+    function now() { return window.performance && performance.now ? performance.now() : Date.now(); }
+    function format(ms) { return (ms / 1000).toFixed(2) + " s"; }
+    function render() {
+      laps.textContent = "";
+      times.forEach(function (ms) {
+        var li = document.createElement("li");
+        li.textContent = format(ms);
+        laps.appendChild(li);
+      });
+      best.textContent = times.length ? "Fastest: " + format(Math.min.apply(null, times)) : "";
+    }
+    go.addEventListener("click", function () {
+      if (startedAt === null) {
+        startedAt = now();
+        go.textContent = "⏹ Stop";
+        timer = setInterval(function () { display.textContent = format(now() - startedAt); }, 50);
+      } else {
+        clearInterval(timer);
+        var took = now() - startedAt;
+        startedAt = null;
+        display.textContent = format(took);
+        go.textContent = "▶ Start";
+        times.push(took);
+        if (times.length > 8) times.shift();
+        render();
+      }
+    });
+    byId("sw-clear").addEventListener("click", function () {
+      times = [];
+      if (startedAt === null) display.textContent = "0.00 s";
+      render();
+    });
+  })();
+
+  /* ---------- Step 4: alarm builder ---------- */
+  (function () {
+    var DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
+    var timeInput = byId("al-time"), tuneInput = byId("al-tune"), sayInput = byId("al-say");
+    var screen = byId("al-screen"), list = byId("al-list"), out = byId("al-json"), hint = byId("al-hint");
+    var alarms;
+    try { alarms = JSON.parse(localStorage.getItem(ALARMS_KEY) || "null"); } catch (e) { alarms = null; }
+    if (!Array.isArray(alarms)) {
+      alarms = [
+        { time: "15:30", days: ["mon", "tue", "wed", "thu", "fri"], say: "Snack time!", tune: "WIN" },
+        { time: "19:45", days: ["sun", "mon", "tue", "wed", "thu"], say: "Twenty minutes to bedtime", tune: "HELLO" }
+      ];
+    }
+    makeLcd(screen);
+
+    function pickedDays() {
+      var days = [];
+      document.querySelectorAll("#al-days .day.on").forEach(function (b) { days.push(b.dataset.d); });
+      return days;
+    }
+    function alarmLine(alarm) {
+      var days = alarm.days.map(function (d) { return JSON.stringify(d); }).join(", ");
+      return '{ "time": ' + JSON.stringify(alarm.time) + ', "days": [' + days + '], "say": ' +
+        JSON.stringify(alarm.say) + ', "tune": ' + JSON.stringify(alarm.tune) + " }";
+    }
+    function render() {
+      list.textContent = "";
+      alarms.forEach(function (alarm, i) {
+        var li = document.createElement("li");
+        var words = document.createElement("span");
+        words.textContent = "⏰ " + alarm.time + " · " + alarm.days.join(" ") + " · \"" + alarm.say + "\" · 🎵 " + alarm.tune;
+        var bin = document.createElement("button");
+        bin.type = "button";
+        bin.textContent = "🗑️";
+        bin.setAttribute("aria-label", "Remove the " + alarm.time + " alarm");
+        bin.addEventListener("click", function () { alarms.splice(i, 1); save(); render(); });
+        li.appendChild(words);
+        li.appendChild(bin);
+        list.appendChild(li);
+      });
+      out.textContent = '  "schedule": [\n' + alarms.map(function (a) { return "    " + alarmLine(a); }).join(",\n") +
+        (alarms.length ? "\n" : "") + "  ],";
+    }
+    function save() {
+      try { localStorage.setItem(ALARMS_KEY, JSON.stringify(alarms)); } catch (e) {}
+    }
+    function preview() {
+      var wrapped = wrapForLcd(sayInput.value);
+      lcdShow(screen, wrapped.line1, wrapped.line2);
+    }
+    document.querySelectorAll("#al-days .day").forEach(function (b) {
+      b.addEventListener("click", function () {
+        b.classList.toggle("on");
+        b.setAttribute("aria-pressed", b.classList.contains("on"));
+      });
+    });
+    sayInput.addEventListener("input", preview);
+    byId("al-preview").addEventListener("click", function () {
+      preview();
+      playTune(tuneInput.value);
+      speak(sayInput.value);
+    });
+    byId("al-add").addEventListener("click", function () {
+      var say = sayInput.value.replace(/^\s+|\s+$/g, ""), days = pickedDays();
+      if (!/^\d\d:\d\d$/.test(timeInput.value)) { hint.textContent = "Pick a time first."; return; }
+      if (!say) { hint.textContent = "Give it something to say first."; return; }
+      if (!days.length) { hint.textContent = "Pick at least one day."; return; }
+      if (alarms.length >= 12) { hint.textContent = "That's a lot of alarms! Remove one first."; return; }
+      alarms.push({ time: timeInput.value, days: DAYS.filter(function (d) { return days.indexOf(d) >= 0; }), say: say, tune: tuneInput.value });
+      hint.textContent = "Added!";
+      save();
+      render();
+    });
+    preview();
+    render();
+  })();
+
+  /* ---------- Step 5: pretend face fingerprints ---------- */
+  (function () {
+    var rowA = byId("fp-a"), rowB = byId("fp-b"), seed = 7;
+    function random() {                       // a tiny dice roller that we can seed
+      seed = (seed * 16807) % 2147483647;
+      return seed / 2147483647;
+    }
+    function bell() { return random() + random() + random() + random() - 2; }
+    function vector() { var v = []; for (var i = 0; i < 128; i++) v.push(bell()); return v; }
+    function mix(a, b, howMuchA) {
+      return a.map(function (x, i) { return x * howMuchA + b[i] * Math.sqrt(1 - howMuchA * howMuchA); });
+    }
+    function alike(a, b) {
+      var dot = 0, la = 0, lb = 0;
+      for (var i = 0; i < a.length; i++) { dot += a[i] * b[i]; la += a[i] * a[i]; lb += b[i] * b[i]; }
+      return dot / Math.sqrt(la * lb);
+    }
+    function paint(row, v) {
+      for (var i = 0; i < 128; i++) {
+        var t = Math.max(-1, Math.min(1, v[i] / 1.2));
+        row.children[i].style.background = t >= 0 ? "rgba(37,99,235," + (0.15 + t * 0.85) + ")" : "rgba(234,88,12," + (0.15 - t * 0.85) + ")";
+      }
+    }
+    for (var i = 0; i < 128; i++) { rowA.appendChild(document.createElement("i")); rowB.appendChild(document.createElement("i")); }
+    var kid1 = vector(), brother = mix(kid1, vector(), 0.5);
+    var NAMES = { same: "Kid 1 again", brother: "His brother", stranger: "A stranger" };
+    function compare(who) {
+      var other = who === "same" ? mix(kid1, vector(), 0.78 + random() * 0.14)
+        : who === "brother" ? mix(brother, vector(), 0.9) : vector();
+      paint(rowB, other);
+      byId("fp-who").textContent = NAMES[who];
+      byId("fp-score").textContent = alike(kid1, other).toFixed(2);
+    }
+    paint(rowA, kid1);
+    document.querySelectorAll("[data-fp]").forEach(function (btn) {
+      btn.addEventListener("click", function () { compare(btn.dataset.fp); });
+    });
+    compare("same");
+  })();
+
+  /* ---------- Step 5: the decision rule (same as decide() in bridge/faces.py) ---------- */
+  function decideFace(scores, sureEnough, beatSecondBy) {
+    var names = Object.keys(scores).sort(function (a, b) { return scores[b] - scores[a]; });
+    if (!names.length) return "friend";
+    var best = scores[names[0]], second = names.length > 1 ? scores[names[1]] : -1, tiny = 1e-9;
+    return best >= sureEnough - tiny && best - second >= beatSecondBy - tiny ? names[0] : "friend";
+  }
+  (function () {
+    var s1 = byId("sc-1"), s2 = byId("sc-2"), t = byId("sc-t"), m = byId("sc-m");
+    var verdict = byId("sc-verdict"), why = byId("sc-why");
+    function update() {
+      var a = s1.value / 100, b = s2.value / 100, sure = t.value / 100, lead = m.value / 100;
+      byId("sc-1v").textContent = a.toFixed(2);
+      byId("sc-2v").textContent = b.toFixed(2);
+      byId("sc-tv").textContent = sure.toFixed(2);
+      byId("sc-mv").textContent = lead.toFixed(2);
+      byId("sc-1bar").style.width = (a * 100) + "%";
+      byId("sc-2bar").style.width = (b * 100) + "%";
+      byId("sc-1mark").style.left = byId("sc-2mark").style.left = (sure * 100) + "%";
+      var answer = decideFace({ "Kid 1": a, "Kid 2": b }, sure, lead);
+      var best = Math.max(a, b), gap = Math.abs(a - b);
+      verdict.classList.toggle("friend", answer === "friend");
+      if (answer !== "friend") {
+        verdict.textContent = "Hi " + answer + "!";
+        why.textContent = "The best score (" + best.toFixed(2) + ") is sure enough, and it wins by " + gap.toFixed(2) + ".";
+      } else {
+        verdict.textContent = "Hello, friend!";
+        why.textContent = best < sure - 1e-9
+          ? "The best score (" + best.toFixed(2) + ") is below " + sure.toFixed(2) + ". Not sure enough to say a name."
+          : "Both brothers scored close (only " + gap.toFixed(2) + " apart). Too close to call, so no name.";
+      }
+    }
+    [s1, s2, t, m].forEach(function (slider) { slider.addEventListener("input", update); });
+    update();
+  })();
+
+  /* ---------- Step 5: 3 of the last 5 frames ---------- */
+  (function () {
+    var row = byId("fr-row"), verdict = byId("fr-verdict");
+    var ORDER = ["", "1", "2", "f"], FACE = { "": "·", "1": "🟦", "2": "🟪", "f": "🤷" };
+    var LABEL = { "": "no face", "1": "Kid 1", "2": "Kid 2", "f": "friend" };
+    var frames = ["1", "1", "f", "", "1"];
+    function update() {
+      var counts = { "1": 0, "2": 0, "f": 0 }, winner = "";
+      frames.forEach(function (a, i) {
+        var btn = row.children[i];
+        btn.dataset.a = a;
+        btn.textContent = FACE[a];
+        btn.setAttribute("aria-label", "Frame " + (i + 1) + ": " + LABEL[a] + ". Tap to change.");
+        if (a) counts[a]++;
+      });
+      Object.keys(counts).forEach(function (a) { if (counts[a] >= 3) winner = a; });
+      verdict.classList.toggle("friend", winner !== "1" && winner !== "2");
+      verdict.textContent = winner === "f" ? "3 frames say friend → Hello, friend!"
+        : winner ? counts[winner] + " of 5 frames say " + LABEL[winner] + " → Hi " + LABEL[winner] + "!"
+        : "No answer has 3 frames yet. The robot keeps looking...";
+    }
+    frames.forEach(function (a, i) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "frame";
+      btn.addEventListener("click", function () {
+        frames[i] = ORDER[(ORDER.indexOf(frames[i]) + 1) % ORDER.length];
+        update();
+      });
+      row.appendChild(btn);
+    });
+    update();
+  })();
+
+  /* ---------- Step 6: who does the talking? ---------- */
+  (function () {
+    var toggle = byId("who-toggle"), caption = byId("who-caption");
+    var mac = byId("who-mac"), ard = byId("who-ard"), plugged = true;
+    function update() {
+      toggle.textContent = plugged ? "🔌 Unplug the Mac" : "🔌 Plug the Mac back in";
+      mac.classList.toggle("on", plugged);
+      ard.classList.toggle("on", !plugged);
+      caption.textContent = plugged ? "The Mac is plugged in and the bridge is running."
+        : "No Mac! The robot runs from a power bank. After 60 quiet seconds, the Arduino knows it's on its own.";
+    }
+    toggle.addEventListener("click", function () { plugged = !plugged; update(); });
+    byId("who-walk").addEventListener("click", function () {
+      playTune("CHIRP");
+      if (plugged) {
+        caption.textContent = "⚡ Chirp! (The reflex always happens.) Then the Mac says: \"Hello, human!\" The Arduino stays quiet, so there's no double greeting.";
+        speak("Hello, human!");
+      } else {
+        var file = 1 + Math.floor(Math.random() * 5);
+        caption.textContent = "⚡ Chirp! Then the Arduino picks a random greeting and plays file 000" + file + ".mp3 from the SD card. No computer needed!";
+        speak("Welcome back!");
+      }
+    });
+    update();
+  })();
+</script>
+</body>
+</html>

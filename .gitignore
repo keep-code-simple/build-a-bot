@@ -18,3 +18,15 @@ available-parts/
 *.task
 __pycache__/
 *.pyc
+
+# Chapter 4: private settings, secret topics, faces, models and generated voice files. Never commit these.
+chapter-4-code/config.json
+chapter-4-code/people.json
+chapter-4-code/phrases.json
+chapter-4-code/faces/
+chapter-4-code/models/
+chapter-4-code/sd_card/
+chapter-4-code/robot_bridge/phrases.h
+**/.venv/
+*.onnx
+.pytest_cache/

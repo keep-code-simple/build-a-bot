@@ -11,6 +11,7 @@ This is project #1 in a series of hands-on builds for two brothers.
 | 1 | 🤖 Door Greeter Bot | `door-greeter-build-guide.html` | Ultrasonic sensor | Built and working |
 | 2 | 🔐 Secret Code Bot | `chapter-2-secret-code-bot.html` | IR remote | Built and working |
 | 3 | 👀 Robot Eyes | `chapter-3-robot-eyes.html` | The Mac's camera + AI (Python) | Ready to build |
+| 4 | 🗣️ The Talking Robot | `chapter-4-talking-robot.html` + `chapter-4-code/` | A phone, the clock and the camera, through the Mac | Ready to build |
 | 6 | 🦖 Dino Bot | `chapter-6-dino-bot.html` + `chapter-6-code/` | Light sensors watching the screen | Ready to build |
 | Bonus | 🔬 Inside the Robot | `inside-the-robot.html` | Nothing to build: tap, drag and slide | Play any time after Chapter 1 |
 

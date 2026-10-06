@@ -1,0 +1,15 @@
+{
+  "voice": "Samantha",
+  "greetings": [
+    "Hello, human!",
+    "Welcome back!",
+    "Halt! What is the password?",
+    "Robot says hi!",
+    "Nice socks."
+  ],
+  "others": [
+    "Hi Kid 1! The legend has arrived!",
+    "Hi Kid 2! Ready for adventure?",
+    "Why did the robot go on holiday? To recharge its batteries!"
+  ]
+}

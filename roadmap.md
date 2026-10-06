@@ -9,7 +9,7 @@ Where the series is, and what's next. One chapter at a time, fun first, and no r
 | 1 | 🤖 Door Greeter Bot | Input → brain → output | (in the page) | `door-greeter-build-guide.html` | ✅ Built and working |
 | 2 | 🔐 Secret Code Bot | A remote as an input | (in the page) | `chapter-2-secret-code-bot.html` | ✅ Built and working |
 | 3 | 👀 Robot Eyes | AI vision as an input (faces, fingers, Rock Paper Scissors) | `chapter-3-ai-vision.md` + `chapter-3-code/` | `chapter-3-robot-eyes.html` | Page ready, not built on hardware yet |
-| 4 | 🗣️ The Talking Robot | Speech, phone ↔ robot round trip, schedules, greeting by name | `chapter-4-talking-robot.md` | not yet | Spec ready for Claude Code |
+| 4 | 🗣️ The Talking Robot | Speech, phone ↔ robot round trip, schedules, greeting by name | `chapter-4-talking-robot.md` + `chapter-4-code/` | `chapter-4-talking-robot.html` | Page and code ready, not built on hardware yet |
 | 5 | 🚪 The Auto Door | Moving things safely in the real world | this file, below | not yet | **Parked on purpose** |
 | 6 | 🦖 Dino Bot | A robot that uses a computer like a person; beating latency | `chapter-6-dino-bot.md` + `chapter-6-code/` | `chapter-6-dino-bot.html` | Page and code ready, not built on hardware yet |
 | Bonus | 🔬 Inside the Robot | How boards, chips and silicon work | `inside-the-robot.md` | `inside-the-robot.html` | ✅ Built |
