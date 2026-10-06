@@ -446,6 +446,14 @@
   .diagram svg.is-night .ink { fill: #e8e6df; }
   .diagram .ink .dino { fill: #0f8a6a; }
   .diagram svg.is-night .ink .dino { fill: #5eead4; }
+
+  /* ---------- "you are here" line in the sticky bar ---------- */
+  .here { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-family: var(--round); font-weight: 800; font-size: 1.05rem; line-height: 1.2; opacity: 0; visibility: hidden; transition: opacity 0.25s; }
+  .progress.is-stuck .here, .progress.no-watch .here { opacity: 1; visibility: visible; }
+  .here a { text-decoration: none; font-size: 1.15rem; }
+  .here .here-num { background: var(--accent); color: var(--card); border-radius: 99px; padding: 1px 12px; font-size: 0.8rem; letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap; }
+  .here b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  @media print { .here { display: none; } }
 </style>
 <script>
   /* Sound unlock: browsers (Safari and iPads most of all) only allow sound that starts from a tap.
@@ -526,6 +534,7 @@
 </header>
 
 <nav class="progress" aria-label="Your progress">
+  <div class="here"><a href="index.html" aria-label="Home">🏠</a><span class="here-num">Chapter 6</span><b>Dino Bot</b></div>
   <div class="progress-row">
     <span id="progress-label">0 of 8 steps done</span>
     <button class="reset-btn" id="reset-btn" type="button">Reset checkmarks</button>
@@ -3161,6 +3170,17 @@ static inline DinoKeys dinoStep(DinoBrain &amp;b, const DinoSettings &amp;s, int
 
   labMissions();
   labPick(1);
+</script>
+<script>
+  /* Show the chapter name in the sticky bar once the big banner has scrolled away. */
+  (function () {
+    var bar = document.querySelector(".progress"), banner = document.querySelector(".hero");
+    if (!bar) return;
+    if (!banner || !("IntersectionObserver" in window)) { bar.classList.add("no-watch"); return; }
+    new IntersectionObserver(function (entries) {
+      bar.classList.toggle("is-stuck", !entries[0].isIntersecting);
+    }).observe(banner);
+  })();
 </script>
 </body>
 </html>
