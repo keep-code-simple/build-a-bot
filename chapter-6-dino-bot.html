@@ -1,0 +1,3137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dino Bot</title>
+<style>
+  :root {
+    --bg: #fff7e8;
+    --dots: #f6e3bd;
+    --card: #ffffff;
+    --text: #1f2340;
+    --muted: #5d6180;
+    --line: #e7dcc6;
+    --accent: #2563eb;
+    --accent-soft: #e3edff;
+    --good: #15803d;
+    --good-soft: #dcfce7;
+    --warn: #a16207;
+    --warn-soft: #fef3c7;
+    --code-bg: #1b1f3a;
+    --code-text: #e8eaff;
+    --s1: #2563eb;
+    --s2: #ea580c;
+    --s3: #7c3aed;
+    --s4: #db2777;
+    --s5: #15803d;
+    --s6: #f59e0b;
+    --round: ui-rounded, "SF Pro Rounded", "Arial Rounded MT Bold", "Chalkboard SE", system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14162b;
+      --dots: #1d2040;
+      --card: #20244a;
+      --text: #f1f2ff;
+      --muted: #b3b7da;
+      --line: #383d6e;
+      --accent: #8fb4ff;
+      --accent-soft: #263463;
+      --good: #6ee7a0;
+      --good-soft: #17402b;
+      --warn: #fcd34d;
+      --warn-soft: #453712;
+      --code-bg: #0e1024;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background-color: var(--bg);
+    background-image: radial-gradient(var(--dots) 2px, transparent 2.5px);
+    background-size: 26px 26px;
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 17px;
+    line-height: 1.6;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 0 16px 80px; }
+  h1, h2, h3, .step-num, .done-label, .stop .lbl, .role b, .key { font-family: var(--round); }
+  h1 { font-size: 2.6rem; line-height: 1.1; margin: 0 0 10px; }
+  h2 { font-size: 1.55rem; line-height: 1.2; margin: 0 0 10px; }
+  h3 { font-size: 1.1rem; margin: 24px 0 8px; }
+  a { color: var(--accent); }
+
+  /* ---------- hero ---------- */
+  .hero {
+    margin-top: 16px;
+    border-radius: 28px;
+    padding: 28px 28px 22px;
+    color: #fff;
+    background: linear-gradient(135deg, #2563eb 0%, #7c3aed 55%, #db2777 100%);
+    display: flex; align-items: center; gap: 20px;
+    box-shadow: 0 8px 0 rgba(31, 35, 64, 0.18);
+  }
+  .hero-text { flex: 1; min-width: 0; }
+  .hero .subtitle { font-size: 1.15rem; margin: 0 0 14px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { background: rgba(255,255,255,0.22); border-radius: 99px; padding: 3px 12px; font-size: 0.9rem; font-weight: 600; }
+  .chip-link { color: #fff; text-decoration: none; background: rgba(31,35,64,0.35); }
+  .chip-link:hover { background: rgba(31,35,64,0.55); }
+  .robot { width: 190px; flex-shrink: 0; }
+  .robot .arm { transform-origin: 160px 124px; animation: wave 1.4s ease-in-out infinite alternate; }
+  .robot .pupil { transform-origin: center; transform-box: fill-box; animation: blink 4s infinite; }
+  .robot .antenna { animation: glow 1.2s ease-in-out infinite alternate; }
+  @keyframes wave { from { transform: rotate(-14deg); } to { transform: rotate(22deg); } }
+  @keyframes blink { 0%, 92%, 100% { transform: scaleY(1); } 96% { transform: scaleY(0.1); } }
+  @keyframes glow { from { fill: #fda4af; } to { fill: #fff; } }
+
+  /* ---------- mission map ---------- */
+  .progress {
+    position: sticky; top: 0; z-index: 5;
+    background: var(--bg);
+    padding: 10px 0 12px;
+    border-bottom: 3px dashed var(--line);
+    margin: 14px 0 20px;
+  }
+  .progress-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 0.95rem; font-weight: 600; }
+  .reset-btn { background: none; border: 2px solid var(--line); color: var(--muted); border-radius: 99px; padding: 2px 12px; cursor: pointer; font-size: 0.85rem; }
+  .map { list-style: none; display: flex; justify-content: space-between; padding: 0; margin: 8px 0 8px; }
+  .map li { flex: 1; margin: 0; text-align: center; }
+  .stop { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; text-decoration: none; color: var(--muted); }
+  .stop .dot {
+    width: 44px; height: 44px; border-radius: 50%;
+    display: grid; place-items: center; font-size: 1.3rem;
+    background: var(--card); border: 3px solid var(--line);
+    filter: grayscale(1); opacity: 0.75;
+    transition: transform 0.25s, background 0.25s;
+  }
+  .stop .lbl { font-size: 0.8rem; font-weight: 700; }
+  .stop.is-done { color: var(--text); }
+  .stop.is-done .dot { background: var(--c); border-color: var(--c); filter: none; opacity: 1; transform: scale(1.12) rotate(-6deg); box-shadow: 0 3px 0 rgba(31,35,64,0.25); }
+  .bar { height: 12px; background: var(--line); border-radius: 99px; overflow: hidden; }
+  .bar-fill { height: 100%; width: 0; border-radius: 99px; background: linear-gradient(90deg, var(--s1), var(--s2), var(--s3), var(--s4), var(--s5), var(--s6)); background-size: 860px 100%; transition: width 0.4s; }
+
+  /* ---------- cards ---------- */
+  .card {
+    background: var(--card);
+    border: 2px solid var(--line);
+    border-radius: 22px;
+    padding: 22px 24px;
+    margin: 22px 0;
+    box-shadow: 0 5px 0 var(--line);
+    --c: var(--accent);
+  }
+  .card > h2 { display: flex; align-items: center; gap: 10px; }
+  .step { border-top: 10px solid var(--c); scroll-margin-top: 150px; --on: #fff; }
+  .step.is-done { border-color: var(--c); box-shadow: 0 5px 0 var(--c); }
+  .step-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+  .step-title { display: flex; gap: 14px; align-items: center; }
+  .step-emoji {
+    width: 64px; height: 64px; flex-shrink: 0; border-radius: 20px;
+    display: grid; place-items: center; font-size: 2rem;
+    background: color-mix(in srgb, var(--c) 18%, var(--card));
+    transform: rotate(-4deg);
+  }
+  .step-title h2 { margin: 2px 0 0; }
+  .step-num {
+    display: inline-block; background: var(--c); color: var(--on);
+    font-weight: 800; font-size: 0.85rem; letter-spacing: 0.04em; text-transform: uppercase;
+    border-radius: 99px; padding: 1px 12px;
+  }
+  .time { color: var(--muted); font-size: 0.92rem; }
+  .done-label {
+    display: flex; align-items: center; gap: 8px; white-space: nowrap;
+    border: 3px solid var(--c); border-radius: 99px; padding: 6px 16px; cursor: pointer;
+    font-size: 1rem; font-weight: 700;
+  }
+  .step.is-done .done-label { background: var(--c); color: var(--on); }
+  .done-label input { width: 20px; height: 20px; cursor: pointer; accent-color: var(--good); }
+
+  .roles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 10px 0; }
+  .role { border-radius: 16px; padding: 14px 16px; display: flex; gap: 12px; align-items: center; }
+  .role span { font-size: 2.2rem; }
+  .role b { display: block; font-size: 1.15rem; }
+  .role.builder { background: color-mix(in srgb, var(--s2) 16%, var(--card)); }
+  .role.coder { background: color-mix(in srgb, var(--s3) 16%, var(--card)); }
+  .swap { text-align: center; font-weight: 700; margin: 4px 0 0; }
+
+  table { border-collapse: collapse; width: 100%; margin: 8px 0 14px; font-size: 0.95rem; }
+  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 0.85rem; }
+  .pin { font-family: ui-monospace, Menlo, Consolas, monospace; font-weight: 700; }
+  td .pin, td.pin { color: var(--c); }
+  .table-scroll { overflow-x: auto; }
+
+  .tip, .kid, .warn { border-radius: 16px; padding: 14px 16px; margin: 16px 0; font-size: 0.97rem; border-left: 8px solid; }
+  .tip { background: var(--accent-soft); border-color: var(--accent); }
+  .kid { background: var(--good-soft); border-color: var(--good); }
+  .warn { background: var(--warn-soft); border-color: var(--warn); }
+  .tip strong, .kid strong, .warn strong { display: block; margin-bottom: 2px; font-family: var(--round); font-size: 1.05rem; }
+
+  .code-wrap { position: relative; margin: 12px 0; }
+  pre {
+    background: var(--code-bg); color: var(--code-text);
+    padding: 16px; border-radius: 16px; overflow-x: auto;
+    font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.85rem; line-height: 1.5;
+    margin: 0; border: 3px solid var(--c);
+  }
+  .copy-btn {
+    position: absolute; top: 10px; right: 10px;
+    background: var(--c); color: var(--on, #fff); border: none; border-radius: 99px;
+    padding: 6px 14px; cursor: pointer; font-size: 0.85rem; font-weight: 700;
+  }
+  .copy-btn:hover { filter: brightness(1.15); }
+  code.inline { font-family: ui-monospace, Menlo, Consolas, monospace; background: var(--accent-soft); padding: 1px 6px; border-radius: 6px; font-size: 0.9em; }
+
+  ol, ul { padding-left: 22px; }
+  li { margin: 4px 0; }
+
+  .peek { display: inline-block; margin: 6px 0; padding: 8px 16px; border: 3px dashed #0e7490; border-radius: 99px; text-decoration: none; font-family: var(--round); font-weight: 700; color: var(--text); background: color-mix(in srgb, #0e7490 10%, var(--card)); }
+  .peek:hover { border-style: solid; }
+  .celebrate a { color: #fff; font-family: var(--round); font-weight: 800; }
+
+  /* ---------- photos ---------- */
+  .photos { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 12px 0 4px; }
+  .photos figure { margin: 0; }
+  .photos img { display: block; width: 100%; height: auto; border-radius: 18px; border: 4px solid var(--card); box-shadow: 0 5px 0 var(--line); }
+  .photos figure:nth-child(1) img { transform: rotate(-1.5deg); }
+  .photos figure:nth-child(2) img { transform: rotate(1.5deg); }
+  .photos figcaption { text-align: center; font-family: var(--round); font-weight: 700; margin-top: 10px; }
+  .photos figcaption span { display: block; font-family: inherit; font-weight: 400; color: var(--muted); font-size: 0.9rem; }
+
+  /* ---------- parts ---------- */
+  .parts { list-style: none; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .parts li { margin: 0; }
+  .parts label {
+    display: flex; gap: 12px; align-items: center; height: 100%;
+    border: 2px solid var(--line); border-radius: 16px; padding: 10px 12px; cursor: pointer;
+  }
+  .parts label:has(input:checked) { background: var(--good-soft); border-color: var(--good); }
+  .parts svg { width: 56px; height: 56px; flex-shrink: 0; background: #fffdf6; border-radius: 14px; padding: 4px; }
+  .parts .txt { flex: 1; min-width: 0; font-weight: 600; line-height: 1.35; }
+  .parts .hint { color: var(--muted); font-size: 0.86rem; display: block; font-weight: 400; }
+  .parts input { width: 20px; height: 20px; flex-shrink: 0; accent-color: var(--good); }
+
+  /* ---------- diagrams (always on light "paper") ---------- */
+  .diagram {
+    background: #fffdf6; border: 2px dashed #d9cba8; border-radius: 16px;
+    padding: 8px; margin: 12px 0; overflow-x: auto;
+  }
+  .diagram svg { display: block; width: 100%; min-width: 540px; height: auto; font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
+  .diagram text { fill: #1f2340; font-size: 13px; }
+  .diagram .w, .diagram .w text { fill: #fff; font-weight: 700; }
+  .diagram .sm { font-size: 10px; }
+  .diagram .wire { fill: none; stroke-width: 5; stroke-linecap: round; }
+  .diagram figcaption, .cap { color: #5d6180; font-size: 0.88rem; padding: 4px 6px 2px; }
+  figure { margin: 0; }
+
+  /* ---------- echo demo ---------- */
+  .echo-demo input[type=range] { width: 100%; accent-color: var(--s2); height: 28px; }
+  .echo-readout { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; }
+  .echo-readout div { background: var(--accent-soft); border-radius: 14px; padding: 8px 14px; flex: 1; min-width: 150px; }
+  .echo-readout b { display: block; font-size: 1.4rem; color: var(--accent); font-family: var(--round); }
+  #echo-pulse path { fill: none; stroke: #2563eb; stroke-width: 4; stroke-linecap: round; }
+  #echo-pulse.back path { stroke: #ea580c; }
+  #echo-bubble { opacity: 0; transition: opacity 0.2s; }
+  .is-greeting #echo-bubble { opacity: 1; }
+
+  /* ---------- LCD lab ---------- */
+  .lcd-lab input[type=text] {
+    width: 100%; font: inherit; padding: 9px 14px; border-radius: 12px;
+    border: 2px solid var(--line); background: var(--card); color: var(--text);
+  }
+  .lcd {
+    display: inline-block; max-width: 100%; margin-top: 10px; padding: 12px 14px; border-radius: 10px;
+    background: #14532d; border: 4px solid #0b3a1e;
+  }
+  .lcd-screen { background: #bef264; padding: 6px; border-radius: 4px; display: grid; grid-template-columns: repeat(16, 1fr); gap: 2px; }
+  .lcd-screen span {
+    width: 1.05em; height: 1.5em; display: grid; place-items: center;
+    background: rgba(63, 98, 18, 0.14); color: #1a2e05;
+    font-family: ui-monospace, Menlo, Consolas, monospace; font-weight: 700; font-size: clamp(0.8rem, 3.6vw, 1.25rem);
+  }
+  .lcd-count { font-weight: 700; margin: 8px 0 0; }
+  .lcd-count.bad { color: #dc2626; }
+  .lcd-count.ok { color: var(--good); }
+
+  /* ---------- tune maker ---------- */
+  .keys { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; margin: 10px 0; }
+  .key {
+    border: none; border-radius: 12px 12px 18px 18px; padding: 14px 2px 10px; cursor: pointer;
+    background: var(--k); color: #fff; font-weight: 800; font-size: 1.1rem;
+    box-shadow: 0 5px 0 rgba(31,35,64,0.3);
+  }
+  .key small { display: block; font-family: ui-monospace, Menlo, monospace; font-size: 0.78rem; font-weight: 700; }
+  .key:active { transform: translateY(4px); box-shadow: 0 1px 0 rgba(31,35,64,0.3); }
+  .tune-out { background: var(--code-bg); color: var(--code-text); border-radius: 12px; padding: 10px 14px; font-family: ui-monospace, Menlo, monospace; font-size: 0.88rem; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .tune-out input { flex: 1; min-width: 0; font: inherit; color: inherit; background: rgba(255,255,255,0.12); border: 2px solid var(--c); border-radius: 8px; padding: 5px 8px; }
+  .tune-controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
+  .btn { border: none; border-radius: 99px; padding: 7px 16px; font: inherit; font-weight: 700; cursor: pointer; background: var(--c); color: #fff; }
+  .btn.ghost { background: none; border: 2px solid var(--line); color: var(--muted); }
+
+  details { border: 2px solid var(--line); border-radius: 14px; padding: 10px 14px; margin: 8px 0; background: var(--card); }
+  details[open] { border-color: var(--s2); }
+  summary { cursor: pointer; font-weight: 600; }
+  details p { margin: 8px 0 2px; }
+
+  .ideas { list-style: none; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .ideas li { margin: 0; border-radius: 16px; padding: 12px 14px; background: color-mix(in srgb, var(--k) 14%, var(--card)); border: 2px solid color-mix(in srgb, var(--k) 45%, var(--card)); }
+  .ideas .big { font-size: 1.7rem; display: block; }
+
+  .celebrate {
+    display: none; text-align: center; border-radius: 20px; padding: 22px; margin-top: 20px; color: #fff;
+    background: linear-gradient(135deg, #f59e0b, #db2777 60%, #7c3aed);
+  }
+  .celebrate.show { display: block; animation: pop 0.5s; }
+  .celebrate .trophy { font-size: 3rem; display: block; }
+  .celebrate b { font-family: var(--round); font-size: 1.5rem; display: block; }
+  @keyframes pop { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .confetti { position: fixed; top: -16px; width: 10px; height: 16px; z-index: 50; pointer-events: none; animation: fall linear forwards; }
+  @keyframes fall { to { transform: translateY(110vh) rotate(720deg); } }
+
+  @media (max-width: 620px) {
+    .hero { flex-direction: column-reverse; text-align: center; padding: 20px; }
+    .chips { justify-content: center; }
+    .robot { width: 130px; }
+    h1 { font-size: 2rem; }
+    .step-head { flex-direction: column; }
+    .roles, .parts, .ideas { grid-template-columns: 1fr; }
+    .photos { gap: 10px; }
+    .stop .lbl { display: none; }
+    .stop .dot { width: 38px; height: 38px; font-size: 1.1rem; }
+    .keys { grid-template-columns: repeat(4, 1fr); }
+    .card { padding: 18px 16px; }
+    .step { scroll-margin-top: 120px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .robot .arm, .robot .pupil, .robot .antenna, .celebrate.show { animation: none; }
+    #echo-pulse { display: none; }
+  }
+  @media print {
+    body { background: #fff; }
+    .progress, .copy-btn, .reset-btn, .echo-demo, .lcd-lab, .tune-controls, .robot { display: none; }
+    .card { break-inside: avoid; box-shadow: none; }
+    .hero { color: #000; background: none; box-shadow: none; padding: 0; }
+  }
+
+  /* ---------- Chapter 6 additions ---------- */
+  :root { --s7: #0e7490; --s8: #dc2626; }
+  .bar-fill { background: linear-gradient(90deg, var(--s1), var(--s2), var(--s3), var(--s4), var(--s5), var(--s6), var(--s7), var(--s8)); background-size: 860px 100%; }
+  .chip-link { color: #fff; text-decoration: none; background: rgba(31,35,64,0.35); }
+  .chip-link:hover { background: rgba(31,35,64,0.55); }
+  .hero { background: linear-gradient(135deg, #15803d 0%, #0e7490 50%, #2563eb 100%); }
+  .robot .arm { transform-origin: center; animation: tap 0.9s ease-in-out infinite; }
+  .robot .keycap { animation: keydown 0.9s ease-in-out infinite; }
+  @keyframes tap { 0%, 55%, 100% { transform: translateY(0); } 70%, 85% { transform: translateY(9px); } }
+  @keyframes keydown { 0%, 62%, 100% { transform: translateY(0); } 70%, 85% { transform: translateY(4px); } }
+  .peek { display: inline-block; margin: 6px 0; padding: 8px 16px; border: 3px dashed #0e7490; border-radius: 99px; text-decoration: none; font-family: var(--round); font-weight: 700; color: var(--text); background: color-mix(in srgb, #0e7490 10%, var(--card)); }
+  button, .seg-btn, .hold { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+
+  /* the real screen is blue with white letters */
+  .lcd { background: #1e293b; border-color: #0f172a; }
+  .lcd-screen { background: #1d4ed8; }
+  .lcd-screen span { background: rgba(255,255,255,0.1); color: #fff; }
+
+  .loop { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 12px 0; }
+  .loop div { border-radius: 16px; padding: 12px 14px; background: color-mix(in srgb, var(--k) 14%, var(--card)); border: 2px solid color-mix(in srgb, var(--k) 45%, var(--card)); }
+  .loop .big { font-size: 1.8rem; display: block; }
+  .loop b { font-family: var(--round); font-size: 1.1rem; display: block; }
+
+  .from { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 10px 0; }
+  .from > div { border: 2px solid var(--line); border-radius: 16px; padding: 12px 14px; }
+  .from b.h { font-family: var(--round); font-size: 1.05rem; display: block; margin-bottom: 4px; }
+
+  /* sliders and big buttons that work with fingers */
+  .slide { margin: 12px 0; }
+  .slide label { display: block; font-weight: 600; }
+  .slide label b { font-family: var(--round); color: var(--accent); font-size: 1.15rem; }
+  .slide input[type=range] { width: 100%; height: 44px; accent-color: var(--s1); margin: 0; }
+  .btn.big { min-height: 48px; padding: 10px 20px; font-size: 1rem; }
+  .btn.ghost.big { color: var(--text); }
+  .btn.is-on { background: var(--s3); color: #fff; border-color: var(--s3); }
+  .btn:disabled { opacity: 0.45; cursor: default; }
+
+  /* ---------- Dino Lab ---------- */
+  .lab { --c: var(--s5); border-top: 10px solid var(--s5); scroll-margin-top: 150px; }
+  .seg { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 6px; }
+  .seg-btn {
+    flex: 1; min-width: 86px; min-height: 52px; border: 3px solid var(--line); background: var(--card); color: var(--text);
+    border-radius: 16px; font: inherit; font-family: var(--round); font-weight: 800; cursor: pointer; padding: 6px 8px; line-height: 1.2;
+  }
+  .seg-btn small { display: block; font-weight: 600; font-size: 0.74rem; color: var(--muted); font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
+  .seg-btn[aria-pressed="true"] { background: var(--k); border-color: var(--k); color: #fff; box-shadow: 0 4px 0 rgba(31,35,64,0.25); }
+  .seg-btn[aria-pressed="true"] small { color: #fff; }
+  .lab-brain { font-weight: 600; margin: 6px 0 10px; min-height: 3.2em; }
+  .lab-screen { background: #fffdf6; border: 3px solid #5d6180; border-radius: 16px; overflow: hidden; position: relative; }
+  .lab-screen canvas { display: block; width: 100%; height: auto; }
+  #lab-graph { border-top: 2px dashed #d9cba8; }
+  .lab-hud { position: absolute; top: 8px; right: 10px; display: flex; gap: 6px; font-family: var(--round); font-weight: 800; font-size: 0.9rem; }
+  .lab-hud span { background: rgba(31,35,64,0.82); color: #fff; border-radius: 99px; padding: 2px 10px; }
+  .lab-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 0.86rem; color: var(--muted); margin: 6px 2px 0; }
+  .lab-legend i { display: inline-block; width: 18px; height: 5px; border-radius: 3px; vertical-align: middle; margin-right: 5px; }
+  .lab-buttons { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 4px; }
+  .lab-status { font-weight: 700; font-size: 1.05rem; border-radius: 14px; padding: 10px 14px; margin: 10px 0; background: var(--accent-soft); min-height: 3em; }
+  .lab-status.crash { background: var(--warn-soft); }
+  .lab-status.win { background: var(--good-soft); }
+  .lab-touch { display: none; gap: 10px; margin: 10px 0; }
+  .lab-touch.show { display: flex; }
+  .hold { flex: 1; min-height: 64px; border: none; border-radius: 18px; font: inherit; font-family: var(--round); font-weight: 800; font-size: 1.2rem; color: #fff; background: var(--k); box-shadow: 0 5px 0 rgba(31,35,64,0.3); cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+  .hold.down { transform: translateY(4px); box-shadow: 0 1px 0 rgba(31,35,64,0.3); }
+  .lab-side { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; margin-top: 6px; }
+  .lab-side table { margin: 0; }
+  .lab-side .lcd { margin-top: 0; }
+  .best-you td { font-weight: 700; }
+
+  .earn { border: 3px dashed var(--c); border-radius: 18px; padding: 14px 16px; margin: 18px 0 4px; }
+  .earn strong { font-family: var(--round); font-size: 1.05rem; }
+  .earn ul { list-style: none; padding: 0; margin: 8px 0 0; }
+  .earn li { padding-left: 30px; position: relative; margin: 6px 0; }
+  .earn li::before { content: "⬜"; position: absolute; left: 0; }
+  .earn li.is-done { font-weight: 700; }
+  .earn li.is-done::before { content: "✅"; }
+  .earned { display: none; margin: 10px 0 0; font-family: var(--round); font-size: 1.25rem; text-align: center; background: var(--c); color: #fff; border-radius: 14px; padding: 10px; }
+  .earn.is-earned { border-style: solid; }
+  .earn.is-earned .earned { display: block; animation: pop 0.5s; }
+
+  /* ---------- step extras ---------- */
+  .ticks { list-style: none; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .ticks li { margin: 0; }
+  .ticks label { display: flex; gap: 10px; align-items: center; min-height: 48px; height: 100%; border: 2px solid var(--line); border-radius: 14px; padding: 8px 12px; cursor: pointer; font-weight: 600; line-height: 1.3; }
+  .ticks label:has(input:checked) { background: var(--good-soft); border-color: var(--good); }
+  .ticks input { width: 22px; height: 22px; flex-shrink: 0; accent-color: var(--good); }
+  .ticks .who { display: block; font-weight: 400; font-size: 0.84rem; color: var(--muted); }
+  .win { border-radius: 16px; padding: 12px 16px; margin: 16px 0 4px; font-weight: 700; background: color-mix(in srgb, var(--c) 14%, var(--card)); border: 2px solid var(--c); }
+  .level-line { font-family: ui-monospace, Menlo, Consolas, monospace; font-weight: 700; background: var(--code-bg); color: var(--code-text); border: 3px solid var(--c); border-radius: 14px; padding: 10px 14px; margin: 10px 0; overflow-x: auto; white-space: nowrap; }
+  .level-line mark { background: var(--c); color: var(--on, #fff); border-radius: 6px; padding: 0 6px; }
+  .scores input { width: 100%; min-width: 64px; min-height: 44px; font: inherit; padding: 6px 10px; border-radius: 10px; border: 2px solid var(--line); background: var(--card); color: var(--text); }
+  .scores td { vertical-align: middle; }
+  details.parent { border: 3px solid var(--accent); background: var(--accent-soft); border-radius: 16px; }
+  details.parent summary { font-family: var(--round); font-size: 1.05rem; min-height: 32px; }
+  details.parent[open] { border-color: var(--accent); }
+  details.code-fold { padding: 10px; }
+  details.code-fold summary { min-height: 32px; }
+  details.code-fold[open] { border-color: var(--c); }
+  summary { min-height: 30px; }
+  .diagram .lbl { font-weight: 700; }
+  .diagram .mono { font-family: ui-monospace, Menlo, Consolas, monospace; }
+
+  @media (max-width: 620px) {
+    .loop, .from, .ticks, .lab-side { grid-template-columns: 1fr; }
+    .seg-btn { min-width: 30%; }
+    .lab-hud { font-size: 0.78rem; top: 5px; right: 6px; }
+  }
+  @media (max-width: 620px) {
+    .map li .stop { display: flex; padding: 6px 0; }
+  }
+  @media (max-width: 420px) {
+    .stop .dot { width: 32px; height: 32px; font-size: 0.95rem; border-width: 2px; }
+  }
+  @media (max-width: 360px) {
+    .lcd { padding: 8px; }
+    .lcd-screen span { font-size: 0.66rem; }
+  }
+  .lab-side > div { min-width: 0; }
+  @media (prefers-reduced-motion: reduce) {
+    .robot .arm, .robot .keycap, .earn.is-earned .earned { animation: none; }
+  }
+  @media print {
+    .lab, .sense-demo, .lab-buttons { display: none; }
+  }
+  .diagram .ink { fill: #3d4152; }
+  .diagram .is-night .ink { fill: #e8e6df; }
+  .diagram svg.is-night .ink { fill: #e8e6df; }
+  .diagram .ink .dino { fill: #0f8a6a; }
+  .diagram svg.is-night .ink .dino { fill: #5eead4; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <div class="hero-text">
+    <h1>Dino Bot</h1>
+    <p class="subtitle">Chapter 6: build a robot that plays a video game like a person. It watches the screen with a light-sensing eye and presses the space bar with a servo finger. Then you upgrade its brain until it's unbeatable.</p>
+    <div class="chips">
+      <a class="chip chip-link" href="index.html">🏠 Home</a>
+      <span class="chip">📖 Chapter 6</span>
+      <span class="chip">⏱ 2½ to 3 hours, over two Sundays</span>
+      <span class="chip">👥 2 builders</span>
+      <span class="chip">🏅 8 badges to earn</span>
+      <a class="chip chip-link" href="#lab">🧪 Dino Lab</a>
+      <a class="chip chip-link" href="inside-the-robot.html">🔬 Bonus: Inside the Robot</a>
+    </div>
+  </div>
+  <svg class="robot" viewBox="0 0 200 222" role="img" aria-label="A friendly robot tapping a space bar with one finger while a little dinosaur runs across the screen on its chest">
+    <line x1="100" y1="16" x2="100" y2="38" stroke="#fff" stroke-width="4"/>
+    <circle class="antenna" cx="100" cy="12" r="8" fill="#fda4af"/>
+    <rect x="22" y="112" width="20" height="58" rx="10" fill="#fcd34d"/>
+    <g class="keycap">
+      <rect x="146" y="194" width="50" height="18" rx="5" fill="#f1f2ff" stroke="#1f2340" stroke-width="2"/>
+      <text x="171" y="207" text-anchor="middle" font-family="ui-monospace, Menlo, monospace" font-weight="700" font-size="9" fill="#1f2340">SPACE</text>
+    </g>
+    <g class="arm">
+      <rect x="160" y="112" width="20" height="58" rx="10" fill="#fcd34d"/>
+      <rect x="165" y="164" width="10" height="20" rx="5" fill="#fde68a" stroke="#fff" stroke-width="2"/>
+    </g>
+    <rect x="48" y="36" width="104" height="66" rx="14" fill="#38bdf8" stroke="#fff" stroke-width="3"/>
+    <circle cx="78" cy="69" r="18" fill="#e5e7eb" stroke="#64748b" stroke-width="3"/>
+    <circle cx="122" cy="69" r="18" fill="#e5e7eb" stroke="#64748b" stroke-width="3"/>
+    <circle class="pupil" cx="78" cy="69" r="7" fill="#1f2340"/>
+    <circle class="pupil" cx="122" cy="69" r="7" fill="#1f2340"/>
+    <rect x="40" y="108" width="120" height="86" rx="16" fill="#fbbf24" stroke="#fff" stroke-width="3"/>
+    <rect x="52" y="120" width="96" height="44" rx="5" fill="#f4f1ea" stroke="#1f2340" stroke-width="3"/>
+    <line x1="56" y1="156" x2="144" y2="156" stroke="#3d4152" stroke-width="2"/>
+    <g fill="#3d4152">
+      <g fill="#0f8a6a"><rect x="64" y="140" width="11" height="10"/><rect x="70" y="132" width="11" height="9"/><rect x="60" y="143" width="5" height="4"/><rect x="66" y="150" width="3" height="6"/><rect x="72" y="150" width="3" height="6"/></g>
+      <rect x="118" y="138" width="5" height="18"/><rect x="113" y="143" width="3" height="7"/><rect x="113" y="148" width="7" height="2"/><rect x="125" y="141" width="3" height="7"/><rect x="121" y="146" width="7" height="2"/>
+    </g>
+    <circle cx="70" cy="180" r="7" fill="#1f2340" stroke="#fff" stroke-width="2"/>
+    <circle cx="130" cy="180" r="7" fill="#1f2340" stroke="#fff" stroke-width="2"/>
+    <rect x="58" y="196" width="30" height="20" rx="8" fill="#38bdf8"/>
+    <rect x="112" y="196" width="30" height="20" rx="8" fill="#38bdf8"/>
+  </svg>
+</header>
+
+<nav class="progress" aria-label="Your progress">
+  <div class="progress-row">
+    <span id="progress-label">0 of 8 steps done</span>
+    <button class="reset-btn" id="reset-btn" type="button">Reset checkmarks</button>
+  </div>
+  <ol class="map">
+    <li><a class="stop" data-stop="1" href="#step1" style="--c:var(--s1)"><span class="dot" aria-hidden="true">🦖</span><span class="lbl">Enemy</span></a></li>
+    <li><a class="stop" data-stop="2" href="#step2" style="--c:var(--s2)"><span class="dot" aria-hidden="true">🦾</span><span class="lbl">Finger</span></a></li>
+    <li><a class="stop" data-stop="3" href="#step3" style="--c:var(--s3)"><span class="dot" aria-hidden="true">👁️</span><span class="lbl">Eye</span></a></li>
+    <li><a class="stop" data-stop="4" href="#step4" style="--c:var(--s4)"><span class="dot" aria-hidden="true">🤖</span><span class="lbl">Autopilot</span></a></li>
+    <li><a class="stop" data-stop="5" href="#step5" style="--c:var(--s5)"><span class="dot" aria-hidden="true">🌗</span><span class="lbl">Night</span></a></li>
+    <li><a class="stop" data-stop="6" href="#step6" style="--c:var(--s6)"><span class="dot" aria-hidden="true">⚡</span><span class="lbl">Speed</span></a></li>
+    <li><a class="stop" data-stop="7" href="#step7" style="--c:var(--s7)"><span class="dot" aria-hidden="true">🐦</span><span class="lbl">Birds</span></a></li>
+    <li><a class="stop" data-stop="8" href="#step8" style="--c:var(--s8)"><span class="dot" aria-hidden="true">🏁</span><span class="lbl">Race</span></a></li>
+  </ol>
+  <div class="bar"><div class="bar-fill" id="bar-fill"></div></div>
+</nav>
+
+<!-- ============ BEFORE YOU START ============ -->
+<section class="card">
+  <h2><span aria-hidden="true">🚀</span> Before you start</h2>
+  <p><b>You need:</b> the screen and buzzer wiring from Chapter 1, and a computer with Chrome. The game lives at <code class="inline">chrome://dino</code> (type that in the address bar). You don't need to unplug the internet.</p>
+  <p><b>Time:</b> two Sundays. <b>Sunday 1</b> is Steps 1 to 4: your first autopilot. <b>Sunday 2</b> is Steps 5 to 8: make it unbeatable. Every step ends with a win.</p>
+
+  <h3>What's on your breadboard right now?</h3>
+  <div class="from">
+    <div>
+      <b class="h">🤖 Coming from Chapter 1 (Door Greeter)</b>
+      Unplug USB. Take out the ultrasonic sensor and its 4 wires: <span class="pin">Trig</span> (pin 9), <span class="pin">Echo</span> (pin 10), <span class="pin">Vcc</span> and <span class="pin">Gnd</span>. Pins 9 and 10 are now free for fingers.
+    </div>
+    <div>
+      <b class="h">🔐 Coming from Chapter 2 (Secret Code Bot)</b>
+      The sensor is already out, so pins 9 and 10 are free. The IR receiver on pin 7 can stay: Dino Bot ignores it. (Want it out? Unplug <span class="pin">Y</span> from pin 7, <span class="pin">R</span> and <span class="pin">G</span> from the rails.)
+    </div>
+  </div>
+  <p><b>Everyone leaves these alone:</b> the screen (pins 12, 11, 5, 4, 3, 2), the knob, the buzzer (pin 8), and the two power-rail wires (5V and GND).</p>
+
+  <p><b>Two jobs, swap every step:</b></p>
+  <div class="roles">
+    <div class="role builder"><span aria-hidden="true">🔧</span><div><b>Builder</b>wires, tapes the eye to the screen and aims the finger.</div></div>
+    <div class="role coder"><span aria-hidden="true">⌨️</span><div><b>Coder</b>reads the step out loud, uploads the code and changes the numbers.</div></div>
+  </div>
+  <p class="swap">🔄 Swap jobs after every step!</p>
+  <div class="warn">
+    <strong>⚠️ Golden rules</strong>
+    Unplug USB before moving any wires. And protect the laptop: aim the finger at an <b>external keyboard</b>, not the laptop's own keys, and stick things to the screen with <b>painter's tape only</b>. Never glue, never hard tape.
+  </div>
+  <div class="tip">
+    <strong>💡 Parent tip</strong>
+    This robot will crash the dino a lot, and that's the point. Each crash is a clue. Ask "why did it crash that time?" before anyone touches the code. The Dino Lab below lets the kids find each brain's weakness on screen first, so the real build feels like confirming a prediction.
+  </div>
+</section>
+
+<!-- ============ HOW IT WORKS ============ -->
+<section class="card">
+  <h2><span aria-hidden="true">🔁</span> How it works</h2>
+  <p>The robot doesn't hack the game. It sits <b>outside</b> the computer. All it can do is look at the screen and press a key, exactly like you.</p>
+  <div class="loop">
+    <div style="--k:var(--s1)"><span class="big" aria-hidden="true">👁️</span><b>1. Sense</b>A light sensor taped to the screen. A dark cactus slides under it and the light number drops.</div>
+    <div style="--k:var(--s3)"><span class="big" aria-hidden="true">🧠</span><b>2. Think</b>The Arduino asks: is that different enough to be a cactus? When should I press?</div>
+    <div style="--k:var(--s2)"><span class="big" aria-hidden="true">🦾</span><b>3. Act</b>A servo finger taps the space bar. The dino jumps. The screen changes. Round we go.</div>
+  </div>
+  <div class="sense-demo">
+    <h3>Try it: be the eye</h3>
+    <p>Slide the cactus under the eye and watch the light number.</p>
+    <figure class="diagram">
+      <svg id="sense-svg" viewBox="0 0 600 200" role="img" aria-label="A pretend game screen with a light sensor taped to it. A slider moves a cactus under the sensor.">
+        <rect id="sense-screen" x="6" y="6" width="588" height="150" rx="10" fill="#f4f1ea" stroke="#1f2340" stroke-width="3"/>
+        <g class="ink">
+          <rect x="20" y="130" width="560" height="2"/>
+          <g class="dino"><rect x="58" y="99" width="22" height="21"/><rect x="70" y="83" width="22" height="17"/><rect x="52" y="105" width="8" height="7"/><rect x="61" y="120" width="6" height="10"/><rect x="72" y="120" width="6" height="10"/><path d="M58,105 l4,-12 l4,8 l4,-12 l2,10 z"/></g>
+          <g id="sense-cactus"><rect x="9" y="80" width="9" height="50"/><rect x="0" y="95" width="5" height="15"/><rect x="0" y="107" width="11" height="4"/><rect x="21" y="88" width="5" height="16"/><rect x="16" y="101" width="10" height="4"/></g>
+        </g>
+        <circle id="sense-ring" cx="200" cy="108" r="11" fill="#ffffff" stroke="#2563eb" stroke-width="4"/>
+        <path d="M200,97 V60 H250" fill="none" stroke="#2563eb" stroke-width="3" stroke-dasharray="5 4"/>
+        <text x="256" y="64" style="fill:#2563eb;font-weight:700;font-size:13px">the eye (taped to the screen)</text>
+        <rect id="sense-key" x="40" y="172" width="120" height="22" rx="5" fill="#e5e7eb" stroke="#1f2340" stroke-width="2"/>
+        <text x="100" y="188" text-anchor="middle" class="mono" style="font-weight:700;font-size:12px">SPACE</text>
+        <g id="sense-arm"><rect x="92" y="157" width="16" height="13" rx="4" fill="#f59e0b" stroke="#1f2340" stroke-width="2"/></g>
+        <text x="172" y="188" style="font-size:12px">← the servo finger</text>
+      </svg>
+    </figure>
+    <div class="slide"><label for="sense-slider">Move the cactus</label><input type="range" id="sense-slider" min="100" max="540" value="480" step="2"></div>
+    <div class="echo-readout" aria-live="polite">
+      <div>Light number <b id="sense-light">820</b></div>
+      <div>The eye says <b id="sense-says">all clear</b></div>
+      <div>The finger is <b id="sense-finger">resting</b></div>
+    </div>
+    <p class="time" id="sense-note">Rule: if the light number is below 540, press.</p>
+    <button class="btn big" id="sense-flip" type="button" style="--c:var(--s3)">🌗 Flip to night mode</button>
+  </div>
+  <div class="kid">
+    <strong>🧒 The big word: latency</strong>
+    The eye takes a moment. The brain takes a moment. The finger takes a moment. Add them up and that's the robot's <b>latency</b> (its delay). The game gets faster every second, so this whole chapter is a fight against latency.
+  </div>
+</section>
+
+<!-- ============ DINO LAB ============ -->
+<section class="card lab" id="lab">
+  <h2><span aria-hidden="true">🧪</span> Dino Lab: play it before you build it</h2>
+  <p>A pretend dino game with a pretend robot playing it. Pick a brain, press Start, and find out what kills it. The brain here follows <b>the same rules as the real robot's code</b>, copied line for line.</p>
+
+  <div class="seg" id="lab-levels" role="group" aria-label="Pick who plays"></div>
+  <p class="lab-brain" id="lab-brain"></p>
+
+  <div class="lab-screen" id="lab-screen">
+    <canvas id="lab-game" width="600" height="200" role="img" aria-label="The pretend dino game"></canvas>
+    <div class="lab-hud" aria-hidden="true"><span id="lab-score">Score 0</span><span id="lab-speed">Speed 6.0</span></div>
+    <canvas id="lab-graph" width="600" height="150" role="img" aria-label="Live graph of what the light sensors read"></canvas>
+  </div>
+  <div class="lab-legend" aria-hidden="true">
+    <span><i style="background:#2563eb"></i>A0: low eye</span>
+    <span><i style="background:#ea580c"></i>A1: speed-trap eye (Level 3)</span>
+    <span><i style="background:#7c3aed"></i>A2: head eye (Level 4)</span>
+    <span><i style="background:#f59e0b"></i>finger pressed</span>
+  </div>
+
+  <div class="lab-buttons">
+    <button class="btn big" id="lab-start" type="button">▶ Start</button>
+    <button class="btn ghost big" id="lab-restart" type="button">↺ Restart</button>
+    <button class="btn ghost big" id="lab-boost" type="button">⚡ Speed +1</button>
+    <button class="btn ghost big" id="lab-night" type="button">🌗 Night mode</button>
+    <button class="btn ghost big" id="lab-fast" type="button" aria-pressed="false">⏩ Fast-forward</button>
+  </div>
+  <div class="lab-touch" id="lab-touch">
+    <button class="hold" id="lab-jump" type="button" style="--k:var(--s6)">⬆ Jump</button>
+    <button class="hold" id="lab-duck" type="button" style="--k:var(--s7)">⬇ Duck</button>
+  </div>
+  <p class="lab-status" id="lab-status" aria-live="polite"></p>
+
+  <h3>Tune the robot</h3>
+  <div class="slide"><label for="lab-thr" id="lab-thr-label">Threshold</label><input type="range" id="lab-thr" min="0" max="1020" step="10" value="540"></div>
+  <div class="slide"><label for="lab-eye" id="lab-eye-label">Eye position</label><input type="range" id="lab-eye" min="15" max="100" step="5" value="45"></div>
+  <div class="slide"><label for="lab-delay" id="lab-delay-label">Robot delay</label><input type="range" id="lab-delay" min="0" max="250" step="10" value="120"></div>
+
+  <div class="lab-side">
+    <div>
+      <h3 style="margin-top:8px">The robot's little screen</h3>
+      <div class="lcd"><div class="lcd-screen" id="lab-lcd" aria-hidden="true"></div></div>
+      <p class="time">The real robot shows the same thing: its level, how many jumps, and the live light number.</p>
+    </div>
+    <div>
+      <h3 style="margin-top:8px">Best scores</h3>
+      <table><tr><th>Player</th><th>Best</th></tr><tbody id="lab-best"></tbody></table>
+    </div>
+  </div>
+
+  <div class="earn" id="lab-earn">
+    <strong>🏅 To earn <span>Dino Lab Scientist</span>: find every brain's weak spot</strong>
+    <ul id="lab-missions"></ul>
+    <p class="earned">🏅 Badge earned: <b>Dino Lab Scientist!</b></p>
+  </div>
+  <p class="time">Being honest: this is our own pretend game, not Chrome's. It speeds up much sooner than the real one so you don't have to wait, and the jump is our own guess. The numbers that work here are a starting point. Your real screen will need its own.</p>
+</section>
+
+<!-- ============ PARTS ============ -->
+<section class="card">
+  <h2><span aria-hidden="true">🧰</span> Gather the parts</h2>
+  <p>Almost everything is in your ELEGOO Super Starter Kit. Check things off as you find them.</p>
+  <ul class="parts">
+    <li><label>
+      <svg viewBox="0 0 48 48" aria-hidden="true"><rect x="3" y="8" width="42" height="32" rx="3" fill="#f8fafc" stroke="#94a3b8" stroke-width="2"/><rect x="24" y="13" width="18" height="12" rx="1" fill="#1d4ed8"/><circle cx="12" cy="19" r="5" fill="#1f2340"/><rect x="6" y="30" width="16" height="6" rx="2" fill="#0f8a8f"/><line x1="24" y1="33" x2="42" y2="33" stroke="#ef4444" stroke-width="2"/></svg>
+      <span class="txt">Your Chapter 1 gadget<span class="hint">UNO, breadboard, screen, knob and buzzer, still wired.</span></span>
+      <input type="checkbox" class="part-box"></label></li>
+    <li><label>
+      <svg viewBox="0 0 48 48" aria-hidden="true"><rect x="10" y="16" width="24" height="24" rx="3" fill="#2563eb"/><rect x="6" y="20" width="32" height="4" fill="#1e40af"/><circle cx="22" cy="14" r="5" fill="#f8fafc" stroke="#94a3b8" stroke-width="2"/><rect x="20" y="4" width="22" height="6" rx="3" fill="#f8fafc" stroke="#94a3b8" stroke-width="2"/><g fill="none" stroke-width="2.5"><path d="M34,30 h10" stroke="#92400e"/><path d="M34,34 h10" stroke="#ef4444"/><path d="M34,38 h10" stroke="#f97316"/></g></svg>
+      <span class="txt">Servo motor<span class="hint">The kit's blue SG90, or a Tower Pro MG90S if you have one (metal gears, a bit stronger).</span></span>
+      <input type="checkbox" class="part-box"></label></li>
+    <li><label>
+      <svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="16" r="12" fill="#fca5a5" stroke="#b91c1c" stroke-width="2"/><path d="M15,12 h14 v4 h-12 v4 h14" fill="none" stroke="#7f1d1d" stroke-width="2"/><g stroke="#94a3b8" stroke-width="2"><line x1="19" y1="27" x2="19" y2="46"/><line x1="29" y1="27" x2="29" y2="46"/></g></svg>
+      <span class="txt">2 photoresistors<span class="hint">Light sensors: a small disc with a squiggly line on top and 2 legs. These are the robot's eyes.</span></span>
+      <input type="checkbox" class="part-box"></label></li>
+    <li><label>
+      <svg viewBox="0 0 48 48" aria-hidden="true"><line x1="2" y1="24" x2="46" y2="24" stroke="#94a3b8" stroke-width="2"/><rect x="12" y="17" width="24" height="14" rx="6" fill="#e7c9a0" stroke="#92602a" stroke-width="2"/><g stroke-width="3"><line x1="18" y1="18" x2="18" y2="30" stroke="#92400e"/><line x1="23" y1="18" x2="23" y2="30" stroke="#111827"/><line x1="28" y1="18" x2="28" y2="30" stroke="#f97316"/></g></svg>
+      <span class="txt">2 resistors, 10 kΩ<span class="hint">Stripes: brown, black, orange. Not sure? Check the label on the paper strip.</span></span>
+      <input type="checkbox" class="part-box"></label></li>
+    <li><label>
+      <svg viewBox="0 0 48 48" aria-hidden="true"><rect x="4" y="12" width="40" height="24" rx="3" fill="#111827"/><rect x="8" y="16" width="10" height="10" fill="#94a3b8"/><circle cx="26" cy="22" r="4" fill="#ef4444"/><rect x="33" y="16" width="8" height="5" fill="#facc15"/><rect x="33" y="27" width="8" height="5" fill="#facc15"/><g stroke="#94a3b8" stroke-width="2"><line x1="10" y1="36" x2="10" y2="44"/><line x1="16" y1="36" x2="16" y2="44"/><line x1="32" y1="36" x2="32" y2="44"/><line x1="38" y1="36" x2="38" y2="44"/></g></svg>
+      <span class="txt">Breadboard power module<span class="hint">The black board that clips onto the end of the breadboard. It feeds the servo.</span></span>
+      <input type="checkbox" class="part-box"></label></li>
+    <li><label>
+      <svg viewBox="0 0 48 48" aria-hidden="true"><rect x="12" y="10" width="24" height="34" rx="3" fill="#1d4ed8"/><rect x="12" y="10" width="24" height="10" fill="#facc15"/><circle cx="19" cy="7" r="3.5" fill="#94a3b8"/><rect x="26" y="3" width="7" height="7" fill="#94a3b8"/><text x="24" y="35" text-anchor="middle" font-size="10" font-weight="700" fill="#fff">9V</text></svg>
+      <span class="txt">9 V battery with its clip<span class="hint">Or the kit's 9 V wall adapter, which is steadier for long games.</span></span>
+      <input type="checkbox" class="part-box"></label></li>
+    <li><label>
+      <svg viewBox="0 0 48 48" aria-hidden="true"><rect x="3" y="14" width="42" height="22" rx="3" fill="#e5e7eb" stroke="#64748b" stroke-width="2"/><g fill="#94a3b8"><rect x="7" y="18" width="5" height="4"/><rect x="14" y="18" width="5" height="4"/><rect x="21" y="18" width="5" height="4"/><rect x="28" y="18" width="5" height="4"/><rect x="35" y="18" width="5" height="4"/><rect x="7" y="24" width="5" height="4"/><rect x="14" y="24" width="5" height="4"/><rect x="21" y="24" width="5" height="4"/><rect x="28" y="24" width="5" height="4"/><rect x="35" y="24" width="5" height="4"/></g><rect x="13" y="30" width="22" height="4" fill="#f59e0b"/></svg>
+      <span class="txt">An external keyboard<span class="hint">Any old USB or Bluetooth keyboard. Strongly recommended, so the finger never taps the laptop itself.</span></span>
+      <input type="checkbox" class="part-box"></label></li>
+    <li><label>
+      <svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="16" cy="18" r="11" fill="#60a5fa"/><circle cx="16" cy="18" r="5" fill="#fffdf6"/><rect x="28" y="6" width="6" height="26" rx="3" fill="#111827" transform="rotate(20 31 19)"/><rect x="8" y="34" width="20" height="10" rx="3" fill="#f9a8d4"/><path d="M32,44 v-8 h10 v8 z" fill="#d6a76a"/></svg>
+      <span class="txt">From around the house<span class="hint">Painter's tape, a black straw or black tape, a pencil eraser, and Lego, books or cardboard to hold the servo up.</span></span>
+      <input type="checkbox" class="part-box"></label></li>
+    <li><label>
+      <svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="15" cy="16" r="9" fill="#fca5a5" stroke="#b91c1c" stroke-width="2"/><g stroke="#94a3b8" stroke-width="2"><line x1="12" y1="24" x2="12" y2="40"/><line x1="18" y1="24" x2="18" y2="40"/></g><rect x="27" y="20" width="16" height="18" rx="2" fill="#2563eb"/><rect x="29" y="12" width="14" height="5" rx="2.5" fill="#f8fafc" stroke="#94a3b8" stroke-width="2"/><text x="24" y="10" font-size="9" font-weight="700" fill="#1f2340">+1</text></svg>
+      <span class="txt">Boss level only (Step 7)<span class="hint">1 more photoresistor, 1 more 10 kΩ resistor and 1 more servo. The kit only has 2 photoresistors and 1 servo.</span></span>
+      <input type="checkbox" class="part-box"></label></li>
+  </ul>
+  <div class="tip">
+    <strong>💡 SG90 or MG90S?</strong>
+    Both have the same 3 wires: <b>brown</b> = ground, <b>red</b> = 5 V, <b>orange</b> = signal. Either one easily presses a key. If you have the MG90S, use it for the space bar.
+  </div>
+</section>
+
+<!-- ============ STEP 1 ============ -->
+<section class="card step" id="step1" style="--c:var(--s1)">
+  <div class="step-head">
+    <div class="step-title">
+      <span class="step-emoji" aria-hidden="true">🦖</span>
+      <div>
+        <span class="step-num">Step 1</span>
+        <h2>Study the enemy</h2>
+        <span class="time">⏱ About 15 minutes · no wires, just playing</span>
+      </div>
+    </div>
+    <label class="done-label"><input type="checkbox" class="done-box" data-step="1"> Done</label>
+  </div>
+  <p>Open Chrome, type <code class="inline">chrome://dino</code> and press <b>Space</b>. Each of you plays a few rounds. Your mission: spot <b>everything that can kill the dino</b>.</p>
+  <h3>Tick each danger when you've seen it</h3>
+  <ul class="ticks">
+    <li><label><input type="checkbox" class="check-box"><span>🌵 A small cactus<span class="who">Level 1's job</span></span></label></li>
+    <li><label><input type="checkbox" class="check-box"><span>🌵 A big cactus<span class="who">Level 1's job</span></span></label></li>
+    <li><label><input type="checkbox" class="check-box"><span>🌵🌵🌵 A group of cacti<span class="who">Level 1's job</span></span></label></li>
+    <li><label><input type="checkbox" class="check-box"><span>🌗 Night mode<span class="who">Level 2's job</span></span></label></li>
+    <li><label><input type="checkbox" class="check-box"><span>⚡ The speed-up<span class="who">Level 3's job</span></span></label></li>
+    <li><label><input type="checkbox" class="check-box"><span>🐦 A low bird<span class="who">jump over it</span></span></label></li>
+    <li><label><input type="checkbox" class="check-box"><span>🐦 A middle bird<span class="who">Level 4's job: duck under it</span></span></label></li>
+    <li><label><input type="checkbox" class="check-box"><span>🐦 A high bird<span class="who">do nothing!</span></span></label></li>
+  </ul>
+  <h3>Know your enemy</h3>
+  <div class="table-scroll"><table>
+    <tr><th>Fact</th><th>What it means for the robot</th></tr>
+    <tr><td><b>Space</b> or <b>↑</b> = jump</td><td>Hold for a higher jump, tap for a short hop. <b>↓</b> = duck.</td></tr>
+    <tr><td>Speed goes from <b>6</b> up to <b>13</b></td><td>More than twice as fast by the end. Cacti arrive sooner and sooner.</td></tr>
+    <tr><td>Night mode at about every <b>700 points</b></td><td>The colors flip: dark background, light cacti. Then they flip back.</td></tr>
+    <tr><td>Birds come once the game is fast</td><td>Three heights: <b>low</b> (jump), <b>middle</b> (duck), <b>high</b> (do nothing, jumping into it is a crash).</td></tr>
+    <tr><td>Dark grey shapes on a near-white screen</td><td>A light sensor can tell them apart.</td></tr>
+  </table></div>
+  <div class="tip">
+    <strong>💡 Parent tip</strong>
+    This is exactly how engineers start: write down what "working" means <b>before</b> building. This list is the robot's <b>test plan</b>. Every level you build will beat one more thing on it.
+  </div>
+  <div class="win">🏆 Win: you have a list of every danger. Did one brother spot something the other missed?</div>
+</section>
+
+<!-- ============ STEP 2 ============ -->
+<section class="card step" id="step2" style="--c:var(--s2)">
+  <div class="step-head">
+    <div class="step-title">
+      <span class="step-emoji" aria-hidden="true">🦾</span>
+      <div>
+        <span class="step-num">Step 2</span>
+        <h2>Build the finger</h2>
+        <span class="time">⏱ About 25 minutes · servo + power module</span>
+      </div>
+    </div>
+    <label class="done-label"><input type="checkbox" class="done-box" data-step="2"> Done</label>
+  </div>
+
+  <h3>Give the servo its own power</h3>
+  <p>When a servo pushes hard it <b>gulps</b> electricity. If it drinks from the UNO, the UNO can get dizzy and restart in the middle of a game. So the servo gets its own drink: the <b>power module</b>.</p>
+  <figure class="diagram">
+    <svg viewBox="0 0 640 210" role="img" aria-label="The power module clips onto the end of the breadboard and can feed both pairs of power rails. Switch off the side that already has the UNO's 5 volts.">
+      <rect x="20" y="40" width="440" height="140" rx="8" fill="#f8fafc" stroke="#94a3b8" stroke-width="2"/>
+      <line x1="34" y1="56" x2="446" y2="56" stroke="#ef4444" stroke-width="3"/><line x1="34" y1="68" x2="446" y2="68" stroke="#2563eb" stroke-width="3"/>
+      <line x1="34" y1="152" x2="446" y2="152" stroke="#ef4444" stroke-width="3"/><line x1="34" y1="164" x2="446" y2="164" stroke="#2563eb" stroke-width="3"/>
+      <g fill="#cbd5e1"><rect x="40" y="86" width="400" height="18" rx="3"/><rect x="40" y="116" width="400" height="18" rx="3"/></g>
+      <text x="44" y="32" class="lbl" style="fill:#b91c1c">Chapter 1 rails: the UNO's 5V wire is already here</text>
+      <text x="44" y="200" class="lbl" style="fill:#c2410c">Servo rails: only the power module feeds these</text>
+      <rect x="430" y="30" width="110" height="160" rx="6" fill="#111827"/>
+      <text x="466" y="106" text-anchor="middle" class="w" style="font-size:12px">power</text><text x="466" y="122" text-anchor="middle" class="w" style="font-size:12px">module</text>
+      <rect x="446" y="46" width="34" height="20" rx="3" fill="#374151" stroke="#facc15" stroke-width="2" stroke-dasharray="4 3"/>
+      <text x="548" y="54" class="lbl" style="fill:#b91c1c">jumper OFF</text><text x="548" y="70" class="sm">(pull it right off)</text>
+      <rect x="446" y="148" width="34" height="20" rx="3" fill="#facc15"/>
+      <text x="548" y="158" class="lbl" style="fill:#c2410c">jumper on 5V</text><text x="548" y="174" class="sm">(not 3.3V)</text>
+      <rect x="504" y="86" width="30" height="46" rx="4" fill="#94a3b8"/><text x="548" y="106" class="sm">9 V battery or</text><text x="548" y="119" class="sm">adapter plugs in</text>
+    </svg>
+    <figcaption>The module clips onto one end of the breadboard, with its pins in the + and − rails on both edges. Line up its + and − marks with the breadboard's red and blue lines.</figcaption>
+  </figure>
+  <div class="warn">
+    <strong>⚠️ Parent check: one power source per rail</strong>
+    The module can feed <b>both</b> pairs of rails. The pair your Chapter 1 parts use already gets 5 V from the UNO, and two power sources must never push into the same + rail. On the module, each side has a tiny yellow jumper (5V / OFF / 3.3V). <b>Pull the jumper off</b> on the Chapter 1 side. Set the other side to <b>5V</b>. Module boards differ a little, so check the printing on yours before plugging in the battery.
+  </div>
+
+  <h3>Wire the servo</h3>
+  <figure class="diagram">
+    <svg viewBox="0 0 640 290" role="img" aria-label="Wiring picture: servo orange wire to UNO pin 9, red wire to the power module's 5 volt rail, brown wire to the power module's ground rail, and one wire joining the two grounds">
+      <rect x="20" y="40" width="150" height="210" rx="12" fill="#0f8a8f"/>
+      <text x="58" y="150" class="w" style="font-size:22px">UNO</text>
+      <g fill="#1f2340"><rect x="160" y="71" width="22" height="18"/><rect x="160" y="201" width="22" height="18"/></g>
+      <g class="w" text-anchor="end"><text x="152" y="85">9</text><text x="152" y="215">GND</text></g>
+      <rect x="470" y="30" width="150" height="100" rx="8" fill="#111827"/>
+      <text x="556" y="76" text-anchor="middle" class="w" style="font-size:14px">Servo rails</text><text x="556" y="94" text-anchor="middle" class="w sm">(power module)</text>
+      <g fill="#fbbf24"><rect x="458" y="46" width="22" height="18"/><rect x="458" y="96" width="22" height="18"/></g>
+      <g class="w"><text x="486" y="60">5V +</text><text x="486" y="110">GND −</text></g>
+      <rect x="300" y="170" width="96" height="70" rx="8" fill="#2563eb"/>
+      <circle cx="372" cy="170" r="16" fill="#f8fafc" stroke="#94a3b8" stroke-width="3"/><rect x="366" y="124" width="12" height="50" rx="6" fill="#f8fafc" stroke="#94a3b8" stroke-width="3"/>
+      <text x="348" y="212" text-anchor="middle" class="w" style="font-size:15px">servo</text>
+      <path class="wire" d="M300,190 H236 V80 H182" stroke="#f97316"/>
+      <path class="wire" d="M318,170 V55 H458" stroke="#ef4444"/>
+      <path class="wire" d="M340,170 V105 H458" stroke="#92400e"/>
+      <path class="wire" d="M545,130 V268 H216 V210 H182" stroke="#1f2340"/>
+      <g class="sm" style="font-weight:700">
+        <text x="190" y="72" style="fill:#c2410c">orange → pin 9</text>
+        <text x="330" y="47" style="fill:#b91c1c">red → module 5V</text>
+        <text x="350" y="98" style="fill:#92400e">brown → GND</text>
+        <text x="250" y="284">black: module GND → UNO GND (shared ground: a must!)</text>
+      </g>
+    </svg>
+    <figcaption>The servo's plug has 3 holes. Push 3 jumper wires into it to reach the breadboard.</figcaption>
+  </figure>
+  <div class="table-scroll"><table>
+    <tr><th>Servo wire</th><th>What it is</th><th>Connect to</th></tr>
+    <tr><td class="pin">orange</td><td>Signal</td><td>UNO pin <span class="pin">9</span></td></tr>
+    <tr><td class="pin">red</td><td>Power, 5 V</td><td>The <b>servo</b> + rail (power module). <b>Not</b> the UNO's 5V!</td></tr>
+    <tr><td class="pin">brown</td><td>Ground</td><td>The <b>servo</b> − rail (power module)</td></tr>
+    <tr><td class="pin">extra wire</td><td>Shared ground</td><td>Servo − rail → the UNO's − rail (or a UNO <span class="pin">GND</span> pin)</td></tr>
+  </table></div>
+  <p>Now clip the battery onto the module and press its little button. Its light comes on.</p>
+
+  <h3>Upload this code</h3>
+  <p><b>File → New Sketch</b>, delete what's there, paste this, and upload.</p>
+  <div class="code-wrap">
+    <button class="copy-btn" data-target="code-servo" type="button">Copy code</button>
+<pre id="code-servo">// Chapter 6, Step 2: Servo Calibrate - teach the finger where the key is
+//
+// Open the Serial Monitor at 9600 baud, type a command, press Return:
+//   90      move slowly to 90 degrees (any number from 0 to 180)
+//   r       remember this angle as REST  (finger just above the key)
+//   p       remember this angle as PRESS (key pressed, not crushed)
+//   t       test tap: REST -&gt; PRESS -&gt; REST
+//   h       hold: press for 300 ms, then let go
+//   x       10 taps in a row (how fast can your finger go?)
+//   + or -  make the taps faster or slower
+//   j or d  switch to the jump finger (pin 9) or the duck finger (pin 10)
+#include &lt;Servo.h&gt;
+
+const int JUMP_SERVO_PIN = 9;
+const int DUCK_SERVO_PIN = 10;
+const int STEP_DELAY_MS  = 15;    // wait between 1-degree steps, so it never slams
+
+Servo finger;
+int fingerPin = JUMP_SERVO_PIN;
+int angle = 90;          // where the finger is now
+int restAngle = 90;
+int pressAngle = 70;
+int tapMs = 80;          // how long a tap holds the key
+
+void setup() {
+  Serial.begin(9600);
+  finger.write(angle);             // set the angle first, so the finger doesn't twitch
+  finger.attach(fingerPin);
+  Serial.println("Servo Calibrate is ready.");
+  Serial.println("Type an angle (0 to 180), or r, p, t, h, x, +, -, j, d");
+  report();
+}
+
+void loop() {
+  if (Serial.available() == 0) return;
+
+  char c = Serial.peek();
+  if (c &gt;= '0' &amp;&amp; c &lt;= '9') {
+    int wanted = Serial.parseInt();
+    if (wanted &gt; 180) {
+      Serial.println("Angles only go from 0 to 180.");
+    } else {
+      moveSlowly(wanted);
+      report();
+    }
+    return;
+  }
+
+  Serial.read();                   // take the letter out of the queue
+  if (c == 'r') {
+    restAngle = angle;
+    Serial.print("REST is now ");
+    Serial.println(restAngle);
+    printCopyLines();
+  } else if (c == 'p') {
+    pressAngle = angle;
+    Serial.print("PRESS is now ");
+    Serial.println(pressAngle);
+    printCopyLines();
+  } else if (c == 't') {
+    tap(tapMs);
+    Serial.println("Tap!");
+  } else if (c == 'h') {
+    tap(300);
+    Serial.println("Held for 300 ms.");
+  } else if (c == 'x') {
+    for (int i = 0; i &lt; 10; i++) {
+      tap(tapMs);
+      delay(tapMs);
+    }
+    Serial.print("10 taps, ");
+    Serial.print(tapMs);
+    Serial.print(" ms down and ");
+    Serial.print(tapMs);
+    Serial.print(" ms up each. That is ");
+    Serial.print(1000 / (tapMs * 2));
+    Serial.println(" taps per second. Did the game see all 10?");
+  } else if (c == '+') {
+    if (tapMs &gt; 20) tapMs -= 10;
+    Serial.print("Faster: taps are now ");
+    Serial.print(tapMs);
+    Serial.println(" ms.");
+  } else if (c == '-') {
+    if (tapMs &lt; 300) tapMs += 10;
+    Serial.print("Slower: taps are now ");
+    Serial.print(tapMs);
+    Serial.println(" ms.");
+  } else if (c == 'j' || c == 'd') {
+    finger.detach();
+    fingerPin = (c == 'j') ? JUMP_SERVO_PIN : DUCK_SERVO_PIN;
+    finger.write(angle);
+    finger.attach(fingerPin);
+    Serial.println(c == 'j' ? "Now moving the JUMP finger (pin 9)." : "Now moving the DUCK finger (pin 10).");
+  }
+  // anything else (like the Return key) is ignored
+}
+
+// Go to an angle one degree at a time.
+void moveSlowly(int wanted) {
+  while (angle != wanted) {
+    if (angle &lt; wanted) angle++;
+    else angle--;
+    finger.write(angle);
+    delay(STEP_DELAY_MS);
+  }
+}
+
+// A tap goes straight to PRESS and back, like the real game.
+void tap(int holdMs) {
+  moveSlowly(restAngle);
+  finger.write(pressAngle);
+  delay(holdMs);
+  finger.write(restAngle);
+  angle = restAngle;
+}
+
+void report() {
+  Serial.print("Angle: ");
+  Serial.println(angle);
+}
+
+void printCopyLines() {
+  bool duck = (fingerPin == DUCK_SERVO_PIN);
+  Serial.println("Copy these into dino_bot.ino:");
+  Serial.print(duck ? "const int DUCK_REST_ANGLE  = " : "const int REST_ANGLE  = ");
+  Serial.print(restAngle);
+  Serial.println(";");
+  Serial.print(duck ? "const int DUCK_PRESS_ANGLE = " : "const int PRESS_ANGLE = ");
+  Serial.print(pressAngle);
+  Serial.println(";");
+}</pre>
+  </div>
+
+  <h3>Teach the finger where the key is</h3>
+  <ol>
+    <li>Open the <b>Serial Monitor</b> at <b>9600 baud</b>. Type <code class="inline">90</code> and press Return. The servo glides to 90.</li>
+    <li>Push the long white arm onto the servo so it sticks out sideways. Tape a <b>pencil eraser</b> under its tip: a soft fingertip.</li>
+    <li>Prop the servo over the <b>space bar</b> with Lego, books or cardboard, and tape it down so it can't wobble.</li>
+    <li>Type angles (try moving 5 at a time) until the fingertip floats <b>just above</b> the key. Type <code class="inline">r</code>. That's <b>REST</b>.</li>
+    <li>Go a few degrees at a time until the key is <b>pressed, not crushed</b>. Type <code class="inline">p</code>. That's <b>PRESS</b>. The two are usually 15 to 25 degrees apart.</li>
+    <li>Type <code class="inline">t</code> for a test tap. Click on the game first, then tap: <b>the dino jumps!</b></li>
+    <li>Write down the two numbers it prints. You'll need them in Step 4.</li>
+  </ol>
+  <div class="kid">
+    <strong>🧒 Kid challenge: how fast is your finger?</strong>
+    Type <code class="inline">x</code> for 10 taps in a row and count the jumps. Type <code class="inline">+</code> to make the taps faster and try again. How many taps per second before it starts missing? That's one of your robot's speed limits.
+  </div>
+  <div class="win">🏆 Win: you type <code class="inline">t</code>, the finger taps, and the dino jumps.</div>
+</section>
+
+<!-- ============ STEP 3 ============ -->
+<section class="card step" id="step3" style="--c:var(--s3)">
+  <div class="step-head">
+    <div class="step-title">
+      <span class="step-emoji" aria-hidden="true">👁️</span>
+      <div>
+        <span class="step-num">Step 3</span>
+        <h2>Build the eye</h2>
+        <span class="time">⏱ About 25 minutes · photoresistor + 10 kΩ resistor</span>
+      </div>
+    </div>
+    <label class="done-label"><input type="checkbox" class="done-box" data-step="3"> Done</label>
+  </div>
+  <p>A photoresistor lets more electricity through when more light hits it. Pair it with a resistor and the UNO can read the light as a number from 0 to 1023. <b>More light = bigger number.</b></p>
+
+  <h3>Wire the eye</h3>
+  <figure class="diagram">
+    <svg viewBox="0 0 640 250" role="img" aria-label="Wiring picture: 5 volts to the photoresistor, the photoresistor's other leg to pin A0 and to a 10 kilo-ohm resistor, the resistor's other leg to ground">
+      <line x1="30" y1="34" x2="430" y2="34" stroke="#ef4444" stroke-width="5" stroke-linecap="round"/>
+      <line x1="30" y1="222" x2="430" y2="222" stroke="#2563eb" stroke-width="5" stroke-linecap="round"/>
+      <text x="34" y="24" class="lbl" style="fill:#dc2626">+ rail (the UNO's 5V, from Chapter 1)</text>
+      <text x="34" y="244" class="lbl" style="fill:#2563eb">− rail (GND)</text>
+      <path class="wire" d="M240,34 V66" stroke="#94a3b8"/>
+      <circle cx="240" cy="86" r="22" fill="#fca5a5" stroke="#b91c1c" stroke-width="3"/>
+      <path d="M228,78 h22 v6 h-20 v6 h22" fill="none" stroke="#7f1d1d" stroke-width="2.5"/>
+      <path class="wire" d="M240,108 V134" stroke="#94a3b8"/>
+      <circle cx="240" cy="134" r="7" fill="#1f2340"/>
+      <path class="wire" d="M240,134 H470" stroke="#eab308"/>
+      <path class="wire" d="M240,134 V150" stroke="#94a3b8"/>
+      <rect x="229" y="150" width="22" height="46" rx="8" fill="#e7c9a0" stroke="#92602a" stroke-width="2"/>
+      <g stroke-width="4"><line x1="230" y1="161" x2="250" y2="161" stroke="#92400e"/><line x1="230" y1="171" x2="250" y2="171" stroke="#111827"/><line x1="230" y1="181" x2="250" y2="181" stroke="#f97316"/></g>
+      <path class="wire" d="M240,196 V222" stroke="#94a3b8"/>
+      <rect x="470" y="84" width="150" height="100" rx="12" fill="#0f8a8f"/>
+      <text x="560" y="140" text-anchor="middle" class="w" style="font-size:20px">UNO</text>
+      <rect x="460" y="125" width="22" height="18" fill="#1f2340"/><text x="490" y="139" class="w">A0</text>
+      <text x="100" y="92" class="lbl">photoresistor</text><text x="100" y="108" class="sm">(the eye: either way round)</text>
+      <text x="262" y="178" class="lbl">10 kΩ</text>
+      <text x="300" y="126" class="sm" style="font-weight:700">same row → A0</text>
+    </svg>
+    <figcaption>The photoresistor and the resistor meet in one breadboard row. A wire from that same row goes to A0. Later eyes are wired exactly the same, to A1 and A2.</figcaption>
+  </figure>
+  <div class="tip">
+    <strong>💡 The eye needs a long neck</strong>
+    The eye has to reach the screen. Push each photoresistor leg into the socket end of a <b>female-to-male wire</b> and plug the other ends into the breadboard. Keep the two legs from touching each other (a bit of tape helps).
+  </div>
+
+  <h3>Stick the eye on the screen</h3>
+  <figure class="diagram">
+    <svg viewBox="0 0 640 250" role="img" aria-label="Where to tape the eye: flat on the screen at cactus height, about one dino-length ahead of the dino. A black straw around the sensor keeps room light out.">
+      <rect x="10" y="10" width="420" height="200" rx="10" fill="#f4f1ea" stroke="#1f2340" stroke-width="3"/>
+      <g class="ink">
+        <rect x="24" y="170" width="392" height="2"/>
+        <g class="dino"><rect x="58" y="139" width="22" height="21"/><rect x="70" y="123" width="22" height="17"/><rect x="52" y="145" width="8" height="7"/><rect x="61" y="160" width="6" height="10"/><rect x="72" y="160" width="6" height="10"/></g>
+        <rect x="339" y="120" width="9" height="50"/><rect x="330" y="135" width="5" height="15"/><rect x="330" y="147" width="11" height="4"/><rect x="351" y="128" width="5" height="16"/><rect x="346" y="141" width="10" height="4"/>
+      </g>
+      <path d="M326,108 H296" fill="none" stroke="#3d4152" stroke-width="2"/><path d="M296,108 l8,-5 v10 z" fill="#3d4152"/>
+      <circle cx="140" cy="148" r="11" fill="#fff" stroke="#2563eb" stroke-width="4"/>
+      <text x="140" y="126" text-anchor="middle" class="lbl" style="fill:#2563eb">A0</text>
+      <path d="M94,196 H138" fill="none" stroke="#1f2340" stroke-width="2"/><path d="M94,190 v12 M138,190 v12" stroke="#1f2340" stroke-width="2"/>
+      <text x="76" y="232" class="sm" style="font-weight:700">about one dino-length ahead</text>
+      <circle cx="210" cy="148" r="11" fill="none" stroke="#ea580c" stroke-width="3" stroke-dasharray="5 4"/>
+      <text x="210" y="126" text-anchor="middle" class="sm" style="fill:#c2410c;font-weight:700">A1 (Step 6)</text>
+      <circle cx="210" cy="96" r="11" fill="none" stroke="#7c3aed" stroke-width="3" stroke-dasharray="5 4"/>
+      <text x="210" y="76" text-anchor="middle" class="sm" style="fill:#6d28d9;font-weight:700">A2 (Step 7)</text>
+      <text x="456" y="30" class="lbl">Side view</text>
+      <rect x="470" y="50" width="10" height="150" fill="#94a3b8"/><text x="452" y="216" class="sm">screen</text>
+      <rect x="480" y="108" width="74" height="34" fill="#111827"/><rect x="480" y="114" width="60" height="22" fill="#fffdf6"/>
+      <circle cx="536" cy="125" r="9" fill="#fca5a5" stroke="#b91c1c" stroke-width="2"/>
+      <path d="M545,121 H610 M545,129 H610" stroke="#94a3b8" stroke-width="2.5"/>
+      <text x="486" y="100" class="sm" style="font-weight:700">black straw = blinkers</text>
+      <text x="486" y="160" class="sm">only screen light gets in</text>
+    </svg>
+    <figcaption>The eye sits flat on the glass, looking at one spot at cactus height. The dashed circles are for later steps.</figcaption>
+  </figure>
+  <ol>
+    <li><b>Zoom in:</b> in the game tab press <b>⌘ +</b> a few times, so the cacti are wider than the sensor.</li>
+    <li><b>Brightness to max.</b> Turn off auto-brightness, True Tone and Night Shift so the screen doesn't change by itself. (Grown-up job: System Settings → Displays.)</li>
+    <li><b>Blinkers on:</b> slide the sensor into a short piece of black straw, or wrap its sides in black tape. Only screen light should reach it.</li>
+    <li><b>Tape it flat</b> to the screen with painter's tape, at cactus height, about one dino-length ahead of the dino.</li>
+  </ol>
+
+  <h3>Upload this code and SEE what the eye sees</h3>
+  <div class="code-wrap">
+    <button class="copy-btn" data-target="code-light" type="button">Copy code</button>
+<pre id="code-light">// Chapter 6, Step 3: Light Check - see what the robot's eyes see
+//
+// Open Tools -&gt; Serial Plotter and set it to 115200 baud.
+// Every cactus that passes an eye makes a dip in its line.
+// (Eyes that aren't plugged in yet draw wobbly nonsense. Ignore them.)
+#include &lt;LiquidCrystal.h&gt;
+
+LiquidCrystal lcd(12, 11, 5, 4, 3, 2);   // RS, E, D4, D5, D6, D7 (same as Chapter 1)
+
+const int LOW_EYE_PIN  = A0;      // cactus height, near the dino
+const int FAR_EYE_PIN  = A1;      // cactus height, farther ahead (Step 6)
+const int HEAD_EYE_PIN = A2;      // head height (Step 7)
+
+const unsigned long SAMPLE_MS = 5;       // one line every 5 ms = 200 lines a second
+const unsigned long LCD_MS    = 200;     // the screen updates 5 times a second
+
+unsigned long nextSampleAt = 0;
+unsigned long lastLcdAt = 0;
+int lowest = 1023;       // the darkest and brightest A0 has seen so far
+int highest = 0;
+
+void setup() {
+  // 200 lines a second is too much for 9600 baud, so this sketch talks faster.
+  Serial.begin(115200);
+  lcd.begin(16, 2);
+  lcd.print("A0 light:");
+  lcd.setCursor(0, 1);
+  lcd.print("lo:     hi:");
+}
+
+void loop() {
+  unsigned long now = millis();
+
+  if (now &gt;= nextSampleAt) {
+    nextSampleAt += SAMPLE_MS;
+    if (nextSampleAt &lt; now) nextSampleAt = now + SAMPLE_MS;   // fell behind: catch up
+
+    int a0 = analogRead(LOW_EYE_PIN);
+    int a1 = analogRead(FAR_EYE_PIN);
+    int a2 = analogRead(HEAD_EYE_PIN);
+    if (a0 &lt; lowest) lowest = a0;
+    if (a0 &gt; highest) highest = a0;
+
+    // "name:number" pairs with commas between them is what the Serial Plotter likes.
+    Serial.print("A0:");
+    Serial.print(a0);
+    Serial.print(",A1:");
+    Serial.print(a1);
+    Serial.print(",A2:");
+    Serial.println(a2);
+  }
+
+  if (now - lastLcdAt &gt;= LCD_MS) {
+    lastLcdAt = now;
+    printPadded(10, 0, analogRead(LOW_EYE_PIN));
+    printPadded(3, 1, lowest);
+    printPadded(11, 1, highest);
+  }
+}
+
+// Print a number in a 4-character space, so old digits get wiped.
+void printPadded(int col, int row, int value) {
+  lcd.setCursor(col, row);
+  if (value &lt; 1000) lcd.print(' ');
+  if (value &lt; 100) lcd.print(' ');
+  if (value &lt; 10) lcd.print(' ');
+  lcd.print(value);
+}</pre>
+  </div>
+  <p>Open <b>Tools → Serial Plotter</b> and set it to <b>115200 baud</b> (this sketch talks fast: 200 readings a second). Start the game. Every cactus that slides under the eye makes a <b>dip in the A0 line</b>. That dip is the robot seeing a cactus! The little screen shows the live number, plus the lowest and highest it has seen.</p>
+  <p class="time">The A1 and A2 lines wobble about for now, because nothing is plugged into them yet. Untick them in the plotter.</p>
+  <div class="kid">
+    <strong>🧒 Kid challenge: read the dips</strong>
+    How deep is the dip for a small cactus compared to a big one? Write down two numbers: the <b>white screen</b> number and the <b>bottom of a dip</b> number. What happens to the line when night mode starts? (Spoiler: it flips upside down.)
+  </div>
+  <div class="win">🏆 Win: you can see every cactus as a dip on the graph, before the dino reaches it.</div>
+</section>
+
+<!-- ============ STEP 4 ============ -->
+<section class="card step" id="step4" style="--c:var(--s4)">
+  <div class="step-head">
+    <div class="step-title">
+      <span class="step-emoji" aria-hidden="true">🤖</span>
+      <div>
+        <span class="step-num">Step 4</span>
+        <h2>Autopilot, Level 1</h2>
+        <span class="time">⏱ About 20 minutes · eye + brain + finger together</span>
+      </div>
+    </div>
+    <label class="done-label"><input type="checkbox" class="done-box" data-step="4"> Done</label>
+  </div>
+  <p>Time to join the eye to the finger. The Level 1 brain has two rules:</p>
+  <ul>
+    <li>If the light is <b>below the threshold</b>, tap the space bar.</li>
+    <li>After each tap, ignore the eye for a short <b>cooldown</b>, so one cactus means one jump.</li>
+  </ul>
+
+  <h3>This sketch has two tabs</h3>
+  <ol>
+    <li><b>File → New Sketch</b>, delete what's there, paste the first code box below, and save it as <code class="inline">dino_bot</code>.</li>
+    <li>Click the <b>⋯</b> button at the top right of the editor and choose <b>New Tab</b>. Name it exactly <code class="inline">dino_logic.h</code>.</li>
+    <li>Paste the second code box into that new tab. That's the brain. You never need to change it.</li>
+  </ol>
+  <h3>Tab 1: dino_bot (the settings live here)</h3>
+  <div class="code-wrap">
+    <button class="copy-btn" data-target="code-bot" type="button">Copy code</button>
+<pre id="code-bot">// Chapter 6: Dino Bot
+// A robot that plays the Chrome dinosaur game like a person:
+// it watches the screen with light-sensor eyes and presses the space bar
+// with a servo finger.
+//
+// This sketch has TWO tabs: this one, and dino_logic.h (the brain).
+// Both must be in the same sketch folder.
+#include &lt;LiquidCrystal.h&gt;
+#include &lt;Servo.h&gt;
+#include "dino_logic.h"
+
+// ====================== SETTINGS: change these! ======================
+
+// Which brain? Change this ONE number and upload again to upgrade the robot.
+//   1 = jump when it's dark            (Step 4)
+//   2 = night vision                   (Step 5)
+//   3 = speed trap, needs eye A1       (Step 6)
+//   4 = birds, needs eye A2 + a duck finger (Step 7)
+#define LEVEL 1
+
+// The jump finger. Copy these two numbers from servo_calibrate (Step 2).
+const int REST_ANGLE  = 90;       // finger just above the space bar
+const int PRESS_ANGLE = 70;       // space bar pressed (not crushed!)
+
+// The duck finger, over the down-arrow key (Level 4 only).
+const int DUCK_REST_ANGLE  = 90;
+const int DUCK_PRESS_ANGLE = 70;
+
+const int PRESS_MS = 80;          // how long the finger holds the key. Longer = higher jump
+
+// Level 1: light BELOW this number means "cactus!".
+// Use the number halfway between "white screen" and "cactus" on your plotter.
+const int THRESHOLD = 500;
+
+// Level 2 and up: how far from normal the light must move to count as "something".
+// About half the depth of a cactus dip on your plotter.
+const int BIG_CHANGE = 100;
+
+const int COOLDOWN_MS = 300;      // after a jump, ignore the eye this long (one cactus = one jump)
+
+// Level 3 and up: the speed trap. Measure these on your screen with a ruler.
+const int SENSOR_GAP_MM  = 40;    // millimeters from eye A1 to eye A0
+const int EYE_TO_DINO_MM = 30;    // millimeters from eye A0 to the dino's nose
+const int ROBOT_DELAY_MS = 100;   // your robot's own delay (the Step 6 challenge measures it)
+const int HEAD_START_MS  = 150;   // start jumping this long before the cactus arrives. Tune it!
+
+const bool BEEP_ON_JUMP = true;   // a tiny beep on every jump. false = quiet
+const bool DEBUG_TIMES  = false;  // true = print "SAW" and "PRESS" times to the Serial Monitor
+
+const int MAX_RUN_MINUTES = 30;   // safety stop: the fingers rest after this many minutes
+
+// ====================== PINS ======================
+LiquidCrystal lcd(12, 11, 5, 4, 3, 2);   // RS, E, D4, D5, D6, D7 (same as Chapter 1)
+const int BUZZER_PIN     = 8;            // same as Chapter 1
+const int JUMP_SERVO_PIN = 9;
+const int DUCK_SERVO_PIN = 10;
+const int SAW_LED_PIN    = 13;           // the UNO's own little light: ON while the low eye sees something
+const int LOW_EYE_PIN    = A0;           // cactus height, near the dino
+const int FAR_EYE_PIN    = A1;           // cactus height, farther ahead (Level 3)
+const int HEAD_EYE_PIN   = A2;           // head height, above A1 (Level 4)
+
+// ====================== THE ROBOT ======================
+const unsigned long BRAIN_MS = 2;        // the brain thinks 500 times a second
+const unsigned long LCD_MS   = 200;      // the screen updates 5 times a second, so it never slows the loop
+
+Servo jumpFinger;
+#if LEVEL &gt;= 4
+Servo duckFinger;
+#endif
+
+DinoBrain brain;
+DinoSettings settings;
+
+unsigned long lastBrainAt = 0;
+unsigned long lastLcdAt = 0;
+bool jumpWasDown = false;
+bool duckWasDown = false;
+bool sawWas = false;
+bool napShown = false;
+bool lcdTurn = false;
+int lightNow = 0;
+
+void setup() {
+  settings.level = LEVEL;
+  settings.threshold = THRESHOLD;
+  settings.bigChange = BIG_CHANGE;
+  settings.pressMs = PRESS_MS;
+  settings.cooldownMs = COOLDOWN_MS;
+  settings.sensorGapMm = SENSOR_GAP_MM;
+  settings.eyeToDinoMm = EYE_TO_DINO_MM;
+  settings.headStartMs = HEAD_START_MS;
+  settings.robotDelayMs = ROBOT_DELAY_MS;
+  settings.maxRunMs = (int32_t)MAX_RUN_MINUTES * 60000L;
+  dinoBrainReset(brain);
+
+  pinMode(BUZZER_PIN, OUTPUT);
+  pinMode(SAW_LED_PIN, OUTPUT);
+
+  jumpFinger.write(REST_ANGLE);          // set the angle first, so the finger doesn't twitch
+  jumpFinger.attach(JUMP_SERVO_PIN);
+#if LEVEL &gt;= 4
+  duckFinger.write(DUCK_REST_ANGLE);
+  duckFinger.attach(DUCK_SERVO_PIN);
+#endif
+
+  Serial.begin(115200);
+  lcd.begin(16, 2);
+  lcd.print("Dino Bot Level ");
+  lcd.print(LEVEL);
+  lcd.setCursor(0, 1);
+  lcd.print("Jumps:0   L:");
+}
+
+void loop() {
+  unsigned long now = millis();
+
+  // No delay() anywhere in here: the eyes must never go blind while waiting.
+  if (now - lastBrainAt &gt;= BRAIN_MS) {
+    lastBrainAt = now;
+
+    // SENSE
+    lightNow = analogRead(LOW_EYE_PIN);
+    int farLight = 0;
+    int headLight = 0;
+#if LEVEL &gt;= 3
+    farLight = analogRead(FAR_EYE_PIN);
+#endif
+#if LEVEL &gt;= 4
+    headLight = analogRead(HEAD_EYE_PIN);
+#endif
+
+    // THINK (all of it happens in dino_logic.h)
+    DinoKeys keys = dinoStep(brain, settings, (int32_t)now, lightNow, farLight, headLight);
+
+    // ACT: only talk to a servo when its key changes
+    if (keys.jump != jumpWasDown) {
+      jumpFinger.write(keys.jump ? PRESS_ANGLE : REST_ANGLE);
+      jumpWasDown = keys.jump;
+    }
+#if LEVEL &gt;= 4
+    if (keys.duck != duckWasDown) {
+      duckFinger.write(keys.duck ? DUCK_PRESS_ANGLE : DUCK_REST_ANGLE);
+      duckWasDown = keys.duck;
+    }
+#endif
+    if (keys.jumpStarted &amp;&amp; BEEP_ON_JUMP) tone(BUZZER_PIN, 1200, 20);
+
+    // The little light on the UNO shows the moment the eye sees something.
+    // Film it in slow motion next to the dino to measure your robot's delay.
+    if (keys.lowSees != sawWas) {
+      digitalWrite(SAW_LED_PIN, keys.lowSees ? HIGH : LOW);
+      if (DEBUG_TIMES &amp;&amp; keys.lowSees) { Serial.print("SAW   "); Serial.println(now); }
+      sawWas = keys.lowSees;
+    }
+    if (DEBUG_TIMES &amp;&amp; keys.jumpStarted) { Serial.print("PRESS "); Serial.println(now); }
+  }
+
+  if (now - lastLcdAt &gt;= LCD_MS) {
+    lastLcdAt = now;
+    updateScreen();
+  }
+}
+
+// Only a few characters are written each time, so this takes about a millisecond.
+void updateScreen() {
+  if (brain.stopped) {
+    if (!napShown) {
+      napShown = true;
+      lcd.clear();
+      lcd.print("Nap time! Zzz");
+      lcd.setCursor(0, 1);
+      lcd.print("Press RESET");
+    }
+    return;
+  }
+  lcdTurn = !lcdTurn;
+  if (lcdTurn) {
+    lcd.setCursor(6, 1);                 // after "Jumps:"
+    lcd.print(brain.jumpCount);
+  } else {
+    lcd.setCursor(12, 1);                // after "L:"
+    if (lightNow &lt; 1000) lcd.print(' ');
+    if (lightNow &lt; 100) lcd.print(' ');
+    if (lightNow &lt; 10) lcd.print(' ');
+    lcd.print(lightNow);
+  }
+}</pre>
+  </div>
+  <h3>Tab 2: dino_logic.h (the brain)</h3>
+  <details class="code-fold">
+    <summary>Show the brain's code (long, but worth a read!)</summary>
+    <div class="code-wrap">
+      <button class="copy-btn" data-target="code-logic" type="button">Copy code</button>
+<pre id="code-logic">// Chapter 6: Dino Bot - the robot's brain
+//
+// Every decision the robot makes lives in this file: is that a cactus?
+// how fast is the game? when should the finger press?
+//
+// There are NO Arduino calls in here. The time and the light readings are
+// passed in as plain numbers, so exactly the same code runs
+//   - on the UNO (dino_bot.ino calls dinoStep() over and over),
+//   - on a computer (tests/replay_test.cpp replays recorded light traces),
+//   - in the Dino Lab on the web page (a line-for-line JavaScript copy).
+//
+// Everything is whole-number math (no decimals), so all three get exactly
+// the same answers.
+#ifndef DINO_LOGIC_H
+#define DINO_LOGIC_H
+
+#include &lt;stdint.h&gt;
+
+// ---- Fine tuning (you should not need to change these) ----
+const int32_t DINO_BASE_MS        = 80;    // how quickly "normal light" follows slow changes
+const int32_t DINO_STUCK_MS       = 400;   // "different" for this long = the whole screen changed
+const int32_t DINO_SETTLE_MS      = 150;   // ignore the eye this long after normal moved fast
+const int32_t DINO_RATE_MS        = 50;    // how often to check if normal is moving fast
+const int32_t DINO_TRAP_MIN_MS    = 20;    // speed trap: faster than this is a glitch
+const int32_t DINO_TRAP_MAX_MS    = 1500;  // speed trap: slower than this is a glitch
+const int32_t DINO_SWAP_MS        = 60;    // pause between one finger lifting and the other pressing
+const int32_t DINO_DUCK_MARGIN_MS = 250;  // stay ducked a little longer, to be safe
+const int32_t DINO_DUCK_GUESS_MS  = 500;   // bird travel time when the speed is not known yet
+
+// The settings from the top of dino_bot.ino, bundled together.
+struct DinoSettings {
+  int32_t level;          // 1, 2, 3 or 4
+  int32_t threshold;      // Level 1: light below this = cactus
+  int32_t bigChange;      // Level 2+: this far away from normal = something is there
+  int32_t pressMs;        // how long the finger holds the key
+  int32_t cooldownMs;     // after a jump, ignore the eye for this long
+  int32_t sensorGapMm;    // speed trap: millimeters between eye A1 and eye A0
+  int32_t eyeToDinoMm;    // millimeters from eye A0 to the dino's nose
+  int32_t headStartMs;    // start the jump this long before the cactus arrives
+  int32_t robotDelayMs;   // the robot's own delay (finger travel)
+  int32_t maxRunMs;       // safety stop: no more pressing after this long (0 = never stop)
+};
+
+// One eye's memory.
+struct DinoEye {
+  bool ready;             // has it had its first reading yet?
+  int32_t base256;        // "normal light" times 256 (keeps the fractions without decimals)
+  bool seeing;            // is something different in front of the eye right now?
+  bool counts;            // false = it showed up while normal was moving, so ignore it
+  int32_t seeSince;       // when "seeing" started
+  int32_t refBase256;     // normal light at the last rate check
+  int32_t refAt;          // when the last rate check was
+  int32_t settleUntil;    // ignore the eye until this time
+  int32_t lastMs;         // time of the previous reading
+};
+
+// The whole brain's memory.
+struct DinoBrain {
+  bool started;
+  bool stopped;           // true once the safety stop has kicked in
+  int32_t startMs;
+  DinoEye low;            // A0: cactus height, near the dino
+  DinoEye far;            // A1: cactus height, farther ahead (speed trap)
+  DinoEye head;           // A2: head height (birds)
+  bool lowWas;            // what the low eye said last time (to spot the moment it changes)
+  bool farWas;
+  // the jump finger
+  bool jumpDown;
+  bool jumpPlanned;
+  int32_t jumpAt;         // when the planned press should start
+  int32_t jumpUpAt;       // when to let go
+  int32_t jumpReleasedAt;
+  int32_t lastJumpAt;
+  int32_t jumpCount;
+  // the speed trap
+  bool trapArmed;         // the far eye saw something; waiting for the near eye
+  bool warned;            // a jump was already planned from the far eye
+  int32_t farSeenAt;
+  int32_t trapMs;         // time to cross the gap between the eyes (0 = not measured yet)
+  int32_t predictedArriveAt;  // when the brain thinks the obstacle reaches the dino
+  // the duck finger
+  bool duckDown;
+  bool duckActive;
+  int32_t duckUntil;
+  int32_t duckReleasedAt;
+  int32_t duckCount;
+};
+
+// What the brain wants the fingers to do right now.
+struct DinoKeys {
+  bool jump;              // jump finger down?
+  bool duck;              // duck finger down?
+  bool jumpStarted;       // true only on the step a new jump press begins
+  bool duckStarted;       // true only on the step a new duck press begins
+  bool lowSees;           // the low eye sees something (handy for a debug light)
+};
+
+static inline int32_t dinoAbs(int32_t v) {
+  return v &lt; 0 ? -v : v;
+}
+
+static inline void dinoEyeReset(DinoEye &amp;e) {
+  e.ready = false;
+  e.base256 = 0;
+  e.seeing = false;
+  e.counts = false;
+  e.seeSince = 0;
+  e.refBase256 = 0;
+  e.refAt = 0;
+  e.settleUntil = 0;
+  e.lastMs = 0;
+}
+
+static inline void dinoBrainReset(DinoBrain &amp;b) {
+  b.started = false;
+  b.stopped = false;
+  b.startMs = 0;
+  dinoEyeReset(b.low);
+  dinoEyeReset(b.far);
+  dinoEyeReset(b.head);
+  b.lowWas = false;
+  b.farWas = false;
+  b.jumpDown = false;
+  b.jumpPlanned = false;
+  b.jumpAt = 0;
+  b.jumpUpAt = 0;
+  b.jumpReleasedAt = 0;
+  b.lastJumpAt = 0;
+  b.jumpCount = 0;
+  b.trapArmed = false;
+  b.warned = false;
+  b.farSeenAt = 0;
+  b.trapMs = 0;
+  b.predictedArriveAt = 0;
+  b.duckDown = false;
+  b.duckActive = false;
+  b.duckUntil = 0;
+  b.duckReleasedAt = 0;
+  b.duckCount = 0;
+}
+
+// LEVEL 2 EYE: learn what normal looks like, then notice anything different.
+// Returns true while something is in front of the eye.
+static inline bool dinoEyeUpdate(DinoEye &amp;e, int32_t light, int32_t now, int32_t bigChange) {
+  if (!e.ready) {                       // first reading: this is our first idea of normal
+    e.ready = true;
+    e.base256 = light * 256;
+    e.refBase256 = e.base256;
+    e.refAt = now;
+    e.settleUntil = now;
+    e.lastMs = now;
+    return false;
+  }
+  int32_t dt = now - e.lastMs;
+  e.lastMs = now;
+  int32_t diff = dinoAbs(light - e.base256 / 256);   // how far from normal? (darker OR brighter)
+
+  if (e.seeing) {
+    if (diff * 2 &lt; bigChange) {
+      e.seeing = false;                 // back to normal: it has gone past
+    } else if (now - e.seeSince &gt; DINO_STUCK_MS) {
+      e.base256 = light * 256;          // too long to be a cactus: the whole screen changed,
+      e.seeing = false;                 // so this is the new normal
+      e.settleUntil = now + DINO_SETTLE_MS;
+    }
+  } else if (diff &gt; bigChange) {
+    e.seeing = true;                    // something different just showed up
+    e.seeSince = now;
+    e.counts = now &gt;= e.settleUntil;    // ...but don't trust it if normal was just moving
+  } else {
+    // Nothing there: slide normal a little toward what we see now.
+    // (Normal is frozen while something is passing, so a cactus can't drag it down.)
+    e.base256 += (light * 256 - e.base256) * dt / (DINO_BASE_MS + dt);
+  }
+
+  // Is normal moving fast (the fade between day and night)? Then don't trust the eye for a moment.
+  if (now - e.refAt &gt;= DINO_RATE_MS) {
+    if (dinoAbs(e.base256 - e.refBase256) &gt; bigChange * 64) {
+      e.settleUntil = now + DINO_SETTLE_MS;
+    }
+    e.refBase256 = e.base256;
+    e.refAt = now;
+  }
+  return e.seeing &amp;&amp; e.counts;
+}
+
+// LEVEL 3 SPEED TRAP: if crossing the gap between the eyes took trapMs,
+// how long will it take to travel distanceMm?
+static inline int32_t dinoTravelMs(int32_t trapMs, int32_t distanceMm, int32_t gapMm) {
+  if (gapMm &lt;= 0) return 0;
+  return trapMs * distanceMm / gapMm;
+}
+
+// Ask for a jump press at time "at". If one is already planned, the earlier one wins.
+static inline void dinoPlanJump(DinoBrain &amp;b, int32_t at) {
+  if (!b.jumpPlanned || at &lt; b.jumpAt) {
+    b.jumpPlanned = true;
+    b.jumpAt = at;
+  }
+}
+
+// One tick of the brain: SENSE, THINK, ACT.
+// now = time in milliseconds. a0, a1, a2 = light readings (0 to 1023).
+static inline DinoKeys dinoStep(DinoBrain &amp;b, const DinoSettings &amp;s, int32_t now,
+                                int32_t a0, int32_t a1, int32_t a2) {
+  DinoKeys keys;
+  keys.jump = false;
+  keys.duck = false;
+  keys.jumpStarted = false;
+  keys.duckStarted = false;
+  keys.lowSees = false;
+
+  if (!b.started) {
+    b.started = true;
+    b.startMs = now;
+    b.lastJumpAt = now - 100000;
+    b.jumpReleasedAt = now - 100000;
+    b.duckReleasedAt = now - 100000;
+  }
+
+  // SAFETY STOP: after maxRunMs, lift both fingers and stay off.
+  if (s.maxRunMs &gt; 0 &amp;&amp; now - b.startMs &gt;= s.maxRunMs) {
+    b.stopped = true;
+    b.jumpDown = false;
+    b.duckDown = false;
+    b.jumpPlanned = false;
+    b.duckActive = false;
+    return keys;
+  }
+
+  // ---- 1. SENSE: what do the eyes see? ----
+  bool lowSees = false;
+  bool farSees = false;
+  bool headSees = false;
+  if (s.level &lt;= 1) {
+    lowSees = a0 &lt; s.threshold;                              // Level 1: dark = cactus
+  } else {
+    lowSees = dinoEyeUpdate(b.low, a0, now, s.bigChange);    // Level 2+: different = cactus
+  }
+  if (s.level &gt;= 3) farSees = dinoEyeUpdate(b.far, a1, now, s.bigChange);
+  if (s.level &gt;= 4) headSees = dinoEyeUpdate(b.head, a2, now, s.bigChange);
+  bool lowEdge = lowSees &amp;&amp; !b.lowWas;    // "edge" = the moment it first shows up
+  bool farEdge = farSees &amp;&amp; !b.farWas;
+  b.lowWas = lowSees;
+  b.farWas = farSees;
+  keys.lowSees = lowSees;
+
+  // ---- 2. THINK: should we jump, and when? ----
+  bool cooled = now - b.lastJumpAt &gt;= s.cooldownMs;
+  int32_t early = s.headStartMs + s.robotDelayMs;   // how far ahead of the cactus the press must start
+  if (s.level &lt;= 1) {
+    if (lowSees &amp;&amp; cooled) dinoPlanJump(b, now);    // Level 1: dark? press now!
+  } else if (s.level == 2) {
+    if (lowEdge &amp;&amp; cooled) dinoPlanJump(b, now);    // Level 2: different? press now!
+  } else {
+    // Level 3+: the far eye gives an early warning.
+    if (farEdge) {
+      b.trapArmed = true;                 // start the speed-trap stopwatch
+      b.farSeenAt = now;
+      b.warned = false;
+      if (b.trapMs &gt; 0) {                 // we know the speed from the last cactus: plan ahead
+        b.predictedArriveAt = now + dinoTravelMs(b.trapMs, s.sensorGapMm + s.eyeToDinoMm, s.sensorGapMm);
+        dinoPlanJump(b, b.predictedArriveAt - early);
+        b.warned = true;
+      }
+    }
+    if (b.trapArmed &amp;&amp; now - b.farSeenAt &gt; DINO_TRAP_MAX_MS) {
+      b.trapArmed = false;                // it never reached the near eye: forget it
+      b.warned = false;
+    }
+    if (lowEdge) {
+      if (b.trapArmed) {                  // stop the stopwatch: that is the speed
+        int32_t gapMs = now - b.farSeenAt;
+        if (gapMs &gt;= DINO_TRAP_MIN_MS) b.trapMs = gapMs;
+        b.trapArmed = false;
+      }
+      if (b.trapMs &gt; 0) {
+        int32_t arrive = now + dinoTravelMs(b.trapMs, s.eyeToDinoMm, s.sensorGapMm);
+        if (b.warned) {
+          if (b.jumpPlanned) {            // not pressed yet: fix the plan with the fresh speed
+            b.predictedArriveAt = arrive;
+            b.jumpAt = arrive - early;
+          }
+        } else if (cooled) {              // no early warning: plan from here
+          b.predictedArriveAt = arrive;
+          dinoPlanJump(b, arrive - early);
+        }
+      } else if (cooled) {
+        dinoPlanJump(b, now);             // speed not known yet: just react, like Level 2
+      }
+      b.warned = false;
+    }
+  }
+
+  // ---- 3. ACT: move the fingers (never both at once) ----
+  if (b.jumpDown &amp;&amp; now &gt;= b.jumpUpAt) {  // held long enough: let go
+    b.jumpDown = false;
+    b.jumpReleasedAt = now;
+  }
+  bool jumpDue = b.jumpPlanned &amp;&amp; now &gt;= b.jumpAt;
+  if (jumpDue) {
+    if (b.duckDown) {                     // jumping wins: lift the duck finger first
+      b.duckDown = false;
+      b.duckActive = false;
+      b.duckReleasedAt = now;
+    } else if (!b.jumpDown &amp;&amp; now - b.duckReleasedAt &gt;= DINO_SWAP_MS) {
+      b.jumpDown = true;                  // PRESS!
+      b.jumpUpAt = now + s.pressMs;
+      b.lastJumpAt = now;
+      b.jumpPlanned = false;
+      b.jumpCount++;
+      keys.jumpStarted = true;
+      jumpDue = false;
+    }
+  }
+
+  if (s.level &gt;= 4) {
+    // Level 4: head eye sees something but the low eyes are clear = a middle bird. Duck!
+    if (headSees &amp;&amp; !lowSees &amp;&amp; !farSees) {
+      int32_t pass = DINO_DUCK_GUESS_MS;
+      if (b.trapMs &gt; 0) pass = dinoTravelMs(b.trapMs, s.sensorGapMm + s.eyeToDinoMm, s.sensorGapMm);
+      b.duckActive = true;                // stay down until the bird is past the dino
+      b.duckUntil = now + pass + DINO_DUCK_MARGIN_MS;
+    }
+    if (b.duckActive &amp;&amp; now &gt;= b.duckUntil) b.duckActive = false;
+    if (b.duckDown &amp;&amp; !b.duckActive) {
+      b.duckDown = false;
+      b.duckReleasedAt = now;
+    }
+    if (b.duckActive &amp;&amp; !b.duckDown &amp;&amp; !b.jumpDown &amp;&amp; !jumpDue
+        &amp;&amp; now - b.jumpReleasedAt &gt;= DINO_SWAP_MS) {
+      b.duckDown = true;                  // DUCK!
+      b.duckCount++;
+      keys.duckStarted = true;
+    }
+  }
+
+  keys.jump = b.jumpDown;
+  keys.duck = b.duckDown;
+  return keys;
+}
+
+#endif</pre>
+    </div>
+  </details>
+
+  <h3>Fill in your numbers, then upload</h3>
+  <div class="table-scroll"><table>
+    <tr><th>Setting</th><th>Put in</th></tr>
+    <tr><td class="pin">LEVEL</td><td><b>1</b></td></tr>
+    <tr><td class="pin">REST_ANGLE, PRESS_ANGLE</td><td>Your two numbers from Step 2</td></tr>
+    <tr><td class="pin">THRESHOLD</td><td>Halfway between your <b>white screen</b> number and your <b>bottom of a dip</b> number from Step 3. (White 800, dip 300? Halfway is 550.)</td></tr>
+  </table></div>
+  <ol>
+    <li>Upload. Click on the game so it's listening to the keyboard. Press Space yourself <b>once</b> to start.</li>
+    <li>Hands off! 🎉 <b>The dino plays itself.</b></li>
+    <li>The little screen shows the level, the jump count and the live light number. You'll hear a tiny beep on each jump.</li>
+    <li>When it crashes, write down the score, and ask: <b>why did it crash?</b></li>
+  </ol>
+  <div class="table-scroll"><table>
+    <tr><th>It crashed because…</th><th>Try this</th></tr>
+    <tr><td>It jumped too late</td><td>Move the eye a little farther ahead of the dino</td></tr>
+    <tr><td>It jumped too early and landed on the cactus</td><td>Move the eye a little closer</td></tr>
+    <tr><td>Night mode started</td><td>Nothing yet. That's Step 5!</td></tr>
+    <tr><td>The game got too fast</td><td>Nothing yet. That's Step 6!</td></tr>
+  </table></div>
+  <div class="kid">
+    <strong>🧒 Kid challenge: keep an experiment log</strong>
+    Change <b>one thing at a time</b>: the eye's position, or <code class="inline">PRESS_MS</code> (a longer hold means a higher jump). On paper, make a table with three columns: eye position, hold time, score. Which combination wins? That's a real experiment log.
+  </div>
+  <div class="tip">
+    <strong>💡 Parent tip</strong>
+    Too quiet or too noisy? Set <code class="inline">BEEP_ON_JUMP</code> to <code class="inline">false</code> to switch the beeps off. The little light on the UNO (marked L) glows whenever the eye sees something, which is handy for checking the eye without the plotter.
+  </div>
+  <div class="win">🏆 Win: the dino jumps cacti by itself. Write your Level 1 high score on the scoreboard in Step 8. End of Sunday 1!</div>
+</section>
+
+<!-- ============ STEP 5 ============ -->
+<section class="card step" id="step5" style="--c:var(--s5)">
+  <div class="step-head">
+    <div class="step-title">
+      <span class="step-emoji" aria-hidden="true">🌗</span>
+      <div>
+        <span class="step-num">Step 5</span>
+        <h2>Level 2: night vision</h2>
+        <span class="time">⏱ About 20 minutes · no new parts</span>
+      </div>
+    </div>
+    <label class="done-label"><input type="checkbox" class="done-box" data-step="5"> Done</label>
+  </div>
+  <p><b>The problem:</b> at night the screen flips. The background goes dark, so Level 1 thinks "cactus!" forever and jumps non-stop. (You saw it in the Dino Lab.)</p>
+  <p><b>The fix:</b> instead of "jump when it's dark", the robot <b>learns what normal looks like</b> and jumps when something is <b>different</b>. By day a cactus makes the light drop. At night it makes the light rise. Either way it isn't normal.</p>
+  <ul>
+    <li>The robot keeps a slowly-moving idea of <b>normal light</b>. It freezes that idea while a cactus is passing.</li>
+    <li>A <b>big change in either direction</b> means: something is there.</li>
+    <li>While the screen is fading between day and night, normal is moving fast, so the robot ignores the eye for a moment.</li>
+  </ul>
+  <h3>Upgrade the brain: change one number</h3>
+  <div class="level-line">#define LEVEL <mark>2</mark></div>
+  <p>Also set <code class="inline">BIG_CHANGE</code> to about <b>half the depth of a cactus dip</b>. (White 800, dip 300? The dip is 500 deep, so try 250. Small cacti missed? Go lower.) Upload and play until night falls, at about 700 points.</p>
+  <div class="kid">
+    <strong>🧒 Your eyes do this too</strong>
+    Walk into a dark room and at first you can't see a thing. A minute later you can. Your eyes re-learned what "normal" is. That's exactly what Level 2 does, just a thousand times faster.
+  </div>
+  <div class="win">🏆 Win: the screen goes dark and the dino keeps jumping at the right moments.</div>
+</section>
+
+<!-- ============ STEP 6 ============ -->
+<section class="card step" id="step6" style="--c:var(--s6); --on:#3b2500">
+  <div class="step-head">
+    <div class="step-title">
+      <span class="step-emoji" aria-hidden="true">⚡</span>
+      <div>
+        <span class="step-num">Step 6</span>
+        <h2>Level 3: speed trap</h2>
+        <span class="time">⏱ About 30 minutes · the second photoresistor</span>
+      </div>
+    </div>
+    <label class="done-label"><input type="checkbox" class="done-box" data-step="6"> Done</label>
+  </div>
+  <p><b>The problem:</b> as the game speeds up, cacti reach the dino sooner. But the finger always needs the same time to press. So the jump comes too late.</p>
+  <p><b>The fix:</b> a second eye, farther ahead. When a cactus passes eye 2 and then eye 1, the time between them tells the robot the <b>speed</b>, just like a police speed trap or the timing gates in a race. Now it can <b>predict</b> when the cactus will arrive and press early.</p>
+  <figure class="diagram">
+    <svg viewBox="0 0 640 230" role="img" aria-label="Two eyes on the screen at cactus height. The gap between them is SENSOR_GAP_MM. The distance from the near eye to the dino's nose is EYE_TO_DINO_MM.">
+      <rect x="10" y="10" width="620" height="150" rx="10" fill="#f4f1ea" stroke="#1f2340" stroke-width="3"/>
+      <g class="ink">
+        <rect x="24" y="130" width="592" height="2"/>
+        <g class="dino"><rect x="58" y="99" width="22" height="21"/><rect x="70" y="83" width="22" height="17"/><rect x="52" y="105" width="8" height="7"/><rect x="61" y="120" width="6" height="10"/><rect x="72" y="120" width="6" height="10"/></g>
+        <rect x="539" y="80" width="9" height="50"/><rect x="530" y="95" width="5" height="15"/><rect x="530" y="107" width="11" height="4"/><rect x="551" y="88" width="5" height="16"/><rect x="546" y="101" width="10" height="4"/>
+      </g>
+      <path d="M522,70 H470" fill="none" stroke="#3d4152" stroke-width="2"/><path d="M470,70 l9,-5 v10 z" fill="#3d4152"/>
+      <circle cx="220" cy="108" r="11" fill="#fff" stroke="#2563eb" stroke-width="4"/><text x="220" y="86" text-anchor="middle" class="lbl" style="fill:#2563eb">A0</text>
+      <circle cx="400" cy="108" r="11" fill="#fff" stroke="#ea580c" stroke-width="4"/><text x="400" y="86" text-anchor="middle" class="lbl" style="fill:#c2410c">A1</text>
+      <g stroke="#1f2340" stroke-width="2" fill="none"><path d="M92,180 H220 M92,172 v16 M220,172 v16"/><path d="M220,206 H400 M220,198 v16 M400,198 v16"/></g>
+      <text x="100" y="174" class="sm mono" style="font-weight:700">EYE_TO_DINO_MM</text>
+      <text x="250" y="224" class="sm mono" style="font-weight:700">SENSOR_GAP_MM</text>
+      <text x="420" y="200" class="sm">time from A1 to A0 = the speed</text>
+    </svg>
+    <figcaption>Measure both distances on your real screen with a ruler, in millimeters, from the middle of each eye.</figcaption>
+  </figure>
+  <ol>
+    <li>Wire the second photoresistor exactly like the first (Step 3), but its row goes to <span class="pin">A1</span>.</li>
+    <li>Give it blinkers and tape it at the <b>same height</b> as eye A0, about <b>4 to 5 cm farther ahead</b>.</li>
+    <li>Run <code class="inline">light_check</code> again: on the plotter, each cactus should dip <b>A1 first, then A0</b>.</li>
+    <li>Measure with a ruler and fill in <code class="inline">SENSOR_GAP_MM</code> and <code class="inline">EYE_TO_DINO_MM</code>.</li>
+  </ol>
+  <div class="level-line">#define LEVEL <mark>3</mark></div>
+  <p>Upload and watch. Tune <code class="inline">HEAD_START_MS</code>: jumping too late? Make it bigger. Landing on cacti? Make it smaller.</p>
+  <div class="kid">
+    <strong>🧒 Kid challenge: measure your robot's own delay</strong>
+    The little light on the UNO (marked <b>L</b>) glows the instant the eye sees a cactus. Put the UNO next to the screen and film both with a phone in <b>slow motion</b> (240 frames a second). Count the frames from "light on" to "dino starts to rise". Each frame is about 4 ms. That number is your robot's <b>latency</b>. Put it in <code class="inline">ROBOT_DELAY_MS</code>. (Set <code class="inline">DEBUG_TIMES</code> to <code class="inline">true</code> to also print the SAW and PRESS times in the Serial Monitor at 115200 baud.)
+  </div>
+  <div class="tip">
+    <strong>💡 Why there is no delay() in this code</strong>
+    In Chapter 1, <code class="inline">delay()</code> made the robot wait. Here, waiting would mean the eyes go blind while the next cactus sneaks up. So the brain looks at the clock (<code class="inline">millis()</code>) 500 times a second and asks "is it time to press yet?"
+  </div>
+  <details class="parent">
+    <summary>👨‍👩‍👦 Grown-up corner: reacting vs predicting</summary>
+    <p>Level 1 is a purely <b>reactive</b> controller: see, then act. Level 3 adds <b>feed-forward prediction</b>: it measures how fast the input is moving and acts ahead of time to cancel out a known actuator delay. It's the same idea as leading a moving target, or a thermostat that starts heating before you get home.</p>
+    <p>One honest detail: when the game is fast, the press has to start before the cactus even reaches eye A0. So the robot uses the speed it measured from the <b>previous</b> cactus (the speed changes slowly), then double-checks with the fresh measurement if there's still time.</p>
+  </details>
+  <div class="win">🏆 Win: the game speeds up and the robot keeps its timing. New high score?</div>
+</section>
+
+<!-- ============ STEP 7 ============ -->
+<section class="card step" id="step7" style="--c:var(--s7)">
+  <div class="step-head">
+    <div class="step-title">
+      <span class="step-emoji" aria-hidden="true">🐦</span>
+      <div>
+        <span class="step-num">Step 7</span>
+        <h2>Boss level: the birds</h2>
+        <span class="time">⏱ About 30 minutes · 1 more eye + 1 more servo</span>
+      </div>
+    </div>
+    <label class="done-label"><input type="checkbox" class="done-box" data-step="7"> Done</label>
+  </div>
+  <p>Birds fly at three heights, and each one needs a different move. That takes a third eye at <b>head height</b> and a second finger over the <b>↓</b> key.</p>
+  <figure class="diagram">
+    <svg viewBox="0 0 640 250" role="img" aria-label="Three bird heights. A low bird crosses the low eyes: jump. A middle bird crosses only the head eye: duck. A high bird passes above every eye: do nothing.">
+      <defs><g id="birdshape"><rect x="10" y="9" width="28" height="8"/><path d="M0,13 l12,-7 v11 z"/><path d="M16,10 h14 l-2,-12 z"/></g></defs>
+      <rect x="10" y="10" width="620" height="200" rx="10" fill="#f4f1ea" stroke="#1f2340" stroke-width="3"/>
+      <line x1="24" y1="126" x2="372" y2="126" stroke="#7c3aed" stroke-width="2" stroke-dasharray="6 6"/>
+      <line x1="24" y1="166" x2="372" y2="166" stroke="#2563eb" stroke-width="2" stroke-dasharray="6 6"/>
+      <g class="ink">
+        <rect x="24" y="186" width="592" height="2"/>
+        <g class="dino"><rect x="58" y="155" width="22" height="21"/><rect x="70" y="139" width="22" height="17"/><rect x="52" y="161" width="8" height="7"/><rect x="61" y="176" width="6" height="10"/><rect x="72" y="176" width="6" height="10"/></g>
+        <use href="#birdshape" x="380" y="24"/><use href="#birdshape" x="380" y="110"/><use href="#birdshape" x="380" y="152"/>
+      </g>
+      <circle cx="170" cy="166" r="10" fill="#fff" stroke="#2563eb" stroke-width="4"/><text x="170" y="204" text-anchor="middle" class="sm" style="fill:#2563eb;font-weight:700">A0</text>
+      <circle cx="290" cy="166" r="10" fill="#fff" stroke="#ea580c" stroke-width="4"/><text x="290" y="204" text-anchor="middle" class="sm" style="fill:#c2410c;font-weight:700">A1</text>
+      <circle cx="290" cy="126" r="10" fill="#fff" stroke="#7c3aed" stroke-width="4"/><text x="290" y="108" text-anchor="middle" class="sm" style="fill:#6d28d9;font-weight:700">A2 (new)</text>
+      <g class="lbl"><text x="440" y="42">high: do NOTHING</text><text x="440" y="128">middle: DUCK</text><text x="440" y="170">low: JUMP</text></g>
+      <text x="24" y="236" class="sm">Purple line = head height (eye A2). Blue line = cactus height (eyes A0 and A1). A high bird crosses neither line.</text>
+    </svg>
+  </figure>
+  <h3>Set it up</h3>
+  <ol>
+    <li><b>Head eye:</b> wire the third photoresistor like the others, to <span class="pin">A2</span>. Tape it <b>straight above eye A1</b>, at the height of the dino's head. (Ducking early costs nothing, so the far spot gives the finger more time.)</li>
+    <li><b>Duck finger:</b> the second servo's orange wire goes to pin <span class="pin">10</span>. Red and brown go to the <b>servo rails</b>, same as the first.</li>
+    <li>Run <code class="inline">servo_calibrate</code> again and type <code class="inline">d</code> to move the duck finger. Find its REST and PRESS over the <b>↓</b> key and copy them into <code class="inline">DUCK_REST_ANGLE</code> and <code class="inline">DUCK_PRESS_ANGLE</code>.</li>
+  </ol>
+  <div class="level-line">#define LEVEL <mark>4</mark></div>
+  <h3>The Level 4 brain</h3>
+  <div class="table-scroll"><table>
+    <tr><th>Low eyes (A0, A1)</th><th>Head eye (A2)</th><th>The robot does</th></tr>
+    <tr><td>see something</td><td>anything</td><td><b>Jump</b> (a cactus or a low bird)</td></tr>
+    <tr><td>clear</td><td>sees something</td><td><b>Duck</b>, and stay down until the bird has passed (a middle bird)</td></tr>
+    <tr><td>clear</td><td>clear</td><td><b>Nothing</b> (that includes high birds, which fly above both eyes)</td></tr>
+  </table></div>
+  <p>The two fingers never press at the same time. If both want to, <b>jumping wins</b>, and the duck finger lifts first.</p>
+  <div class="kid">
+    <strong>🧒 Kid challenge: draw it</strong>
+    Why must the robot <b>not</b> jump at a high bird? Draw the dino's jump as a curve and put the high bird on the picture. Where do they meet?
+  </div>
+  <div class="tip">
+    <strong>💡 No extra parts yet?</strong>
+    The kit has only 2 photoresistors and 1 servo, so this step needs one more of each. Until they arrive, beat the boss in the <a href="#lab">Dino Lab</a>: pick Level 4 and earn the bird mission. That counts for the badge.
+  </div>
+  <div class="win">🏆 Win: the robot jumps a low bird, ducks a middle bird and ignores a high one.</div>
+</section>
+
+<!-- ============ STEP 8 ============ -->
+<section class="card step" id="step8" style="--c:var(--s8)">
+  <div class="step-head">
+    <div class="step-title">
+      <span class="step-emoji" aria-hidden="true">🏁</span>
+      <div>
+        <span class="step-num">Step 8</span>
+        <h2>Human vs robot</h2>
+        <span class="time">⏱ About 15 minutes · the family tournament</span>
+      </div>
+    </div>
+    <label class="done-label"><input type="checkbox" class="done-box" data-step="8"> Done</label>
+  </div>
+  <p>Everybody gets three tries on the real game. Then the robot gets three tries at each level. Type the best scores here (they're saved on this device).</p>
+  <div class="table-scroll"><table class="scores">
+    <tr><th>Player</th><th>Best score</th><th>Player</th><th>Best score</th></tr>
+    <tr><td>🧒 Kid 1</td><td><input class="score-in" type="text" inputmode="numeric" maxlength="6" aria-label="Kid 1 best score"></td><td>🤖 Robot Level 1</td><td><input class="score-in" type="text" inputmode="numeric" maxlength="6" aria-label="Robot Level 1 best score"></td></tr>
+    <tr><td>🧒 Kid 2</td><td><input class="score-in" type="text" inputmode="numeric" maxlength="6" aria-label="Kid 2 best score"></td><td>🤖 Robot Level 2</td><td><input class="score-in" type="text" inputmode="numeric" maxlength="6" aria-label="Robot Level 2 best score"></td></tr>
+    <tr><td>🧑 Parent</td><td><input class="score-in" type="text" inputmode="numeric" maxlength="6" aria-label="Parent best score"></td><td>🤖 Robot Level 3</td><td><input class="score-in" type="text" inputmode="numeric" maxlength="6" aria-label="Robot Level 3 best score"></td></tr>
+    <tr><td></td><td></td><td>🤖 Robot Level 4</td><td><input class="score-in" type="text" inputmode="numeric" maxlength="6" aria-label="Robot Level 4 best score"></td></tr>
+  </table></div>
+  <h3>Talk about it</h3>
+  <ul>
+    <li>Is the robot <b>cheating</b>? It only sees and presses, like a human.</li>
+    <li>Then why does it beat us? (No blinking, never tired, perfect timing.)</li>
+    <li>Where else do robots press buttons for people? (Factories use machines that tap phone screens thousands of times to test them.)</li>
+  </ul>
+  <h3>Make it yours</h3>
+  <ul>
+    <li><b>Victory beep:</b> the robot can't read the score, so count jumps instead. In <code class="inline">loop()</code>, right after the <code class="inline">BEEP_ON_JUMP</code> line, add: <code class="inline">if (keys.jumpStarted &amp;&amp; brain.jumpCount % 25 == 0) tone(BUZZER_PIN, 1568, 150);</code></li>
+    <li><b>Your own words:</b> in <code class="inline">setup()</code>, change <code class="inline">"Dino Bot Level "</code> to your robot's name. Keep it 15 characters, so the level number still fits.</li>
+  </ul>
+  <div class="tip">
+    <strong>💡 Why the robot takes a nap</strong>
+    After 30 minutes the fingers stop and the screen says "Nap time!" (<code class="inline">MAX_RUN_MINUTES</code>). Servos and keyboards wear out, and a robot shouldn't press keys forever with nobody watching. Press the UNO's RESET button to wake it up.
+  </div>
+  <div class="win">🏆 Win: a filled-in scoreboard, and a family argument about whether robots are allowed to win.</div>
+  <div class="celebrate" id="celebrate">
+    <span class="trophy" aria-hidden="true">🏆</span>
+    <b>Certified Dino Bot Engineers!</b>
+    You built a robot that uses a computer like a person: it sees, it thinks, it presses. And you beat latency. Nice work, team!
+  </div>
+</section>
+
+<!-- ============ PIN MAP ============ -->
+<section class="card">
+  <h2><span aria-hidden="true">🗺️</span> Pin map</h2>
+  <div class="table-scroll"><table>
+    <tr><th>UNO pin</th><th>Goes to</th></tr>
+    <tr><td class="pin">12, 11, 5, 4, 3, 2</td><td>The screen (Chapter 1)</td></tr>
+    <tr><td class="pin">8</td><td>Buzzer (Chapter 1)</td></tr>
+    <tr><td class="pin">9</td><td>Jump servo, orange wire (Step 2)</td></tr>
+    <tr><td class="pin">10</td><td>Duck servo, orange wire (Step 7)</td></tr>
+    <tr><td class="pin">13</td><td>Nothing to wire: the UNO's own "L" light shows when the eye sees something</td></tr>
+    <tr><td class="pin">A0</td><td>Low eye: cactus height, near the dino (Step 3)</td></tr>
+    <tr><td class="pin">A1</td><td>Speed-trap eye: same height, farther ahead (Step 6)</td></tr>
+    <tr><td class="pin">A2</td><td>Head eye: above A1 (Step 7)</td></tr>
+    <tr><td class="pin">GND</td><td>Shared with the power module's GND</td></tr>
+  </table></div>
+  <p>Servo red wires go to the <b>power module's 5 V</b>, never to the UNO's 5 V.</p>
+  <p class="time">Can the servos and the buzzer work at the same time? Yes. Inside the UNO, the Servo library keeps time with Timer1 and <code class="inline">tone()</code> uses Timer2, so they don't get in each other's way.</p>
+</section>
+
+<!-- ============ HONEST TESTING ============ -->
+<section class="card">
+  <h2><span aria-hidden="true">🔬</span> What we tested, and what only you can test</h2>
+  <p><b>Tested on a computer:</b> the brain's rules were run against pretend light recordings: a calm day, a night flip, the game speeding up, and birds at every height. All three sketches compile for the UNO, at every level from 1 to 4. The Dino Lab uses a copy of the same rules, and we checked the two give identical answers.</p>
+  <p><b>Not tested:</b> a real screen, a real servo, a real light sensor. Screens differ, so nobody can promise you a score. That part is your job:</p>
+  <ul class="ticks">
+    <li><label><input type="checkbox" class="check-box"><span>Level 1 jumps the first cacti</span></label></li>
+    <li><label><input type="checkbox" class="check-box"><span>Level 2 makes it through the first night</span></label></li>
+    <li><label><input type="checkbox" class="check-box"><span>Level 3 keeps its timing after the speed-up</span></label></li>
+    <li><label><input type="checkbox" class="check-box"><span>Level 4 handles a bird of each height</span></label></li>
+  </ul>
+  <p class="time">Something not working like the lab said? That's not failure, that's data. Real engineers call it "the difference between the simulation and the real world", and finding it is the job.</p>
+</section>
+
+<!-- ============ TROUBLESHOOTING ============ -->
+<section class="card">
+  <h2><span aria-hidden="true">🕵️</span> Troubleshooting</h2>
+  <p>Detective time. Tap a problem to see what to check.</p>
+  <details>
+    <summary>The finger taps but the dino doesn't jump</summary>
+    <p>Click on the game first, so the keyboard is "talking" to that window. Then check the finger really pushes the key all the way down: make <code class="inline">PRESS_ANGLE</code> a few degrees deeper, or make <code class="inline">PRESS_MS</code> a little longer.</p>
+  </details>
+  <details>
+    <summary>The servo twitches, buzzes, or the UNO keeps restarting</summary>
+    <p>The servo is thirsty. Check its red wire goes to the <b>servo rails</b> (power module), the module's light is on, and the <b>shared ground</b> wire is in. A tired 9 V battery causes this too: try the kit's wall adapter.</p>
+  </details>
+  <details>
+    <summary>The servo doesn't move at all</summary>
+    <p>Orange wire to pin 9? Module switched on with its jumper on 5V? Brown wire to the module's − rail?</p>
+  </details>
+  <details>
+    <summary>The Serial Plotter shows garbage or nothing</summary>
+    <p><code class="inline">light_check</code> talks at <b>115200 baud</b>. Pick 115200 in the plotter's corner. (<code class="inline">servo_calibrate</code> uses 9600.)</p>
+  </details>
+  <details>
+    <summary>The line doesn't dip when a cactus passes</summary>
+    <p>Is the eye at cactus height? Zoom the game in more (⌘ +) so cacti are wider than the sensor. Screen brightness to max. Check the blinkers: room light leaking in hides the dip. Then check the wiring: photoresistor to the + rail, the meeting row to A0, the resistor to the − rail.</p>
+  </details>
+  <details>
+    <summary>The number is stuck at 0 or 1023</summary>
+    <p>Stuck at 0: the photoresistor isn't reaching the + rail. Stuck at 1023: the resistor isn't reaching the − rail, or the two photoresistor legs are touching.</p>
+  </details>
+  <details>
+    <summary>The dino jumps non-stop</summary>
+    <p>On Level 1: the threshold is too high, or night mode started, or the room got darker. On Level 2 and up: <code class="inline">BIG_CHANGE</code> is too small, so tiny wobbles count as a cactus. Make it bigger.</p>
+  </details>
+  <details>
+    <summary>The dino never jumps</summary>
+    <p>On Level 1: the threshold is too low. On Level 2 and up: <code class="inline">BIG_CHANGE</code> is too big. Watch the little "L" light on the UNO: it should blink for every cactus. If it doesn't, go back to <code class="inline">light_check</code>.</p>
+  </details>
+  <details>
+    <summary>It worked, then got worse a few minutes later</summary>
+    <p>Did the screen dim by itself? Turn off auto-brightness, True Tone, Night Shift and the screen saver. Did someone open the curtains? Level 1 hates that. Level 2 and up shrug it off.</p>
+  </details>
+  <details>
+    <summary>Level 3 jumps at strange times</summary>
+    <p>On the plotter, a cactus must dip <b>A1 first</b>, then A0. If it's the other way round, the two eyes are swapped. Then re-measure <code class="inline">SENSOR_GAP_MM</code> and <code class="inline">EYE_TO_DINO_MM</code> with a ruler.</p>
+  </details>
+  <details>
+    <summary>Error: "dino_logic.h: No such file or directory"</summary>
+    <p>The second tab is missing or misnamed. It must be called exactly <code class="inline">dino_logic.h</code> and live in the same sketch as <code class="inline">dino_bot</code> (Step 4).</p>
+  </details>
+  <details>
+    <summary>The screen says "Nap time!"</summary>
+    <p>That's the 30-minute safety stop. Press the RESET button on the UNO.</p>
+  </details>
+  <details>
+    <summary>The little screen is blank or shows boxes</summary>
+    <p>Nothing about the screen changed from Chapter 1, so a wire was probably bumped. Recheck RS → 12, E → 11, D4 → 5, D5 → 4, D6 → 3, D7 → 2, and turn the knob slowly.</p>
+  </details>
+</section>
+
+<!-- ============ GROWN-UP CORNER ============ -->
+<section class="card">
+  <h2><span aria-hidden="true">👨‍👩‍👦</span> Grown-up corner</h2>
+  <details class="parent">
+    <summary>Why this is a serious engineering lesson</summary>
+    <div class="table-scroll"><table>
+      <tr><th>In this chapter</th><th>In the real world</th></tr>
+      <tr><td>A robot presses keys on a computer it can't control from inside</td><td>Device-testing robots that tap phone screens; UI automation bots that click through apps</td></tr>
+      <tr><td>Eye → brain → finger delay</td><td>The latency budget in any control loop</td></tr>
+      <tr><td>Level 2's adaptive baseline</td><td>Auto-calibration and drift handling in sensors</td></tr>
+      <tr><td>Level 3's speed trap</td><td>Feed-forward control: predict instead of only react</td></tr>
+      <tr><td>Record traces, replay them in tests</td><td>Fixtures and record/replay integration tests</td></tr>
+      <tr><td><code class="inline">MAX_RUN_MINUTES</code></td><td>A watchdog or kill switch for unattended automation</td></tr>
+      <tr><td>Flaky readings when the room light changes</td><td>Flaky tests caused by uncontrolled environments</td></tr>
+    </table></div>
+    <p><b>Level-up idea:</b> an Arduino <b>Leonardo</b> or <b>Pro Micro</b> can pretend to be a USB keyboard and "press" keys electronically, with no servo at all. The UNO can't. Is that version more fun or less? (We think the servo is the fun part.)</p>
+  </details>
+  <details class="parent">
+    <summary>Run the brain's tests on your computer (record once, test forever)</summary>
+    <p>The brain (<code class="inline">dino_logic.h</code>) has no Arduino code in it, so it also compiles on a Mac. In the repo's <code class="inline">chapter-6-code/tests</code> folder, in Terminal:</p>
+    <p><code class="inline">c++ -std=c++11 -o /tmp/replay_test replay_test.cpp &amp;&amp; /tmp/replay_test</code></p>
+    <p>It replays four pretend light recordings from <code class="inline">traces/</code> and checks every key press. Files: <a href="chapter-6-code/tests/replay_test.cpp">replay_test.cpp</a>, <a href="chapter-6-code/tests/make_traces.py">make_traces.py</a>, <a href="chapter-6-code/record_trace.py">record_trace.py</a>.</p>
+    <p><b>Your own screen:</b> with <code class="inline">light_check</code> on the UNO and the plotter closed, <code class="inline">record_trace.py</code> saves the live readings to a CSV (setup notes are at the top of the file). Then <code class="inline">/tmp/replay_test --replay tests/traces/my_screen.csv</code> shows what each level would have done with it, with no game and no servo. Change a setting, replay, compare.</p>
+    <p><b>Honest limits:</b> the four built-in recordings are synthetic. They come from a simple model of a screen, not from a real one, and the Dino Lab is our own pretend game. Real photoresistors react more slowly than the model assumes, and how the game looks on your screen is something only Step 3 can measure.</p>
+  </details>
+</section>
+
+<!-- ============ ROUND 2 ============ -->
+<section class="card">
+  <h2><span aria-hidden="true">✨</span> Round 2 ideas</h2>
+  <p>Once the Dino Bot plays, here's where to take it next:</p>
+  <ul class="ideas">
+    <li style="--k:var(--s1)"><span class="big" aria-hidden="true">📼</span><b>Record your screen:</b> save real light readings with <code class="inline">record_trace.py</code> and replay them through every brain level.</li>
+    <li style="--k:var(--s2)"><span class="big" aria-hidden="true">🎵</span><b>Victory tunes:</b> a different tune at 25, 50 and 100 jumps, using your Tune Maker notes from Chapter 1.</li>
+    <li style="--k:var(--s5)"><span class="big" aria-hidden="true">😎</span><b>Show-off screen:</b> make the little screen say "ARE YOU WATCHING?" after 50 jumps in a row.</li>
+    <li style="--k:var(--s3)"><span class="big" aria-hidden="true">🕹️</span><b>Another game:</b> can the same eye and finger play a different one-button game? What would you have to change?</li>
+  </ul>
+</section>
+
+</div>
+
+<script>
+  var STORAGE_KEY = "dinoBotDone";
+  var PARTS_KEY = "dinoBotParts";
+  var boxes = document.querySelectorAll(".done-box");
+  var partBoxes = document.querySelectorAll(".part-box");
+  var barFill = document.getElementById("bar-fill");
+  var progressLabel = document.getElementById("progress-label");
+  var celebrate = document.getElementById("celebrate");
+  var reducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function loadState(key) {
+    try { return JSON.parse(localStorage.getItem(key) || "{}"); }
+    catch (e) { return {}; }
+  }
+  function saveState(key, state) {
+    try { localStorage.setItem(key, JSON.stringify(state)); }
+    catch (e) { /* storage not available, that's fine */ }
+  }
+
+  var state = loadState(STORAGE_KEY);
+  var partState = loadState(PARTS_KEY);
+
+  function updateProgress() {
+    var done = 0;
+    boxes.forEach(function (box) {
+      var card = box.closest(".step");
+      card.classList.toggle("is-done", box.checked);
+      var stop = document.querySelector('.stop[data-stop="' + box.dataset.step + '"]');
+      if (stop) stop.classList.toggle("is-done", box.checked);
+      if (box.checked) done++;
+    });
+    barFill.style.width = (done / boxes.length * 100) + "%";
+    progressLabel.textContent = done + " of " + boxes.length + " steps done";
+    celebrate.classList.toggle("show", done === boxes.length);
+    return done;
+  }
+
+  function confetti() {
+    if (reducedMotion) return;
+    var colors = ["#2563eb", "#ea580c", "#7c3aed", "#db2777", "#16a34a", "#f59e0b", "#0e7490", "#dc2626"];
+    for (var i = 0; i < 80; i++) {
+      var bit = document.createElement("i");
+      bit.className = "confetti";
+      bit.style.left = (Math.random() * 100) + "vw";
+      bit.style.background = colors[i % colors.length];
+      bit.style.animationDuration = (2 + Math.random() * 2) + "s";
+      bit.style.animationDelay = (Math.random() * 0.8) + "s";
+      document.body.appendChild(bit);
+      setTimeout(function (el) { el.remove(); }, 5200, bit);
+    }
+  }
+
+  boxes.forEach(function (box) {
+    box.checked = !!state[box.dataset.step];
+    box.addEventListener("change", function () {
+      state[box.dataset.step] = box.checked;
+      saveState(STORAGE_KEY, state);
+      if (updateProgress() === boxes.length && box.checked) confetti();
+    });
+  });
+
+  partBoxes.forEach(function (box, i) {
+    box.checked = !!partState[i];
+    box.addEventListener("change", function () {
+      partState[i] = box.checked;
+      saveState(PARTS_KEY, partState);
+    });
+  });
+
+  document.getElementById("reset-btn").addEventListener("click", function () {
+    state = {};
+    partState = {};
+    saveState(STORAGE_KEY, state);
+    saveState(PARTS_KEY, partState);
+    boxes.forEach(function (box) { box.checked = false; });
+    partBoxes.forEach(function (box) { box.checked = false; });
+    updateProgress();
+  });
+
+  updateProgress();
+
+  /* Copy buttons */
+  function fallbackCopy(text) {
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand("copy"); } catch (e) {}
+    document.body.removeChild(ta);
+  }
+  function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text).catch(function () { fallbackCopy(text); });
+    }
+    fallbackCopy(text);
+    return Promise.resolve();
+  }
+  document.querySelectorAll(".copy-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var code = document.getElementById(btn.dataset.target).textContent;
+      copyText(code).then(function () {
+        btn.textContent = "Copied!";
+        setTimeout(function () { btn.textContent = "Copy code"; }, 1500);
+      });
+    });
+  });
+
+  /* DINO-LOGIC-START
+     The robot's brain: a line-for-line JavaScript copy of
+     chapter-6-code/dino_bot/dino_logic.h. Same names, same order, same
+     whole-number math, so the Dino Lab and the real UNO make the same choices. */
+  var DINO_BASE_MS = 80;
+  var DINO_STUCK_MS = 400;
+  var DINO_SETTLE_MS = 150;
+  var DINO_RATE_MS = 50;
+  var DINO_TRAP_MIN_MS = 20;
+  var DINO_TRAP_MAX_MS = 1500;
+  var DINO_SWAP_MS = 60;
+  var DINO_DUCK_MARGIN_MS = 250;
+  var DINO_DUCK_GUESS_MS = 500;
+
+  function dinoDiv(a, b) { return (a / b) | 0; }   // whole-number division, the way C++ does it
+  function dinoAbs(v) { return v < 0 ? -v : v; }
+
+  function dinoNewEye() {
+    return { ready: false, base256: 0, seeing: false, counts: false, seeSince: 0,
+             refBase256: 0, refAt: 0, settleUntil: 0, lastMs: 0 };
+  }
+  function dinoNewBrain() {
+    return {
+      started: false, stopped: false, startMs: 0,
+      low: dinoNewEye(), far: dinoNewEye(), head: dinoNewEye(),
+      lowWas: false, farWas: false,
+      jumpDown: false, jumpPlanned: false, jumpAt: 0, jumpUpAt: 0, jumpReleasedAt: 0, lastJumpAt: 0, jumpCount: 0,
+      trapArmed: false, warned: false, farSeenAt: 0, trapMs: 0, predictedArriveAt: 0,
+      duckDown: false, duckActive: false, duckUntil: 0, duckReleasedAt: 0, duckCount: 0
+    };
+  }
+
+  // LEVEL 2 EYE: learn what normal looks like, then notice anything different.
+  function dinoEyeUpdate(e, light, now, bigChange) {
+    if (!e.ready) {
+      e.ready = true;
+      e.base256 = light * 256;
+      e.refBase256 = e.base256;
+      e.refAt = now;
+      e.settleUntil = now;
+      e.lastMs = now;
+      return false;
+    }
+    var dt = now - e.lastMs;
+    e.lastMs = now;
+    var diff = dinoAbs(light - dinoDiv(e.base256, 256));
+
+    if (e.seeing) {
+      if (diff * 2 < bigChange) {
+        e.seeing = false;
+      } else if (now - e.seeSince > DINO_STUCK_MS) {
+        e.base256 = light * 256;
+        e.seeing = false;
+        e.settleUntil = now + DINO_SETTLE_MS;
+      }
+    } else if (diff > bigChange) {
+      e.seeing = true;
+      e.seeSince = now;
+      e.counts = now >= e.settleUntil;
+    } else {
+      e.base256 += dinoDiv((light * 256 - e.base256) * dt, DINO_BASE_MS + dt);
+    }
+
+    if (now - e.refAt >= DINO_RATE_MS) {
+      if (dinoAbs(e.base256 - e.refBase256) > bigChange * 64) {
+        e.settleUntil = now + DINO_SETTLE_MS;
+      }
+      e.refBase256 = e.base256;
+      e.refAt = now;
+    }
+    return e.seeing && e.counts;
+  }
+
+  // LEVEL 3 SPEED TRAP
+  function dinoTravelMs(trapMs, distanceMm, gapMm) {
+    if (gapMm <= 0) return 0;
+    return dinoDiv(trapMs * distanceMm, gapMm);
+  }
+
+  function dinoPlanJump(b, at) {
+    if (!b.jumpPlanned || at < b.jumpAt) {
+      b.jumpPlanned = true;
+      b.jumpAt = at;
+    }
+  }
+
+  // One tick of the brain: SENSE, THINK, ACT.
+  function dinoStep(b, s, now, a0, a1, a2) {
+    var keys = { jump: false, duck: false, jumpStarted: false, duckStarted: false, lowSees: false };
+
+    if (!b.started) {
+      b.started = true;
+      b.startMs = now;
+      b.lastJumpAt = now - 100000;
+      b.jumpReleasedAt = now - 100000;
+      b.duckReleasedAt = now - 100000;
+    }
+
+    if (s.maxRunMs > 0 && now - b.startMs >= s.maxRunMs) {
+      b.stopped = true;
+      b.jumpDown = false;
+      b.duckDown = false;
+      b.jumpPlanned = false;
+      b.duckActive = false;
+      return keys;
+    }
+
+    // ---- 1. SENSE ----
+    var lowSees = false;
+    var farSees = false;
+    var headSees = false;
+    if (s.level <= 1) {
+      lowSees = a0 < s.threshold;
+    } else {
+      lowSees = dinoEyeUpdate(b.low, a0, now, s.bigChange);
+    }
+    if (s.level >= 3) farSees = dinoEyeUpdate(b.far, a1, now, s.bigChange);
+    if (s.level >= 4) headSees = dinoEyeUpdate(b.head, a2, now, s.bigChange);
+    var lowEdge = lowSees && !b.lowWas;
+    var farEdge = farSees && !b.farWas;
+    b.lowWas = lowSees;
+    b.farWas = farSees;
+    keys.lowSees = lowSees;
+
+    // ---- 2. THINK ----
+    var cooled = now - b.lastJumpAt >= s.cooldownMs;
+    var early = s.headStartMs + s.robotDelayMs;
+    if (s.level <= 1) {
+      if (lowSees && cooled) dinoPlanJump(b, now);
+    } else if (s.level === 2) {
+      if (lowEdge && cooled) dinoPlanJump(b, now);
+    } else {
+      if (farEdge) {
+        b.trapArmed = true;
+        b.farSeenAt = now;
+        b.warned = false;
+        if (b.trapMs > 0) {
+          b.predictedArriveAt = now + dinoTravelMs(b.trapMs, s.sensorGapMm + s.eyeToDinoMm, s.sensorGapMm);
+          dinoPlanJump(b, b.predictedArriveAt - early);
+          b.warned = true;
+        }
+      }
+      if (b.trapArmed && now - b.farSeenAt > DINO_TRAP_MAX_MS) {
+        b.trapArmed = false;
+        b.warned = false;
+      }
+      if (lowEdge) {
+        if (b.trapArmed) {
+          var gapMs = now - b.farSeenAt;
+          if (gapMs >= DINO_TRAP_MIN_MS) b.trapMs = gapMs;
+          b.trapArmed = false;
+        }
+        if (b.trapMs > 0) {
+          var arrive = now + dinoTravelMs(b.trapMs, s.eyeToDinoMm, s.sensorGapMm);
+          if (b.warned) {
+            if (b.jumpPlanned) {
+              b.predictedArriveAt = arrive;
+              b.jumpAt = arrive - early;
+            }
+          } else if (cooled) {
+            b.predictedArriveAt = arrive;
+            dinoPlanJump(b, arrive - early);
+          }
+        } else if (cooled) {
+          dinoPlanJump(b, now);
+        }
+        b.warned = false;
+      }
+    }
+
+    // ---- 3. ACT ----
+    if (b.jumpDown && now >= b.jumpUpAt) {
+      b.jumpDown = false;
+      b.jumpReleasedAt = now;
+    }
+    var jumpDue = b.jumpPlanned && now >= b.jumpAt;
+    if (jumpDue) {
+      if (b.duckDown) {
+        b.duckDown = false;
+        b.duckActive = false;
+        b.duckReleasedAt = now;
+      } else if (!b.jumpDown && now - b.duckReleasedAt >= DINO_SWAP_MS) {
+        b.jumpDown = true;
+        b.jumpUpAt = now + s.pressMs;
+        b.lastJumpAt = now;
+        b.jumpPlanned = false;
+        b.jumpCount++;
+        keys.jumpStarted = true;
+        jumpDue = false;
+      }
+    }
+
+    if (s.level >= 4) {
+      if (headSees && !lowSees && !farSees) {
+        var pass = DINO_DUCK_GUESS_MS;
+        if (b.trapMs > 0) pass = dinoTravelMs(b.trapMs, s.sensorGapMm + s.eyeToDinoMm, s.sensorGapMm);
+        b.duckActive = true;
+        b.duckUntil = now + pass + DINO_DUCK_MARGIN_MS;
+      }
+      if (b.duckActive && now >= b.duckUntil) b.duckActive = false;
+      if (b.duckDown && !b.duckActive) {
+        b.duckDown = false;
+        b.duckReleasedAt = now;
+      }
+      if (b.duckActive && !b.duckDown && !b.jumpDown && !jumpDue &&
+          now - b.jumpReleasedAt >= DINO_SWAP_MS) {
+        b.duckDown = true;
+        b.duckCount++;
+        keys.duckStarted = true;
+      }
+    }
+
+    keys.jump = b.jumpDown;
+    keys.duck = b.duckDown;
+    return keys;
+  }
+  /* DINO-LOGIC-END */
+
+  /* DINO-SIM-START
+     The pretend game. This is our own simple game, not Chrome's: the shapes,
+     sizes and jump are made up. Only the facts from "Know your enemy" are
+     borrowed (speed 6 to 13, night at 700 points, birds from speed 8.5). */
+  var LAB = {
+    STEP_MS: 5,            // the pretend world moves in 5 ms ticks
+    PX_PER_MM: 2,          // pretend zoom: 2 game pixels for each millimeter of screen
+    W: 600,
+    DINO_X: 30, DINO_W: 40, DINO_H: 47, DUCK_H: 26,
+    JUMP_V: 620, GRAVITY: 2000,
+    EYE_W: 10, LOW_EYE_Y: 20, HEAD_EYE_Y: 50, GAP_MM: 50,
+    LAG_MS: 15, NOISE: 5,
+    DAY_BG: 820, DAY_OBJ: 260, NIGHT_BG: 140, NIGHT_OBJ: 640,
+    FADE_MS: 800, NIGHT_EVERY: 700, NIGHT_LASTS_MS: 12000,
+    START_SPEED: 6, MAX_SPEED: 13, SPEED_UP_PER_S: 0.03, BIRD_SPEED: 8.5,
+    SCORE_PER_PX: 0.05,
+    PRESS_MS: 80, COOLDOWN_MS: 300, HEAD_START_MS: 150,
+    BIRD_Y: [6, 38, 78], BIRD_W: 42, BIRD_H: 24
+  };
+
+  function labNewGame(opts) {
+    var g = {
+      opts: opts,              // level (0 = a human plays), threshold, bigChange, eyeMm, delayMs
+      t: 0, speed: LAB.START_SPEED, dist: 0, score: 0,
+      night: 0, nightTarget: 0, wantNight: false, nightBlock: 0, nightEndsAt: -1, holdSpawn: false,
+      obstacles: [], nextSpawnAt: 1200,
+      dino: { y: 0, vy: 0, air: false, ducking: false },
+      keyJump: false, keyDuck: false, keyJumpWas: false, wantJump: false, wantDuck: false, queue: [],
+      brain: dinoNewBrain(),
+      raw: [LAB.DAY_BG, LAB.DAY_BG, LAB.DAY_BG], light: [LAB.DAY_BG, LAB.DAY_BG, LAB.DAY_BG],
+      seed: opts.seed || 12345, noiseSeed: 777,
+      lastJump: null, landedAt: -10000, sees: false,
+      over: false, cause: "", jumps: 0,
+      nightsSurvived: 0, birdsDodged: [0, 0, 0], passed: 0
+    };
+    return g;
+  }
+
+  function labSettings(g) {
+    return {
+      level: g.opts.level, threshold: g.opts.threshold, bigChange: g.opts.bigChange,
+      pressMs: LAB.PRESS_MS, cooldownMs: LAB.COOLDOWN_MS,
+      sensorGapMm: LAB.GAP_MM, eyeToDinoMm: g.opts.eyeMm,
+      headStartMs: LAB.HEAD_START_MS, robotDelayMs: g.opts.delayMs, maxRunMs: 0
+    };
+  }
+
+  function labRand(g) {          // our own dice, so a game can be replayed exactly
+    g.seed = (g.seed * 1103515245 + 12345) % 2147483648;
+    return g.seed / 2147483648;
+  }
+  function labNoise(g) {
+    g.noiseSeed = (g.noiseSeed * 1103515245 + 12345) % 2147483648;
+    return (g.noiseSeed / 2147483648 * 2 - 1) * LAB.NOISE;
+  }
+
+  function labLowEyeX(g) { return LAB.DINO_X + LAB.DINO_W + g.opts.eyeMm * LAB.PX_PER_MM; }
+  function labFarEyeX(g) { return labLowEyeX(g) + LAB.GAP_MM * LAB.PX_PER_MM; }
+
+  function labSpawn(g) {
+    var o;
+    if (g.speed >= LAB.BIRD_SPEED && labRand(g) < 0.4) {
+      var row = Math.floor(labRand(g) * 3);
+      o = { kind: "bird", row: row, x: LAB.W + 20, w: LAB.BIRD_W, y: LAB.BIRD_Y[row], h: LAB.BIRD_H, done: false };
+    } else if (labRand(g) < 0.55) {
+      var n = 1 + Math.floor(labRand(g) * 3);
+      o = { kind: "cactus", row: -1, x: LAB.W + 20, w: 17 * n, y: 0, h: 35, n: n, done: false };
+    } else {
+      var m = 1 + Math.floor(labRand(g) * (g.speed >= 8 ? 3 : 2));
+      o = { kind: "cactus", row: -1, x: LAB.W + 20, w: 25 * m, y: 0, h: 48, n: m, done: false };
+    }
+    g.obstacles.push(o);
+  }
+
+  // How much of an eye (0 to 1) is covered by something at its height?
+  function labCovered(g, eyeX, eyeY) {
+    var most = 0;
+    for (var i = 0; i < g.obstacles.length; i++) {
+      var o = g.obstacles[i];
+      if (eyeY < o.y || eyeY > o.y + o.h) continue;
+      var overlap = Math.min(o.x + o.w, eyeX + LAB.EYE_W / 2) - Math.max(o.x, eyeX - LAB.EYE_W / 2);
+      var part = Math.max(0, Math.min(1, overlap / LAB.EYE_W));
+      if (part > most) most = part;
+    }
+    return most;
+  }
+
+  function labCrash(g, o) {
+    var d = g.dino;
+    var cause;
+    var confused = g.lastJump && !g.lastJump.justified && (d.air || g.t - g.landedAt < 400);
+    // Level 1 is also confused whenever the empty background already counts as "dark"
+    var bg = LAB.DAY_BG + (LAB.NIGHT_BG - LAB.DAY_BG) * g.night;
+    if (g.opts.level === 1 && bg < g.opts.threshold) confused = true;
+    if (o.kind === "bird" && o.row === 1 && !d.air) cause = "bird-mid";
+    else if (confused) cause = g.night > 0.5 ? "night" : "false";
+    else if (o.kind === "bird" && o.row === 2) cause = "bird-high";
+    else if (d.air) cause = d.vy > 0 ? "late" : "early";
+    else if (g.wantJump || g.queue.length > 0) cause = "late";
+    else if (g.lastJump && g.t - g.lastJump.t < 1200) cause = "early";
+    else cause = "blind";
+    g.over = true;
+    g.cause = cause;
+  }
+
+  // Move the pretend world forward one tick. "human" is only used when a person plays.
+  function labStep(g, human) {
+    if (g.over) return;
+    var dt = LAB.STEP_MS;
+    var i;
+    g.t += dt;
+
+    // the game speeds up, and the score counts up
+    g.speed = Math.min(LAB.MAX_SPEED, g.speed + LAB.SPEED_UP_PER_S * dt / 1000);
+    var dx = g.speed * 60 * dt / 1000;
+    g.dist += dx;
+    g.score = Math.floor(g.dist * LAB.SCORE_PER_PX);
+
+    // night mode: every 700 points, for a while
+    var block = Math.floor(g.score / LAB.NIGHT_EVERY);
+    if (block > g.nightBlock) { g.nightBlock = block; g.wantNight = true; g.nightEndsAt = -1; }
+    if (g.wantNight && g.night === 1 && g.nightEndsAt > 0 && g.t >= g.nightEndsAt) g.wantNight = false;
+    var target = g.wantNight ? 1 : 0;
+    if (target !== g.nightTarget) {
+      g.holdSpawn = true;            // wait for a clear road, then flip
+      var clear = true;
+      for (i = 0; i < g.obstacles.length; i++) if (g.obstacles[i].x + g.obstacles[i].w > LAB.DINO_X) clear = false;
+      if (clear) g.nightTarget = target;
+    }
+    if (g.night !== g.nightTarget) {
+      var fade = dt / LAB.FADE_MS;
+      g.night = g.nightTarget > g.night ? Math.min(1, g.night + fade) : Math.max(0, g.night - fade);
+      if (g.night === g.nightTarget) {
+        if (g.night === 1) g.nightEndsAt = g.t + LAB.NIGHT_LASTS_MS;
+        else g.nightsSurvived++;
+        g.holdSpawn = false;
+        g.nextSpawnAt = g.t + 400;
+      }
+    }
+
+    // obstacles slide left
+    for (i = g.obstacles.length - 1; i >= 0; i--) {
+      var o = g.obstacles[i];
+      o.x -= dx;
+      if (!o.done && o.x + o.w < LAB.DINO_X) {
+        o.done = true;
+        g.passed++;
+        if (o.kind === "bird") g.birdsDodged[o.row]++;
+      }
+      if (o.x + o.w < -20) g.obstacles.splice(i, 1);
+    }
+    if (!g.holdSpawn && g.night === g.nightTarget && g.t >= g.nextSpawnAt) {
+      labSpawn(g);
+      g.nextSpawnAt = g.t + 900 + labRand(g) * 800;
+    }
+
+    // SENSE: what would the three light sensors read?
+    var bg = LAB.DAY_BG + (LAB.NIGHT_BG - LAB.DAY_BG) * g.night;
+    var obj = LAB.DAY_OBJ + (LAB.NIGHT_OBJ - LAB.DAY_OBJ) * g.night;
+    var lowX = labLowEyeX(g), farX = labFarEyeX(g);
+    var eyes = [[lowX, LAB.LOW_EYE_Y], [farX, LAB.LOW_EYE_Y], [farX, LAB.HEAD_EYE_Y]];
+    for (i = 0; i < 3; i++) {
+      var want = bg + (obj - bg) * labCovered(g, eyes[i][0], eyes[i][1]);
+      g.raw[i] += (want - g.raw[i]) * dt / (LAB.LAG_MS + dt);
+      g.light[i] = Math.max(0, Math.min(1023, Math.round(g.raw[i] + labNoise(g))));
+    }
+
+    // THINK: the robot's brain (the same rules as dino_logic.h)
+    if (g.opts.level > 0) {
+      var keys = dinoStep(g.brain, labSettings(g), g.t, g.light[0], g.light[1], g.light[2]);
+      g.sees = keys.lowSees;
+      // ACT: the fingers take a moment to get there (the robot's delay)
+      if (keys.jump !== g.wantJump) { g.wantJump = keys.jump; g.queue.push({ at: g.t + g.opts.delayMs, key: "jump", down: keys.jump }); }
+      if (keys.duck !== g.wantDuck) { g.wantDuck = keys.duck; g.queue.push({ at: g.t + g.opts.delayMs, key: "duck", down: keys.duck }); }
+      while (g.queue.length && g.queue[0].at <= g.t) {
+        var ev = g.queue.shift();
+        if (ev.key === "jump") g.keyJump = ev.down; else g.keyDuck = ev.down;
+      }
+    } else {
+      g.keyJump = !!(human && human.jump);
+      g.keyDuck = !!(human && human.duck);
+    }
+
+    // the dino
+    var d = g.dino;
+    if (g.keyJump && !g.keyJumpWas && !d.air) {
+      d.air = true;
+      d.vy = LAB.JUMP_V;
+      g.jumps++;
+      var justified = g.opts.level === 0;
+      var reach = (g.opts.level >= 3 ? farX : lowX) + 40;
+      for (i = 0; i < g.obstacles.length; i++) {
+        if (g.obstacles[i].x < reach && g.obstacles[i].x + g.obstacles[i].w > LAB.DINO_X) justified = true;
+      }
+      g.lastJump = { t: g.t, justified: justified };
+    }
+    g.keyJumpWas = g.keyJump;
+    if (d.air) {
+      d.y += d.vy * dt / 1000;
+      d.vy -= LAB.GRAVITY * dt / 1000;
+      if (d.y <= 0) { d.y = 0; d.vy = 0; d.air = false; g.landedAt = g.t; }
+    }
+    d.ducking = g.keyDuck && !d.air;
+
+    // crash?
+    var top = d.y + (d.ducking ? LAB.DUCK_H : LAB.DINO_H) - 3;
+    for (i = 0; i < g.obstacles.length; i++) {
+      var ob = g.obstacles[i];
+      if (ob.x + 3 < LAB.DINO_X + LAB.DINO_W - 5 && ob.x + ob.w - 3 > LAB.DINO_X + 5 &&
+          ob.y + 2 < top && ob.y + ob.h - 3 > d.y) {
+        labCrash(g, ob);
+        return;
+      }
+    }
+  }
+  /* DINO-SIM-END */
+
+  /* ---------- Extra checklists and the scoreboard (saved like the step checkmarks) ---------- */
+  var LCD_COLS = 16;
+  var CHECKS_KEY = "dinoBotChecks";
+  var SCORES_KEY = "dinoBotScores";
+  var checkBoxes = document.querySelectorAll(".check-box");
+  var scoreInputs = document.querySelectorAll(".score-in");
+  var checkState = loadState(CHECKS_KEY);
+  var scoreState = loadState(SCORES_KEY);
+  checkBoxes.forEach(function (box, i) {
+    box.checked = !!checkState[i];
+    box.addEventListener("change", function () {
+      checkState[i] = box.checked;
+      saveState(CHECKS_KEY, checkState);
+    });
+  });
+  scoreInputs.forEach(function (input, i) {
+    input.value = scoreState[i] || "";
+    input.addEventListener("input", function () {
+      scoreState[i] = input.value.slice(0, 12);
+      saveState(SCORES_KEY, scoreState);
+    });
+  });
+  document.getElementById("reset-btn").addEventListener("click", function () {
+    checkState = {};
+    saveState(CHECKS_KEY, checkState);
+    checkBoxes.forEach(function (box) { box.checked = false; });
+  });
+
+  /* ---------- How it works: be the eye ---------- */
+  var senseSlider = document.getElementById("sense-slider");
+  var senseNight = false;
+  var SENSE_EYE_X = 200, SENSE_EYE_W = 14, SENSE_CACTUS_W = 26, SENSE_THRESHOLD = 540;
+  function updateSense() {
+    var x = Number(senseSlider.value);
+    var overlap = Math.min(x + SENSE_CACTUS_W, SENSE_EYE_X + SENSE_EYE_W / 2) - Math.max(x, SENSE_EYE_X - SENSE_EYE_W / 2);
+    var covered = Math.max(0, Math.min(1, overlap / SENSE_EYE_W));
+    var bg = senseNight ? LAB.NIGHT_BG : LAB.DAY_BG;
+    var obj = senseNight ? LAB.NIGHT_OBJ : LAB.DAY_OBJ;
+    var light = Math.round(bg + (obj - bg) * covered);
+    var dark = light < SENSE_THRESHOLD;
+    document.getElementById("sense-cactus").setAttribute("transform", "translate(" + x + ",0)");
+    document.getElementById("sense-light").textContent = light;
+    document.getElementById("sense-says").textContent = dark ? "CACTUS!" : "all clear";
+    document.getElementById("sense-finger").textContent = dark ? "PRESS!" : "resting";
+    document.getElementById("sense-arm").setAttribute("transform", dark ? "translate(0,9)" : "translate(0,0)");
+    document.getElementById("sense-key").setAttribute("fill", dark ? "#f59e0b" : "#e5e7eb");
+    document.getElementById("sense-ring").setAttribute("fill", dark ? "#2563eb" : "#ffffff");
+    var note = "Rule: if the light number is below " + SENSE_THRESHOLD + ", press.";
+    if (senseNight && covered === 0) note = "Uh-oh. There is no cactus, but the dark screen reads " + light + ", so the robot shouts CACTUS! all night. Level 2 fixes this.";
+    else if (senseNight) note = "At night the cactus is BRIGHTER than the background. Everything is upside down!";
+    document.getElementById("sense-note").textContent = note;
+  }
+  senseSlider.addEventListener("input", updateSense);
+  document.getElementById("sense-flip").addEventListener("click", function () {
+    senseNight = !senseNight;
+    this.textContent = senseNight ? "☀️ Back to day" : "🌗 Flip to night mode";
+    document.getElementById("sense-screen").setAttribute("fill", senseNight ? "#1c1f33" : "#f4f1ea");
+    document.getElementById("sense-svg").setAttribute("class", senseNight ? "is-night" : "");
+    updateSense();
+  });
+  updateSense();
+
+  /* ---------- Dino Lab ---------- */
+  var LAB_KEY = "dinoBotLab";
+  var labSaved = loadState(LAB_KEY);            // { best: {level: score}, missions: {id: true} }
+  if (!labSaved.best) labSaved.best = {};
+  if (!labSaved.missions) labSaved.missions = {};
+
+  var LAB_LEVELS = [
+    { level: 1, name: "Level 1", small: "dark = jump", k: "var(--s4)", brain: "🧠 Level 1 brain: if the light is BELOW the threshold, press. Then ignore the eye for a moment (the cooldown) so one cactus means one jump." },
+    { level: 2, name: "Level 2", small: "night vision", k: "var(--s5)", brain: "🧠 Level 2 brain: learn what NORMAL light looks like (the blue band on the graph), then press when the light is very different from normal, darker OR brighter." },
+    { level: 3, name: "Level 3", small: "speed trap", k: "#b45309", brain: "🧠 Level 3 brain: a second eye (A1) farther ahead times each cactus between the two eyes, like a police speed trap. Now the robot can press early enough, even when the game is fast." },
+    { level: 4, name: "Level 4", small: "birds", k: "var(--s7)", brain: "🧠 Level 4 brain: a third eye (A2) at head height plus a duck finger. Low eye sees it: jump. Only the head eye sees it: duck. Nobody sees it: do nothing." },
+    { level: 0, name: "🧒 You", small: "human player", k: "var(--s8)", brain: "🧒 No robot! You are the eye, the brain and the finger. Space bar or the Jump button to jump, down arrow or the Duck button to duck." }
+  ];
+  var LAB_CAUSES = {
+    "late": "⏱ Too late! The cactus got there before the dino was high enough.",
+    "early": "⏱ Too early! The dino came down on top of it.",
+    "night": "🌗 Night mode got it! The whole screen went dark, so Level 1 saw one giant cactus and jumped non-stop.",
+    "false": "👻 False alarm! The eye is jumping at nothing, so the dino was in the wrong place.",
+    "blind": "🙈 The eye never saw it coming.",
+    "bird-mid": "🐦 Bird! A middle bird hits a standing dino. It needed a DUCK.",
+    "bird-high": "🐦 Bird! The dino jumped up into a high bird. It should have done nothing."
+  };
+  var LAB_MISSIONS = [
+    { id: "night", text: "Watch Level 1 crash because of night mode" },
+    { id: "l2", text: "Level 2 survives a whole night" },
+    { id: "l3", text: "Level 3 keeps up all the way to speed 8.5, where the birds live" },
+    { id: "l4", text: "Level 4 beats a low bird, a middle bird AND a high bird" },
+    { id: "you", text: "Play it yourself and score 300 or more" }
+  ];
+
+  var labOpts = { level: 1, threshold: 540, bigChange: 120, eyeMm: 45, delayMs: 120, seed: 1 };
+  var labGame = labNewGame(labOpts);
+  var labHuman = { jump: false, duck: false };
+  var labRunning = false, labFast = false, labLast = 0, labAcc = 0, labRaf = 0, labBeaten = false;
+  var LAB_HIST = 600;                           // 600 ticks of 5 ms = the last 3 seconds
+  var labHist = [];
+
+  var labCanvas = document.getElementById("lab-game");
+  var labGraph = document.getElementById("lab-graph");
+  var labStatus = document.getElementById("lab-status");
+  var labStartBtn = document.getElementById("lab-start");
+  var labLcd = document.getElementById("lab-lcd");
+  var labThr = document.getElementById("lab-thr");
+  var labEye = document.getElementById("lab-eye");
+  var labDelay = document.getElementById("lab-delay");
+  var GAME_W = 600, GAME_H = 200, GROUND_Y = 162, GRAPH_H = 150;
+  for (var lc = 0; lc < LCD_COLS * 2; lc++) labLcd.appendChild(document.createElement("span"));
+
+  function labSave() { saveState(LAB_KEY, labSaved); }
+  function labLevelInfo(level) {
+    for (var i = 0; i < LAB_LEVELS.length; i++) if (LAB_LEVELS[i].level === level) return LAB_LEVELS[i];
+    return LAB_LEVELS[0];
+  }
+  function labMix(a, b, t) {                    // blend two colors (for the day/night fade)
+    return "rgb(" + Math.round(a[0] + (b[0] - a[0]) * t) + "," + Math.round(a[1] + (b[1] - a[1]) * t) + "," + Math.round(a[2] + (b[2] - a[2]) * t) + ")";
+  }
+  function labSetup(canvas, w, h) {             // sharp drawing on high-resolution screens
+    var ratio = Math.min(2, window.devicePixelRatio || 1);
+    if (canvas.width !== w * ratio) { canvas.width = w * ratio; canvas.height = h * ratio; }
+    var ctx = canvas.getContext("2d");
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    return ctx;
+  }
+
+  /* our own hand-made dino, cactus and bird: just rectangles and triangles */
+  function labDrawDino(ctx, g, ink, paper) {
+    var d = g.dino, x = LAB.DINO_X;
+    var step = d.air ? 0 : Math.floor(g.dist / 14) % 2;
+    if (d.ducking) {
+      var ty = GROUND_Y - LAB.DUCK_H;
+      ctx.fillStyle = ink;
+      ctx.fillRect(x, ty + 8, 30, 12);
+      ctx.fillRect(x + 24, ty + 4, 20, 13);
+      ctx.fillRect(x - 6, ty + 8, 8, 5);
+      ctx.fillRect(x + 6, ty + 20, 5, step ? 6 : 3);
+      ctx.fillRect(x + 18, ty + 20, 5, step ? 3 : 6);
+      ctx.fillStyle = paper;
+      ctx.fillRect(x + 36, ty + 7, 4, 4);
+      return;
+    }
+    var top = GROUND_Y - d.y - LAB.DINO_H;
+    ctx.fillStyle = ink;
+    ctx.fillRect(x + 6, top + 16, 22, 21);        // body
+    ctx.fillRect(x + 18, top, 22, 17);            // head
+    ctx.fillRect(x, top + 22, 8, 7);              // tail
+    ctx.fillRect(x - 5, top + 18, 7, 6);
+    ctx.fillRect(x + 28, top + 23, 7, 3);         // arm
+    ctx.beginPath();                              // spikes down the back
+    ctx.moveTo(x + 6, top + 22); ctx.lineTo(x + 10, top + 10); ctx.lineTo(x + 14, top + 18);
+    ctx.lineTo(x + 18, top + 6); ctx.lineTo(x + 20, top + 16); ctx.closePath(); ctx.fill();
+    ctx.fillRect(x + 9, top + 37, 6, step ? 10 : 6);    // legs
+    ctx.fillRect(x + 20, top + 37, 6, step ? 6 : 10);
+    ctx.fillStyle = paper;
+    ctx.fillRect(x + 31, top + 4, 4, 4);          // eye
+    ctx.fillRect(x + 30, top + 12, 10, 2);        // smile
+  }
+  function labDrawObstacle(ctx, o, g, ink) {
+    ctx.fillStyle = ink;
+    if (o.kind === "cactus") {
+      var each = o.w / o.n;
+      for (var i = 0; i < o.n; i++) {
+        var cx = o.x + i * each, base = GROUND_Y;
+        ctx.fillRect(cx + each * 0.32, base - o.h, each * 0.36, o.h);
+        ctx.fillRect(cx + 1, base - o.h * 0.7, each * 0.2, o.h * 0.3);
+        ctx.fillRect(cx + 1, base - o.h * 0.45, each * 0.4, 4);
+        ctx.fillRect(cx + each * 0.8 - 1, base - o.h * 0.85, each * 0.2, o.h * 0.32);
+        ctx.fillRect(cx + each * 0.6, base - o.h * 0.57, each * 0.38, 4);
+      }
+    } else {
+      var by = GROUND_Y - o.y - o.h;
+      var flap = Math.floor(g.t / 160) % 2;
+      ctx.fillRect(o.x + 10, by + 9, 28, 8);
+      ctx.beginPath();
+      ctx.moveTo(o.x, by + 13); ctx.lineTo(o.x + 12, by + 6); ctx.lineTo(o.x + 12, by + 17); ctx.closePath(); ctx.fill();
+      ctx.beginPath();
+      if (flap) { ctx.moveTo(o.x + 16, by + 10); ctx.lineTo(o.x + 30, by + 10); ctx.lineTo(o.x + 28, by - 2); }
+      else { ctx.moveTo(o.x + 16, by + 16); ctx.lineTo(o.x + 30, by + 16); ctx.lineTo(o.x + 28, by + o.h + 2); }
+      ctx.closePath(); ctx.fill();
+    }
+  }
+  function labDrawEye(ctx, x, eyeY, color, label, on, used) {
+    var y = GROUND_Y - eyeY;
+    ctx.globalAlpha = used ? 1 : 0.25;
+    ctx.beginPath(); ctx.arc(x, y, 7, 0, Math.PI * 2);
+    ctx.fillStyle = on ? color : "#ffffff"; ctx.fill();
+    ctx.lineWidth = 3; ctx.strokeStyle = color; ctx.stroke();
+    ctx.fillStyle = color; ctx.font = "bold 13px ui-monospace, Menlo, monospace"; ctx.textAlign = "center";
+    ctx.fillText(label, x, y - 12);
+    ctx.globalAlpha = 1;
+  }
+  function labDrawKey(ctx, x, w, label, down, color) {
+    var y = 174 + (down ? 3 : 0);
+    ctx.fillStyle = "#1f2340"; ctx.fillRect(x, 180, w, 18);
+    ctx.fillStyle = down ? color : "#e5e7eb"; ctx.fillRect(x, y, w, 18);
+    ctx.fillStyle = "#1f2340"; ctx.font = "bold 12px ui-monospace, Menlo, monospace"; ctx.textAlign = "center";
+    ctx.fillText(label, x + w / 2, y + 14);
+  }
+  function labDraw() {
+    var g = labGame, i;
+    var ctx = labSetup(labCanvas, GAME_W, GAME_H);
+    var paper = labMix([244, 241, 234], [28, 31, 51], g.night);
+    var ink = labMix([61, 65, 82], [232, 230, 223], g.night);
+    ctx.fillStyle = paper; ctx.fillRect(0, 0, GAME_W, GAME_H);
+    ctx.fillStyle = ink; ctx.fillRect(0, GROUND_Y, GAME_W, 2);
+    for (i = 0; i < 8; i++) {                     // pebbles, so you can see the ground moving
+      var px = ((i * 83 - g.dist) % 664 + 664) % 664 - 32;
+      ctx.fillRect(px, GROUND_Y + 5 + (i % 3) * 2, 6 + (i % 2) * 6, 2);
+    }
+    for (i = 0; i < g.obstacles.length; i++) labDrawObstacle(ctx, g.obstacles[i], g, ink);
+    labDrawDino(ctx, g, labMix([15, 138, 106], [94, 234, 212], g.night), paper);
+    if (g.opts.level > 0) {
+      var e = g.brain, level = g.opts.level;
+      var lowOn = level === 1 ? g.sees : e.low.seeing;
+      labDrawEye(ctx, labLowEyeX(g), LAB.LOW_EYE_Y, "#2563eb", "A0", lowOn, true);
+      labDrawEye(ctx, labFarEyeX(g), LAB.LOW_EYE_Y, "#ea580c", "A1", e.far.seeing, level >= 3);
+      labDrawEye(ctx, labFarEyeX(g), LAB.HEAD_EYE_Y, "#7c3aed", "A2", e.head.seeing, level >= 4);
+    }
+    if (g.over) {
+      ctx.strokeStyle = "#dc2626"; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.arc(LAB.DINO_X + 24, GROUND_Y - g.dino.y - 22, 34, 0, Math.PI * 2); ctx.stroke();
+    }
+    // the keyboard under the game: these keys go down when the finger actually arrives
+    ctx.fillStyle = "#cbd5e1"; ctx.fillRect(0, 170, GAME_W, 30);
+    labDrawKey(ctx, 14, 96, "SPACE", g.keyJump, "#f59e0b");
+    labDrawKey(ctx, 118, 30, "↓", g.keyDuck, "#22d3ee");
+    ctx.fillStyle = "#1f2340"; ctx.textAlign = "left"; ctx.font = "bold 13px -apple-system, Helvetica, Arial, sans-serif";
+    ctx.fillText(g.opts.level > 0 ? "← the robot's fingers press these" : "← your keys", 158, 189);
+  }
+  function labDrawGraph() {
+    var g = labGame, i, k;
+    var ctx = labSetup(labGraph, GAME_W, GRAPH_H);
+    function gy(v) { return GRAPH_H - 12 - v / 1023 * (GRAPH_H - 24); }
+    ctx.fillStyle = "#fffdf6"; ctx.fillRect(0, 0, GAME_W, GRAPH_H);
+    ctx.font = "11px ui-monospace, Menlo, monospace"; ctx.textAlign = "left";
+    for (i = 0; i <= 1000; i += 250) {
+      ctx.fillStyle = "#e7dcc6"; ctx.fillRect(0, gy(i), GAME_W, 1);
+      ctx.fillStyle = "#8a8fa8"; ctx.fillText(String(i), 4, gy(i) - 2);
+    }
+    var level = g.opts.level;
+    if (level === 1) {
+      ctx.strokeStyle = "#dc2626"; ctx.lineWidth = 2; ctx.setLineDash([8, 6]);
+      ctx.beginPath(); ctx.moveTo(0, gy(g.opts.threshold)); ctx.lineTo(GAME_W, gy(g.opts.threshold)); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = "#dc2626"; ctx.font = "bold 13px -apple-system, Helvetica, Arial, sans-serif"; ctx.textAlign = "right";
+      ctx.fillText("threshold " + g.opts.threshold + ": below this line = jump", GAME_W - 6, gy(g.opts.threshold) - 5);
+    } else if (level >= 2 && g.brain.low.ready) {
+      var normal = g.brain.low.base256 / 256;
+      ctx.fillStyle = "rgba(37,99,235,0.16)";
+      ctx.fillRect(0, gy(normal + g.opts.bigChange), GAME_W, gy(normal - g.opts.bigChange) - gy(normal + g.opts.bigChange));
+      ctx.fillStyle = "#2563eb"; ctx.font = "bold 13px -apple-system, Helvetica, Arial, sans-serif"; ctx.textAlign = "right";
+      ctx.fillText("blue band = normal light. Outside the band = jump", GAME_W - 6, 14);
+    }
+    var colors = ["#2563eb", "#ea580c", "#7c3aed"];
+    var used = [level >= 1, level >= 3, level >= 4];
+    for (k = 2; k >= 0; k--) {
+      if (level === 0) continue;
+      ctx.strokeStyle = colors[k]; ctx.lineWidth = used[k] ? 2 : 1; ctx.globalAlpha = used[k] ? 1 : 0.22;
+      ctx.beginPath();
+      for (i = 0; i < labHist.length; i += 2) {
+        var x = GAME_W - (labHist.length - i);
+        if (i === 0) ctx.moveTo(x, gy(labHist[i][k])); else ctx.lineTo(x, gy(labHist[i][k]));
+      }
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = "#f59e0b";
+    for (i = 0; i < labHist.length; i++) {        // a little flag wherever the finger pressed
+      if (labHist[i][3]) { var jx = GAME_W - (labHist.length - i); ctx.fillRect(jx - 1, GRAPH_H - 12, 3, 10); }
+    }
+    if (level === 0) {
+      ctx.fillStyle = "#5d6180"; ctx.font = "bold 13px -apple-system, Helvetica, Arial, sans-serif"; ctx.textAlign = "center";
+      ctx.fillText("No sensors here: you are using your own eyes!", GAME_W / 2, GRAPH_H / 2);
+    }
+  }
+
+  function labPad(text, width) {
+    text = String(text);
+    while (text.length < width) text = " " + text;
+    return text;
+  }
+  function labHud() {
+    var g = labGame;
+    document.getElementById("lab-score").textContent = "Score " + g.score;
+    document.getElementById("lab-speed").textContent = "Speed " + g.speed.toFixed(1);
+    var line1 = g.opts.level > 0 ? "Dino Bot Level " + g.opts.level : "Human player";
+    var line2 = g.opts.level > 0 ? ("Jumps:" + g.brain.jumpCount + "    ").slice(0, 10) + "L:" + labPad(g.light[0], 4) : "Jumps:" + g.jumps;
+    var cells = labLcd.children;
+    for (var i = 0; i < LCD_COLS; i++) {
+      cells[i].textContent = line1.charAt(i);
+      cells[LCD_COLS + i].textContent = line2.charAt(i);
+    }
+  }
+  function labBest() {
+    var body = document.getElementById("lab-best");
+    body.textContent = "";
+    LAB_LEVELS.forEach(function (info) {
+      var row = document.createElement("tr");
+      if (info.level === 0) row.className = "best-you";
+      var name = document.createElement("td");
+      name.textContent = info.name;
+      var score = document.createElement("td");
+      score.className = "pin";
+      score.textContent = labSaved.best[info.level] ? labSaved.best[info.level] : "-";
+      row.appendChild(name); row.appendChild(score);
+      body.appendChild(row);
+    });
+  }
+  function labMissions() {
+    var list = document.getElementById("lab-missions");
+    var done = 0;
+    list.textContent = "";
+    LAB_MISSIONS.forEach(function (m) {
+      var li = document.createElement("li");
+      li.textContent = m.text;
+      if (labSaved.missions[m.id]) { li.className = "is-done"; done++; }
+      list.appendChild(li);
+    });
+    document.getElementById("lab-earn").classList.toggle("is-earned", done === LAB_MISSIONS.length);
+  }
+  function labEarn(id) {
+    if (labSaved.missions[id]) return;
+    labSaved.missions[id] = true;
+    labSave();
+    labMissions();
+    var all = LAB_MISSIONS.every(function (m) { return labSaved.missions[m.id]; });
+    if (all) confetti();
+  }
+  function labCheckMissions() {
+    var g = labGame, level = g.opts.level;
+    if (level === 1 && g.over && g.cause === "night") labEarn("night");
+    if (level === 2 && g.nightsSurvived >= 1) labEarn("l2");
+    if (level === 3 && g.speed >= LAB.BIRD_SPEED) labEarn("l3");
+    if (level === 4 && g.birdsDodged[0] > 0 && g.birdsDodged[1] > 0 && g.birdsDodged[2] > 0) labEarn("l4");
+    if (level === 0 && g.score >= 300) labEarn("you");
+  }
+  function labSay(text, kind) {
+    labStatus.textContent = text;
+    labStatus.className = "lab-status" + (kind ? " " + kind : "");
+  }
+  function labHint(g) {                           // what to try next, after a crash
+    var level = g.opts.level, cause = g.cause;
+    if (level === 0) return "Try again, or let a robot have a go.";
+    if (cause === "night") return "Level 2 learns what normal looks like, so the dark doesn't fool it. Try Level 2!";
+    if (cause === "bird-mid" && level < 4) return "Only Level 4 has a head-height eye and a duck finger. Try Level 4!";
+    if (cause === "bird-high") return "Something tricked the low eye. Check the sliders.";
+    if (cause === "false") return level === 1 ? "The threshold is too high: the empty screen already counts as dark. Slide it down." : "The big-change slider is too low: tiny wobbles count as a cactus. Slide it up.";
+    if (cause === "blind") return level === 1 ? "The threshold is too low: even a cactus isn't dark enough. Slide it up." : "The big-change slider is too high: a cactus doesn't change the light enough. Slide it down.";
+    if (cause === "late" && level <= 2 && g.speed >= 7.4) return "The game got too fast for a robot that only reacts. Level 3 measures the speed and presses early. Try Level 3!";
+    if (cause === "late") return "Move the eye farther ahead of the dino, or shrink the robot delay.";
+    if (cause === "early") return "Move the eye closer to the dino.";
+    return "";
+  }
+  function labEnd() {
+    var g = labGame, level = g.opts.level;
+    labRunning = false;
+    labCheckMissions();
+    var record = !labSaved.best[level] || g.score > labSaved.best[level];
+    if (record) { labSaved.best[level] = g.score; labSave(); labBest(); }
+    var why = LAB_CAUSES[g.cause] || "Crash!";
+    if (level === 0 && g.cause === "blind") why = "🙈 No jump! It ran straight into the dino.";
+    labSay("Score " + g.score + (record ? " (new best!)" : "") + ". " + why + " " + labHint(g), "crash");
+    labStartBtn.textContent = "↺ Try again";
+    labDraw(); labDrawGraph(); labHud();
+  }
+  function labTick() {
+    var g = labGame;
+    var before = g.opts.level > 0 ? g.brain.jumpCount : g.jumps;
+    labStep(g, labHuman);
+    var after = g.opts.level > 0 ? g.brain.jumpCount : g.jumps;
+    labHist.push([g.light[0], g.light[1], g.light[2], after !== before]);
+    if (labHist.length > LAB_HIST) labHist.shift();
+    if (g.t % 500 === 0) {
+      labCheckMissions();
+      if (g.score > (labSaved.best[g.opts.level] || 0)) { labSaved.best[g.opts.level] = g.score; }
+      if (!labBeaten && g.opts.level === 4 && g.speed >= LAB.MAX_SPEED && g.nightsSurvived >= 2) {
+        labBeaten = true;
+        labSay("🏆 Level 4 is at top speed and still going. It could do this all day. Press Pause when you've seen enough!", "win");
+      }
+    }
+  }
+  function labFrame(now) {
+    labRaf = 0;
+    if (!labRunning) return;
+    var elapsed = Math.max(0, Math.min(100, now - labLast));
+    labLast = now;
+    labAcc += elapsed * (labFast ? 3 : 1);
+    while (labAcc >= LAB.STEP_MS && !labGame.over) { labAcc -= LAB.STEP_MS; labTick(); }
+    labDraw(); labDrawGraph(); labHud();
+    if (labGame.over) { labEnd(); return; }
+    labRaf = requestAnimationFrame(labFrame);
+  }
+  function labReset() {
+    labOpts.seed = 1 + Math.floor(Math.random() * 1000000);
+    labGame = labNewGame(labOpts);
+    labHist = [];
+    labAcc = 0;
+    labBeaten = false;
+    labHuman.jump = false; labHuman.duck = false;
+    labRunning = false;
+    labStartBtn.textContent = "▶ Start";
+    labSay(labOpts.level > 0 ? "Press Start and take your hands off. How far does this brain get?" : "Press Start, then jump with the space bar or the Jump button.", "");
+    labDraw(); labDrawGraph(); labHud(); labBest();
+  }
+  function labPlay() {
+    if (labGame.over) labReset();
+    labRunning = true;
+    labLast = performance.now();
+    labStartBtn.textContent = "⏸ Pause";
+    if (labStatus.className.indexOf("win") < 0) labSay(labOpts.level > 0 ? "Running... watch the graph: every dip is the eye seeing something." : "Go! Space = jump, down arrow = duck.", "");
+    if (!labRaf) labRaf = requestAnimationFrame(labFrame);
+  }
+  function labPause(why) {
+    if (!labRunning) return;
+    labRunning = false;
+    labSave();
+    labBest();
+    labStartBtn.textContent = "▶ Keep going";
+    if (why) labSay(why, "");
+  }
+  labStartBtn.addEventListener("click", function () {
+    if (labRunning) labPause("Paused."); else labPlay();
+  });
+  document.getElementById("lab-restart").addEventListener("click", labReset);
+  document.getElementById("lab-boost").addEventListener("click", function () {
+    labGame.speed = Math.min(LAB.MAX_SPEED, labGame.speed + 1);
+    labHud();
+  });
+  document.getElementById("lab-night").addEventListener("click", function () {
+    labGame.wantNight = !labGame.wantNight;
+    labGame.nightEndsAt = -1;
+    if (!labRunning && !labGame.over) labSay("Night mode is coming as soon as the road is clear. Press Start!", "");
+  });
+  document.getElementById("lab-fast").addEventListener("click", function () {
+    labFast = !labFast;
+    this.classList.toggle("is-on", labFast);
+    this.setAttribute("aria-pressed", labFast ? "true" : "false");
+  });
+
+  function labSliders() {
+    var level = labOpts.level;
+    var robot = level > 0;
+    labThr.disabled = !robot; labEye.disabled = !robot; labDelay.disabled = !robot;
+    if (level === 1) {
+      labThr.min = 0; labThr.max = 1020; labThr.step = 10; labThr.value = labOpts.threshold;
+      document.getElementById("lab-thr-label").innerHTML = "Threshold: jump when the light is below <b>" + labOpts.threshold + "</b>";
+    } else {
+      labThr.min = 20; labThr.max = 500; labThr.step = 10; labThr.value = labOpts.bigChange;
+      document.getElementById("lab-thr-label").innerHTML = "Big change: jump when the light moves <b>" + labOpts.bigChange + "</b> away from normal";
+    }
+    labEye.value = labOpts.eyeMm;
+    labDelay.value = labOpts.delayMs;
+    document.getElementById("lab-eye-label").innerHTML = "Eye position: <b>" + labOpts.eyeMm + " mm</b> ahead of the dino's nose";
+    document.getElementById("lab-delay-label").innerHTML = "Robot delay: the finger needs <b>" + labOpts.delayMs + " ms</b> to press";
+  }
+  labThr.addEventListener("input", function () {
+    if (labOpts.level === 1) labOpts.threshold = Number(labThr.value); else labOpts.bigChange = Number(labThr.value);
+    labSliders();
+    if (!labRunning) { labDraw(); labDrawGraph(); }
+  });
+  labEye.addEventListener("input", function () {
+    labOpts.eyeMm = Number(labEye.value);
+    labSliders();
+    if (!labRunning) labDraw();
+  });
+  labDelay.addEventListener("input", function () {
+    labOpts.delayMs = Number(labDelay.value);
+    labSliders();
+  });
+
+  var labSeg = document.getElementById("lab-levels");
+  LAB_LEVELS.forEach(function (info) {
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "seg-btn";
+    btn.style.setProperty("--k", info.k);
+    btn.dataset.level = info.level;
+    btn.appendChild(document.createTextNode(info.name));
+    var small = document.createElement("small");
+    small.textContent = info.small;
+    btn.appendChild(small);
+    labSeg.appendChild(btn);
+  });
+  function labPick(level) {
+    labOpts.level = level;
+    labSeg.querySelectorAll(".seg-btn").forEach(function (btn) {
+      btn.setAttribute("aria-pressed", Number(btn.dataset.level) === level ? "true" : "false");
+    });
+    document.getElementById("lab-brain").textContent = labLevelInfo(level).brain;
+    document.getElementById("lab-touch").classList.toggle("show", level === 0);
+    labSliders();
+    labReset();
+  }
+  labSeg.addEventListener("click", function (e) {
+    var btn = e.target.closest(".seg-btn");
+    if (btn) labPick(Number(btn.dataset.level));
+  });
+
+  /* a human playing: keyboard, or the two big buttons on a tablet */
+  document.addEventListener("keydown", function (e) {
+    if (labOpts.level !== 0 || !labRunning) return;
+    if (e.key === " " || e.key === "ArrowUp") { labHuman.jump = true; e.preventDefault(); }
+    else if (e.key === "ArrowDown") { labHuman.duck = true; e.preventDefault(); }
+  });
+  document.addEventListener("keyup", function (e) {
+    if (e.key === " " || e.key === "ArrowUp") labHuman.jump = false;
+    else if (e.key === "ArrowDown") labHuman.duck = false;
+  });
+  function labHold(id, key) {
+    var btn = document.getElementById(id);
+    function set(down, e) {
+      labHuman[key] = down;
+      btn.classList.toggle("down", down);
+      if (e) e.preventDefault();
+    }
+    btn.addEventListener("pointerdown", function (e) { set(true, e); });
+    btn.addEventListener("pointerup", function (e) { set(false, e); });
+    btn.addEventListener("pointercancel", function (e) { set(false, e); });
+    btn.addEventListener("pointerleave", function (e) { set(false, e); });
+    btn.addEventListener("contextmenu", function (e) { e.preventDefault(); });
+  }
+  labHold("lab-jump", "jump");
+  labHold("lab-duck", "duck");
+
+  /* never run where nobody is looking: pause when off screen or when the tab is hidden */
+  document.addEventListener("visibilitychange", function () {
+    if (document.hidden) labPause("Paused while you were away.");
+  });
+  if (window.IntersectionObserver) {
+    new IntersectionObserver(function (entries) {
+      if (!entries[0].isIntersecting) labPause("Paused while you were reading something else.");
+    }).observe(document.getElementById("lab-screen"));
+  }
+  window.addEventListener("resize", function () { if (!labRunning) { labDraw(); labDrawGraph(); } });
+
+  labMissions();
+  labPick(1);
+</script>
+</body>
+</html>
