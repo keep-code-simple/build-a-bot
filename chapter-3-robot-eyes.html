@@ -1,0 +1,2345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Robot Eyes</title>
+<style>
+
+  :root {
+    --bg: #fff7e8;
+    --dots: #f6e3bd;
+    --card: #ffffff;
+    --text: #1f2340;
+    --muted: #5d6180;
+    --line: #e7dcc6;
+    --accent: #2563eb;
+    --accent-soft: #e3edff;
+    --good: #15803d;
+    --good-soft: #dcfce7;
+    --warn: #a16207;
+    --warn-soft: #fef3c7;
+    --code-bg: #1b1f3a;
+    --code-text: #e8eaff;
+    --s1: #2563eb;
+    --s2: #ea580c;
+    --s3: #7c3aed;
+    --s4: #db2777;
+    --s5: #15803d;
+    --s6: #f59e0b;
+    --round: ui-rounded, "SF Pro Rounded", "Arial Rounded MT Bold", "Chalkboard SE", system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14162b;
+      --dots: #1d2040;
+      --card: #20244a;
+      --text: #f1f2ff;
+      --muted: #b3b7da;
+      --line: #383d6e;
+      --accent: #8fb4ff;
+      --accent-soft: #263463;
+      --good: #6ee7a0;
+      --good-soft: #17402b;
+      --warn: #fcd34d;
+      --warn-soft: #453712;
+      --code-bg: #0e1024;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background-color: var(--bg);
+    background-image: radial-gradient(var(--dots) 2px, transparent 2.5px);
+    background-size: 26px 26px;
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 17px;
+    line-height: 1.6;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 0 16px 80px; }
+  h1, h2, h3, .step-num, .done-label, .stop .lbl, .role b, .key { font-family: var(--round); }
+  h1 { font-size: 2.6rem; line-height: 1.1; margin: 0 0 10px; }
+  h2 { font-size: 1.55rem; line-height: 1.2; margin: 0 0 10px; }
+  h3 { font-size: 1.1rem; margin: 24px 0 8px; }
+  a { color: var(--accent); }
+
+  /* ---------- hero ---------- */
+  .hero {
+    margin-top: 16px;
+    border-radius: 28px;
+    padding: 28px 28px 22px;
+    color: #fff;
+    background: linear-gradient(135deg, #2563eb 0%, #7c3aed 55%, #db2777 100%);
+    display: flex; align-items: center; gap: 20px;
+    box-shadow: 0 8px 0 rgba(31, 35, 64, 0.18);
+  }
+  .hero-text { flex: 1; min-width: 0; }
+  .hero .subtitle { font-size: 1.15rem; margin: 0 0 14px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { background: rgba(255,255,255,0.22); border-radius: 99px; padding: 3px 12px; font-size: 0.9rem; font-weight: 600; }
+  .chip-link { color: #fff; text-decoration: none; background: rgba(31,35,64,0.35); }
+  .chip-link:hover { background: rgba(31,35,64,0.55); }
+  .robot { width: 190px; flex-shrink: 0; }
+  .robot .arm { transform-origin: 160px 124px; animation: wave 1.4s ease-in-out infinite alternate; }
+  .robot .pupil { transform-origin: center; transform-box: fill-box; animation: blink 4s infinite; }
+  .robot .antenna { animation: glow 1.2s ease-in-out infinite alternate; }
+  @keyframes wave { from { transform: rotate(-14deg); } to { transform: rotate(22deg); } }
+  @keyframes blink { 0%, 92%, 100% { transform: scaleY(1); } 96% { transform: scaleY(0.1); } }
+  @keyframes glow { from { fill: #fda4af; } to { fill: #fff; } }
+
+  /* ---------- mission map ---------- */
+  .progress {
+    position: sticky; top: 0; z-index: 5;
+    background: var(--bg);
+    padding: 10px 0 12px;
+    border-bottom: 3px dashed var(--line);
+    margin: 14px 0 20px;
+  }
+  .progress-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 0.95rem; font-weight: 600; }
+  .reset-btn { background: none; border: 2px solid var(--line); color: var(--muted); border-radius: 99px; padding: 2px 12px; cursor: pointer; font-size: 0.85rem; }
+  .map { list-style: none; display: flex; justify-content: space-between; padding: 0; margin: 8px 0 8px; }
+  .map li { flex: 1; margin: 0; text-align: center; }
+  .stop { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; text-decoration: none; color: var(--muted); }
+  .stop .dot {
+    width: 44px; height: 44px; border-radius: 50%;
+    display: grid; place-items: center; font-size: 1.3rem;
+    background: var(--card); border: 3px solid var(--line);
+    filter: grayscale(1); opacity: 0.75;
+    transition: transform 0.25s, background 0.25s;
+  }
+  .stop .lbl { font-size: 0.8rem; font-weight: 700; }
+  .stop.is-done { color: var(--text); }
+  .stop.is-done .dot { background: var(--c); border-color: var(--c); filter: none; opacity: 1; transform: scale(1.12) rotate(-6deg); box-shadow: 0 3px 0 rgba(31,35,64,0.25); }
+  .bar { height: 12px; background: var(--line); border-radius: 99px; overflow: hidden; }
+  .bar-fill { height: 100%; width: 0; border-radius: 99px; background: linear-gradient(90deg, var(--s1), var(--s2), var(--s3), var(--s4), var(--s5), var(--s6)); background-size: 860px 100%; transition: width 0.4s; }
+
+  /* ---------- cards ---------- */
+  .card {
+    background: var(--card);
+    border: 2px solid var(--line);
+    border-radius: 22px;
+    padding: 22px 24px;
+    margin: 22px 0;
+    box-shadow: 0 5px 0 var(--line);
+    --c: var(--accent);
+  }
+  .card > h2 { display: flex; align-items: center; gap: 10px; }
+  .step { border-top: 10px solid var(--c); scroll-margin-top: 150px; --on: #fff; }
+  .step.is-done { border-color: var(--c); box-shadow: 0 5px 0 var(--c); }
+  .step-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+  .step-title { display: flex; gap: 14px; align-items: center; }
+  .step-emoji {
+    width: 64px; height: 64px; flex-shrink: 0; border-radius: 20px;
+    display: grid; place-items: center; font-size: 2rem;
+    background: color-mix(in srgb, var(--c) 18%, var(--card));
+    transform: rotate(-4deg);
+  }
+  .step-title h2 { margin: 2px 0 0; }
+  .step-num {
+    display: inline-block; background: var(--c); color: var(--on);
+    font-weight: 800; font-size: 0.85rem; letter-spacing: 0.04em; text-transform: uppercase;
+    border-radius: 99px; padding: 1px 12px;
+  }
+  .time { color: var(--muted); font-size: 0.92rem; }
+  .done-label {
+    display: flex; align-items: center; gap: 8px; white-space: nowrap;
+    border: 3px solid var(--c); border-radius: 99px; padding: 6px 16px; cursor: pointer;
+    font-size: 1rem; font-weight: 700;
+  }
+  .step.is-done .done-label { background: var(--c); color: var(--on); }
+  .done-label input { width: 20px; height: 20px; cursor: pointer; accent-color: var(--good); }
+
+  .roles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 10px 0; }
+  .role { border-radius: 16px; padding: 14px 16px; display: flex; gap: 12px; align-items: center; }
+  .role span { font-size: 2.2rem; }
+  .role b { display: block; font-size: 1.15rem; }
+  .role.builder { background: color-mix(in srgb, var(--s2) 16%, var(--card)); }
+  .role.coder { background: color-mix(in srgb, var(--s3) 16%, var(--card)); }
+  .swap { text-align: center; font-weight: 700; margin: 4px 0 0; }
+
+  table { border-collapse: collapse; width: 100%; margin: 8px 0 14px; font-size: 0.95rem; }
+  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 0.85rem; }
+  .pin { font-family: ui-monospace, Menlo, Consolas, monospace; font-weight: 700; }
+  td .pin, td.pin { color: var(--c); }
+  .table-scroll { overflow-x: auto; }
+
+  .tip, .kid, .warn { border-radius: 16px; padding: 14px 16px; margin: 16px 0; font-size: 0.97rem; border-left: 8px solid; }
+  .tip { background: var(--accent-soft); border-color: var(--accent); }
+  .kid { background: var(--good-soft); border-color: var(--good); }
+  .warn { background: var(--warn-soft); border-color: var(--warn); }
+  .tip strong, .kid strong, .warn strong { display: block; margin-bottom: 2px; font-family: var(--round); font-size: 1.05rem; }
+
+  .code-wrap { position: relative; margin: 12px 0; }
+  pre {
+    background: var(--code-bg); color: var(--code-text);
+    padding: 16px; border-radius: 16px; overflow-x: auto;
+    font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.85rem; line-height: 1.5;
+    margin: 0; border: 3px solid var(--c);
+  }
+  .copy-btn {
+    position: absolute; top: 10px; right: 10px;
+    background: var(--c); color: var(--on, #fff); border: none; border-radius: 99px;
+    padding: 6px 14px; cursor: pointer; font-size: 0.85rem; font-weight: 700;
+  }
+  .copy-btn:hover { filter: brightness(1.15); }
+  code.inline { font-family: ui-monospace, Menlo, Consolas, monospace; background: var(--accent-soft); padding: 1px 6px; border-radius: 6px; font-size: 0.9em; }
+
+  ol, ul { padding-left: 22px; }
+  li { margin: 4px 0; }
+
+  .peek { display: inline-block; margin: 6px 0; padding: 8px 16px; border: 3px dashed #0e7490; border-radius: 99px; text-decoration: none; font-family: var(--round); font-weight: 700; color: var(--text); background: color-mix(in srgb, #0e7490 10%, var(--card)); }
+  .peek:hover { border-style: solid; }
+  .celebrate a { color: #fff; font-family: var(--round); font-weight: 800; }
+
+  /* ---------- photos ---------- */
+  .photos { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 12px 0 4px; }
+  .photos figure { margin: 0; }
+  .photos img { display: block; width: 100%; height: auto; border-radius: 18px; border: 4px solid var(--card); box-shadow: 0 5px 0 var(--line); }
+  .photos figure:nth-child(1) img { transform: rotate(-1.5deg); }
+  .photos figure:nth-child(2) img { transform: rotate(1.5deg); }
+  .photos figcaption { text-align: center; font-family: var(--round); font-weight: 700; margin-top: 10px; }
+  .photos figcaption span { display: block; font-family: inherit; font-weight: 400; color: var(--muted); font-size: 0.9rem; }
+
+  /* ---------- parts ---------- */
+  .parts { list-style: none; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .parts li { margin: 0; }
+  .parts label {
+    display: flex; gap: 12px; align-items: center; height: 100%;
+    border: 2px solid var(--line); border-radius: 16px; padding: 10px 12px; cursor: pointer;
+  }
+  .parts label:has(input:checked) { background: var(--good-soft); border-color: var(--good); }
+  .parts svg { width: 56px; height: 56px; flex-shrink: 0; background: #fffdf6; border-radius: 14px; padding: 4px; }
+  .parts .txt { flex: 1; min-width: 0; font-weight: 600; line-height: 1.35; }
+  .parts .hint { color: var(--muted); font-size: 0.86rem; display: block; font-weight: 400; }
+  .parts input { width: 20px; height: 20px; flex-shrink: 0; accent-color: var(--good); }
+
+  /* ---------- diagrams (always on light "paper") ---------- */
+  .diagram {
+    background: #fffdf6; border: 2px dashed #d9cba8; border-radius: 16px;
+    padding: 8px; margin: 12px 0; overflow-x: auto;
+  }
+  .diagram svg { display: block; width: 100%; min-width: 540px; height: auto; font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
+  .diagram text { fill: #1f2340; font-size: 13px; }
+  .diagram .w, .diagram .w text { fill: #fff; font-weight: 700; }
+  .diagram .sm { font-size: 10px; }
+  .diagram .wire { fill: none; stroke-width: 5; stroke-linecap: round; }
+  .diagram figcaption, .cap { color: #5d6180; font-size: 0.88rem; padding: 4px 6px 2px; }
+  figure { margin: 0; }
+
+  /* ---------- echo demo ---------- */
+  .echo-demo input[type=range] { width: 100%; accent-color: var(--s2); height: 28px; }
+  .echo-readout { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; }
+  .echo-readout div { background: var(--accent-soft); border-radius: 14px; padding: 8px 14px; flex: 1; min-width: 150px; }
+  .echo-readout b { display: block; font-size: 1.4rem; color: var(--accent); font-family: var(--round); }
+  #echo-pulse path { fill: none; stroke: #2563eb; stroke-width: 4; stroke-linecap: round; }
+  #echo-pulse.back path { stroke: #ea580c; }
+  #echo-bubble { opacity: 0; transition: opacity 0.2s; }
+  .is-greeting #echo-bubble { opacity: 1; }
+
+  /* ---------- LCD lab ---------- */
+  .lcd-lab input[type=text] {
+    width: 100%; font: inherit; padding: 9px 14px; border-radius: 12px;
+    border: 2px solid var(--line); background: var(--card); color: var(--text);
+  }
+  .lcd {
+    display: inline-block; max-width: 100%; margin-top: 10px; padding: 12px 14px; border-radius: 10px;
+    background: #14532d; border: 4px solid #0b3a1e;
+  }
+  .lcd-screen { background: #bef264; padding: 6px; border-radius: 4px; display: grid; grid-template-columns: repeat(16, 1fr); gap: 2px; }
+  .lcd-screen span {
+    width: 1.05em; height: 1.5em; display: grid; place-items: center;
+    background: rgba(63, 98, 18, 0.14); color: #1a2e05;
+    font-family: ui-monospace, Menlo, Consolas, monospace; font-weight: 700; font-size: clamp(0.8rem, 3.6vw, 1.25rem);
+  }
+  .lcd-count { font-weight: 700; margin: 8px 0 0; }
+  .lcd-count.bad { color: #dc2626; }
+  .lcd-count.ok { color: var(--good); }
+
+  /* ---------- tune maker ---------- */
+  .keys { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; margin: 10px 0; }
+  .key {
+    border: none; border-radius: 12px 12px 18px 18px; padding: 14px 2px 10px; cursor: pointer;
+    background: var(--k); color: #fff; font-weight: 800; font-size: 1.1rem;
+    box-shadow: 0 5px 0 rgba(31,35,64,0.3);
+  }
+  .key small { display: block; font-family: ui-monospace, Menlo, monospace; font-size: 0.78rem; font-weight: 700; }
+  .key:active { transform: translateY(4px); box-shadow: 0 1px 0 rgba(31,35,64,0.3); }
+  .tune-out { background: var(--code-bg); color: var(--code-text); border-radius: 12px; padding: 10px 14px; font-family: ui-monospace, Menlo, monospace; font-size: 0.88rem; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .tune-out input { flex: 1; min-width: 0; font: inherit; color: inherit; background: rgba(255,255,255,0.12); border: 2px solid var(--c); border-radius: 8px; padding: 5px 8px; }
+  .tune-controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
+  .btn { border: none; border-radius: 99px; padding: 7px 16px; font: inherit; font-weight: 700; cursor: pointer; background: var(--c); color: #fff; }
+  .btn.ghost { background: none; border: 2px solid var(--line); color: var(--muted); }
+
+  details { border: 2px solid var(--line); border-radius: 14px; padding: 10px 14px; margin: 8px 0; background: var(--card); }
+  details[open] { border-color: var(--s2); }
+  summary { cursor: pointer; font-weight: 600; }
+  details p { margin: 8px 0 2px; }
+
+  .ideas { list-style: none; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .ideas li { margin: 0; border-radius: 16px; padding: 12px 14px; background: color-mix(in srgb, var(--k) 14%, var(--card)); border: 2px solid color-mix(in srgb, var(--k) 45%, var(--card)); }
+  .ideas .big { font-size: 1.7rem; display: block; }
+
+  .celebrate {
+    display: none; text-align: center; border-radius: 20px; padding: 22px; margin-top: 20px; color: #fff;
+    background: linear-gradient(135deg, #f59e0b, #db2777 60%, #7c3aed);
+  }
+  .celebrate.show { display: block; animation: pop 0.5s; }
+  .celebrate .trophy { font-size: 3rem; display: block; }
+  .celebrate b { font-family: var(--round); font-size: 1.5rem; display: block; }
+  @keyframes pop { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .confetti { position: fixed; top: -16px; width: 10px; height: 16px; z-index: 50; pointer-events: none; animation: fall linear forwards; }
+  @keyframes fall { to { transform: translateY(110vh) rotate(720deg); } }
+
+  @media (max-width: 620px) {
+    .hero { flex-direction: column-reverse; text-align: center; padding: 20px; }
+    .chips { justify-content: center; }
+    .robot { width: 130px; }
+    h1 { font-size: 2rem; }
+    .step-head { flex-direction: column; }
+    .roles, .parts, .ideas { grid-template-columns: 1fr; }
+    .photos { gap: 10px; }
+    .stop .lbl { display: none; }
+    .stop .dot { width: 38px; height: 38px; font-size: 1.1rem; }
+    .keys { grid-template-columns: repeat(4, 1fr); }
+    .card { padding: 18px 16px; }
+    .step { scroll-margin-top: 120px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .robot .arm, .robot .pupil, .robot .antenna, .celebrate.show { animation: none; }
+    #echo-pulse { display: none; }
+  }
+  @media print {
+    body { background: #fff; }
+    .progress, .copy-btn, .reset-btn, .echo-demo, .lcd-lab, .tune-controls, .robot { display: none; }
+    .card { break-inside: avoid; box-shadow: none; }
+    .hero { color: #000; background: none; box-shadow: none; padding: 0; }
+  }
+
+  /* ---------- Chapter 3 additions ---------- */
+  .robot .arm { animation: wave 1.8s ease-in-out infinite alternate; }
+  @keyframes wave { from { transform: rotate(-4deg); } to { transform: rotate(14deg); } }
+  .robot .scan { animation: scan 2.4s ease-in-out infinite alternate; }
+  @keyframes scan { from { opacity: 0.35; } to { opacity: 1; } }
+
+  /* the real screen is blue with white letters */
+  .lcd-screen { background: #1d4ed8; }
+  .lcd-screen span { background: rgba(255,255,255,0.1); color: #fff; }
+
+  button, .hit { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+  .btn.big { min-height: 48px; padding: 10px 18px; font-size: 1rem; background: var(--k, var(--s1)); }
+  .btn.big:disabled { opacity: 0.5; cursor: default; }
+  .btn.big.ghost { background: none; min-height: 48px; }
+  .btn-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+  .say { font-weight: 700; margin: 10px 0 6px; min-height: 3.2em; }
+  .win { background: var(--good-soft); border: 2px solid var(--good); border-radius: 14px; padding: 10px 14px; margin: 16px 0 4px; }
+  .win b { font-family: var(--round); }
+  .lab { display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 1fr); gap: 20px; align-items: start; }
+  .lab-side { min-width: 0; }
+  .lab-side .lcd { margin-top: 0; }
+  #pipe-letter { visibility: hidden; }
+  .diagram .mono { font-family: ui-monospace, Menlo, Consolas, monospace; font-weight: 700; }
+
+  /* the hand with 21 points */
+  .diagram svg.hand-svg { min-width: 0; max-width: 340px; margin: 0 auto; user-select: none; -webkit-user-select: none; }
+  .hand-svg .hit { fill: none; stroke: transparent; stroke-width: 36; stroke-linecap: round; pointer-events: stroke; cursor: pointer; }
+  .diagram .dotnum { fill: #fff; font-size: 9px; font-weight: 700; pointer-events: none; }
+  .finger-btns { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin: 8px 0; }
+  .fbtn {
+    min-height: 52px; border: 3px solid var(--line); border-radius: 14px; background: var(--card); color: var(--muted);
+    font: inherit; font-family: var(--round); font-weight: 800; font-size: 0.82rem; line-height: 1.2; cursor: pointer; padding: 4px 0;
+  }
+  .fbtn small { display: block; font-size: 0.74rem; font-weight: 700; }
+  .fbtn.up { background: var(--good-soft); border-color: var(--good); color: var(--text); }
+  .count-row { display: flex; align-items: center; gap: 14px; margin: 0 0 10px; }
+  .big-count { font-family: var(--round); font-size: 3.6rem; line-height: 1; font-weight: 800; color: var(--good); min-width: 1ch; }
+  .count-row span { font-weight: 700; }
+  .rule-out { background: var(--accent-soft); border-radius: 14px; padding: 10px 14px; font-size: 0.95rem; margin: 10px 0; }
+
+  /* rock paper scissors */
+  .rps-moves { display: flex; gap: 12px; justify-content: center; margin: 4px 0 12px; }
+  .rps-btn {
+    flex: 1; max-width: 120px; min-height: 104px; border: none; border-radius: 22px; cursor: pointer;
+    background: var(--k); color: #fff; font-size: 2.6rem; line-height: 1.2;
+    box-shadow: 0 6px 0 rgba(31,35,64,0.3);
+  }
+  .rps-btn small { display: block; font-family: var(--round); font-size: 0.9rem; font-weight: 800; }
+  .rps-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(31,35,64,0.3); }
+  .rps-btn:disabled { opacity: 0.45; cursor: default; }
+
+  /* greeter toy */
+  .cam {
+    position: relative; height: 130px; border-radius: 16px; background: #334155; border: 4px solid #0f172a;
+    display: grid; place-items: center; font-size: 3.2rem; line-height: 1; overflow: hidden;
+  }
+  .cam .box { border: 4px solid #22c55e; border-radius: 6px; padding: 6px 12px; }
+  .cam.empty .box { visibility: hidden; }
+  .cam .status { position: absolute; left: 10px; top: 6px; font-size: 0.95rem; font-weight: 800; color: #fde047; font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; line-height: 1.4; }
+  .msglog {
+    font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.85rem; white-space: pre-wrap;
+    background: var(--code-bg); color: var(--code-text); border-radius: 12px; padding: 10px 14px; min-height: 5.4em; margin: 10px 0 6px;
+  }
+  .seg { display: inline-flex; border: 2px solid var(--line); border-radius: 99px; overflow: hidden; background: var(--card); vertical-align: middle; }
+  .seg-btn { min-height: 44px; min-width: 52px; padding: 6px 14px; border: none; background: none; color: var(--muted); font: inherit; font-weight: 700; cursor: pointer; }
+  .seg-btn.on { background: var(--s4); color: #fff; }
+
+  .term { background: #0e1024; color: #e8eaff; border-radius: 14px; padding: 12px 14px; margin: 10px 0; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.85rem; overflow-x: auto; white-space: pre; }
+  .term .ok { color: #6ee7a0; font-weight: 700; }
+  .cmds { padding-left: 22px; }
+  .cmds > li { margin: 14px 0; }
+  .cmds .code-wrap { margin: 6px 0 0; }
+  .code-wrap pre { padding-top: 46px; }
+  pre.excerpt { border-style: dashed; }
+  details.code-details > summary { font-family: var(--round); font-weight: 700; }
+  details.code-details .code-wrap { margin-bottom: 4px; }
+  .cap-line { color: var(--muted); font-size: 0.9rem; margin: 4px 0 12px; }
+
+  @media (max-width: 620px) {
+    .lab { grid-template-columns: minmax(0, 1fr); }
+    .rps-btn { min-height: 92px; font-size: 2.2rem; }
+    .big-count { font-size: 3rem; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .robot .scan { animation: none; }
+  }
+  @media print {
+    .pipe-demo .btn-row, .hand-lab, .rps-sim, .greet-toy { display: none; }
+    details.code-details { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <div class="hero-text">
+    <h1>Robot Eyes</h1>
+    <p class="subtitle">Chapter 3: the MacBook's camera becomes your robot's eyes, and an AI becomes its brain. It greets you when it sees your face, counts your fingers, and battles you at Rock Paper Scissors.</p>
+    <div class="chips">
+      <a class="chip chip-link" href="index.html">🏠 Home</a>
+      <span class="chip">📖 Chapter 3</span>
+      <span class="chip">⏱ 2 to 2½ hours</span>
+      <span class="chip">👥 2 builders</span>
+      <span class="chip">🏅 6 badges to earn</span>
+      <a class="chip chip-link" href="chapter-2-secret-code-bot.html">← Chapter 2: Secret Code Bot</a>
+      <a class="chip chip-link" href="inside-the-robot.html">🔬 Bonus: Inside the Robot</a>
+    </div>
+  </div>
+  <svg class="robot" viewBox="0 0 200 222" role="img" aria-label="A friendly robot with glowing camera eyes holding up a peace sign">
+    <line x1="100" y1="16" x2="100" y2="38" stroke="#fff" stroke-width="4"/>
+    <circle class="antenna" cx="100" cy="12" r="8" fill="#fda4af"/>
+    <rect x="22" y="112" width="20" height="58" rx="10" fill="#fcd34d"/>
+    <g class="arm">
+      <rect x="158" y="62" width="20" height="66" rx="10" fill="#fcd34d"/>
+      <g stroke="#fde68a" stroke-width="8" stroke-linecap="round"><line x1="163" y1="52" x2="156" y2="28"/><line x1="173" y1="52" x2="180" y2="28"/></g>
+      <circle cx="168" cy="58" r="13" fill="#fde68a"/>
+    </g>
+    <rect x="48" y="36" width="104" height="66" rx="14" fill="#38bdf8" stroke="#fff" stroke-width="3"/>
+    <circle cx="78" cy="69" r="18" fill="#e5e7eb" stroke="#64748b" stroke-width="3"/>
+    <circle cx="122" cy="69" r="18" fill="#e5e7eb" stroke="#64748b" stroke-width="3"/>
+    <circle class="scan" cx="78" cy="69" r="12" fill="none" stroke="#22c55e" stroke-width="3"/>
+    <circle class="scan" cx="122" cy="69" r="12" fill="none" stroke="#22c55e" stroke-width="3"/>
+    <circle class="pupil" cx="78" cy="69" r="7" fill="#1f2340"/>
+    <circle class="pupil" cx="122" cy="69" r="7" fill="#1f2340"/>
+    <rect x="40" y="108" width="120" height="86" rx="16" fill="#fbbf24" stroke="#fff" stroke-width="3"/>
+    <rect x="56" y="122" width="88" height="34" rx="5" fill="#1d4ed8" stroke="#1e3a8a" stroke-width="3"/>
+    <text x="100" y="144" text-anchor="middle" font-family="ui-monospace, Menlo, monospace" font-weight="700" font-size="12" fill="#fff">I SEE YOU!</text>
+    <circle cx="70" cy="175" r="7" fill="#1f2340" stroke="#fff" stroke-width="2"/>
+    <circle cx="130" cy="175" r="9" fill="#1f2340"/>
+    <circle cx="130" cy="175" r="3" fill="#94a3b8"/>
+    <rect x="58" y="196" width="30" height="20" rx="8" fill="#38bdf8"/>
+    <rect x="112" y="196" width="30" height="20" rx="8" fill="#38bdf8"/>
+  </svg>
+</header>
+
+<nav class="progress" aria-label="Your progress">
+  <div class="progress-row">
+    <span id="progress-label">0 of 6 steps done</span>
+    <button class="reset-btn" id="reset-btn" type="button">Reset checkmarks</button>
+  </div>
+  <ol class="map">
+    <li><a class="stop" data-stop="1" href="#step1" style="--c:var(--s1)"><span class="dot" aria-hidden="true">🧰</span><span class="lbl">Set up</span></a></li>
+    <li><a class="stop" data-stop="2" href="#step2" style="--c:var(--s2)"><span class="dot" aria-hidden="true">👀</span><span class="lbl">Eyes</span></a></li>
+    <li><a class="stop" data-stop="3" href="#step3" style="--c:var(--s3)"><span class="dot" aria-hidden="true">🧠</span><span class="lbl">Listen</span></a></li>
+    <li><a class="stop" data-stop="4" href="#step4" style="--c:var(--s4)"><span class="dot" aria-hidden="true">🚪</span><span class="lbl">Greeter</span></a></li>
+    <li><a class="stop" data-stop="5" href="#step5" style="--c:var(--s5)"><span class="dot" aria-hidden="true">✋</span><span class="lbl">Fingers</span></a></li>
+    <li><a class="stop" data-stop="6" href="#step6" style="--c:var(--s6)"><span class="dot" aria-hidden="true">✌️</span><span class="lbl">Battle</span></a></li>
+  </ol>
+  <div class="bar"><div class="bar-fill" id="bar-fill"></div></div>
+</nav>
+
+<!-- ============ BEFORE YOU START ============ -->
+<section class="card">
+  <h2><span aria-hidden="true">🚀</span> Before you start</h2>
+  <p><b>You need:</b> your finished Chapter 1 gadget. Chapter 2 is nice but not needed. <b>No new parts!</b></p>
+  <p><b>Time:</b> about 2 to 2½ hours. It works well as two Sundays: Steps 1 to 4, then Steps 5 and 6. Each step ends with something that works.</p>
+  <p><b>Two jobs, swap every step:</b></p>
+  <div class="roles">
+    <div class="role builder"><span aria-hidden="true">🧪</span><div><b>Tester</b>stands in front of the camera and tries to fool the AI.</div></div>
+    <div class="role coder"><span aria-hidden="true">⌨️</span><div><b>Coder</b>types the commands and makes the code changes.</div></div>
+  </div>
+  <p class="swap">🔄 Swap jobs after every step!</p>
+  <div class="warn">
+    <strong>⚠️ Golden rule: one talker at a time</strong>
+    Only one program can talk to the Arduino over the USB cable. Close the Serial Monitor before you run Python. Press <b>Q</b> to stop Python before you upload.
+  </div>
+  <div class="tip">
+    <strong>💡 Parent tip</strong>
+    Step 1 is your job: it installs things with Terminal. And the most valuable moment in this chapter is when the AI gets something <b>wrong</b>. Ask "why do you think it missed that?" That's how kids learn what AI really is: pattern matching that's powerful, but not magic.
+  </div>
+</section>
+
+<!-- ============ THE BIG IDEA ============ -->
+<section class="card">
+  <h2><span aria-hidden="true">💡</span> The big idea: a third input</h2>
+  <p>In Chapter 1 the input was a <b>sensor</b>. In Chapter 2 it was a <b>remote</b>. Now it's an <b>AI</b>. The UNO is far too small to run an AI, so the work is split in two.</p>
+  <div class="pipe-demo">
+    <h3>Try it: tap what the camera sees</h3>
+    <figure class="diagram">
+      <svg viewBox="0 0 640 190" role="img" aria-label="The camera feeds the MacBook, the MacBook sends a one-letter message down the USB cable, and the Arduino acts on it">
+        <rect x="14" y="60" width="84" height="64" rx="14" fill="#1f2340"/>
+        <circle cx="56" cy="92" r="20" fill="#38bdf8" stroke="#fff" stroke-width="3"/>
+        <circle cx="56" cy="92" r="8" fill="#1f2340"/>
+        <text x="56" y="146" text-anchor="middle" style="font-weight:700">Camera</text>
+        <text x="56" y="161" text-anchor="middle" class="sm">the eyes</text>
+        <g fill="none" stroke="#1f2340" stroke-width="3" stroke-linecap="round"><path d="M106,92 H136"/><path d="M128,86 l8,6 l-8,6"/></g>
+        <rect x="146" y="36" width="170" height="104" rx="8" fill="#1f2340"/>
+        <rect x="154" y="44" width="154" height="88" fill="#475569"/>
+        <circle cx="231" cy="90" r="22" fill="#fcd34d"/>
+        <circle cx="223" cy="84" r="3" fill="#1f2340"/><circle cx="239" cy="84" r="3" fill="#1f2340"/>
+        <path d="M221,96 q10,9 20,0" fill="none" stroke="#1f2340" stroke-width="3" stroke-linecap="round"/>
+        <rect x="203" y="62" width="56" height="56" fill="none" stroke="#22c55e" stroke-width="3"/>
+        <path d="M130,140 H332 L322,152 H140 Z" fill="#94a3b8"/>
+        <text x="231" y="170" text-anchor="middle" style="font-weight:700">MacBook: Python + AI</text>
+        <text x="231" y="184" text-anchor="middle" class="sm">the brain</text>
+        <path d="M318,92 H472" stroke="#64748b" stroke-width="8" stroke-linecap="round"/>
+        <text x="395" y="68" text-anchor="middle" style="font-weight:700">USB cable</text>
+        <text x="395" y="120" text-anchor="middle" class="sm">a one-letter message</text>
+        <rect x="472" y="40" width="154" height="100" rx="12" fill="#0f8a8f"/>
+        <text x="488" y="72" class="w" style="font-size:20px">UNO</text>
+        <rect x="488" y="86" width="100" height="38" rx="4" fill="#1d4ed8" stroke="#1e3a8a" stroke-width="3"/>
+        <circle cx="606" cy="105" r="9" fill="#1f2340"/><circle cx="606" cy="105" r="3" fill="#94a3b8"/>
+        <text x="549" y="162" text-anchor="middle" style="font-weight:700">Arduino</text>
+        <text x="549" y="177" text-anchor="middle" class="sm">hands and voice</text>
+        <g id="pipe-letter" transform="translate(322,92)">
+          <circle r="17" fill="#16a34a" stroke="#fff" stroke-width="3"/>
+          <text id="pipe-letter-text" y="6" text-anchor="middle" class="mono" style="fill:#fff;font-size:18px">F</text>
+        </g>
+      </svg>
+      <figcaption>The message travels down the same USB cable you use for uploading.</figcaption>
+    </figure>
+    <div class="btn-row">
+      <button class="btn big pipe-key" type="button" style="--k:var(--s1)" data-ch="F" data-sees="The AI spots a face." data-does="it greets you and plays a tune.">🙂 A face appears</button>
+      <button class="btn big pipe-key" type="button" style="--k:var(--s3)" data-ch="N" data-sees="Nobody is there any more." data-does="it goes back to waiting.">🚶 The face leaves</button>
+      <button class="btn big pipe-key" type="button" style="--k:var(--s5)" data-ch="3" data-sees="The AI counts 3 fingers." data-does="it shows 3 bars and beeps 3 times.">✋ 3 fingers</button>
+      <button class="btn big pipe-key" type="button" style="--k:var(--s4)" data-ch="s" data-sees="The AI sees a peace sign." data-does="it plays a round with your scissors.">✌️ Scissors</button>
+    </div>
+    <div class="lcd"><div class="lcd-screen" id="pipe-screen" aria-hidden="true"></div></div>
+    <p class="say" id="pipe-say" aria-live="polite">Tap a button and watch the letter fly.</p>
+  </div>
+  <p>The Arduino doesn't know or care that an AI is involved. To it, a message is just another input.</p>
+  <p><a class="peek" href="inside-the-robot.html#level1">🔬 Peek inside: swap the input, and the robot's brain stays the same →</a></p>
+</section>
+
+<!-- ============ HOW THE AI SEES ============ -->
+<section class="card" id="hand-toy">
+  <h2><span aria-hidden="true">🖐️</span> How the AI sees</h2>
+  <p>An AI <b>model</b> is a program that learned from many thousands of example photos. Nobody wrote rules like "a face has two eyes". The model found its own patterns by practicing.</p>
+  <ul>
+    <li>The <b>face model</b> draws a box around each face and says how sure it is, like <i>93% sure</i>.</li>
+    <li>The <b>hand model</b> finds <b>21 points</b> on your hand: the wrist, plus 4 points on each finger.</li>
+  </ul>
+  <div class="hand-lab">
+    <h3>Try it: tap a finger to fold it</h3>
+    <div class="lab">
+      <div>
+        <figure class="diagram">
+          <svg class="hand-svg" id="hand-svg" viewBox="30 30 290 345" role="img" aria-label="A hand with 21 numbered points. Tap a finger to fold or unfold it."></svg>
+          <figcaption><span style="color:#16a34a;font-weight:700">Solid line</span> = fingertip to wrist. <span style="color:#2563eb;font-weight:700">Dotted line</span> = middle joint to wrist.</figcaption>
+        </figure>
+        <div class="finger-btns">
+          <button class="fbtn up" type="button" aria-pressed="true">Thumb<small>UP</small></button>
+          <button class="fbtn up" type="button" aria-pressed="true">Index<small>UP</small></button>
+          <button class="fbtn up" type="button" aria-pressed="true">Middle<small>UP</small></button>
+          <button class="fbtn up" type="button" aria-pressed="true">Ring<small>UP</small></button>
+          <button class="fbtn up" type="button" aria-pressed="true">Pinky<small>UP</small></button>
+        </div>
+      </div>
+      <div class="lab-side">
+        <div class="count-row"><b class="big-count" id="hand-count">5</b><span>fingers up<br>(counted by our code)</span></div>
+        <div class="lcd"><div class="lcd-screen" id="hand-screen" aria-hidden="true"></div></div>
+        <p class="say" id="hand-say" aria-live="polite">Fold a finger and watch the robot's screen.</p>
+        <div class="rule-out" id="hand-rule"></div>
+        <div class="echo-readout"><div>The AI's name for this shape <b id="hand-shape" style="font-size:1.1rem">✋ Open_Palm (paper)</b></div></div>
+        <div class="btn-row">
+          <button class="btn big shape-btn" type="button" style="--k:var(--s2)" data-shape="00000" aria-label="Fist">✊</button>
+          <button class="btn big shape-btn" type="button" style="--k:var(--s5)" data-shape="11111" aria-label="Open hand">✋</button>
+          <button class="btn big shape-btn" type="button" style="--k:var(--s4)" data-shape="01100" aria-label="Peace sign">✌️</button>
+          <button class="btn big shape-btn" type="button" style="--k:var(--s3)" data-shape="11001" aria-label="I love you sign">🤟</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p>The AI only gives us the 21 points. <b>Counting is our own code</b>, with one rule: a finger is <b>up</b> when its tip is <b>farther from the wrist</b> than its middle joint. The hand model also knows a few whole shapes by name, like ✊ fist, ✋ open hand and ✌️ peace sign.</p>
+  <div class="tip">
+    <strong>🔒 Private eyes</strong>
+    Everything runs on the MacBook. No pictures are sent anywhere, and the AI works without internet once it's set up.
+  </div>
+  <p><a class="peek" href="inside-the-robot.html#level5">🔬 Peek inside: why is the UNO too small for AI? →</a></p>
+</section>
+
+<!-- ============ SIMULATOR ============ -->
+<section class="card">
+  <h2><span aria-hidden="true">🎮</span> Play it before you build it</h2>
+  <p>This is the game you're about to build. Pick your move and watch the robot's screen. It keeps score, just like the real one.</p>
+  <div class="rps-sim">
+    <div class="rps-moves">
+      <button class="rps-btn" type="button" data-move="0" style="--k:var(--s2)" aria-label="Rock">✊<small>Rock</small></button>
+      <button class="rps-btn" type="button" data-move="1" style="--k:var(--s5)" aria-label="Paper">✋<small>Paper</small></button>
+      <button class="rps-btn" type="button" data-move="2" style="--k:var(--s4)" aria-label="Scissors">✌️<small>Scissors</small></button>
+    </div>
+    <div style="text-align:center"><div class="lcd"><div class="lcd-screen" id="rps-screen" aria-hidden="true"></div></div></div>
+    <p class="say" id="rps-say" aria-live="polite" style="text-align:center">Rock, paper or scissors?</p>
+    <div class="echo-readout">
+      <div>You <b id="rps-you">0</b></div>
+      <div>Robot <b id="rps-robot">0</b></div>
+    </div>
+    <div class="btn-row"><button class="btn big ghost" id="rps-reset" type="button">🔄 Press the robot's reset button</button></div>
+    <p class="time">Turn your sound on. In the real game you don't tap: you show your hand to the camera.</p>
+  </div>
+</section>
+
+<!-- ============ PARTS ============ -->
+<section class="card">
+  <h2><span aria-hidden="true">🧰</span> Gather the parts</h2>
+  <p>Nothing new from the kit this time. Check these off:</p>
+  <ul class="parts">
+    <li><label>
+      <svg viewBox="0 0 48 48" aria-hidden="true"><rect x="3" y="20" width="26" height="22" rx="3" fill="#0f8a8f"/><rect x="1" y="24" width="7" height="7" fill="#cbd5e1"/><rect x="12" y="22" width="14" height="2.5" fill="#1f2340"/><rect x="12" y="37" width="14" height="2.5" fill="#1f2340"/><rect x="18" y="5" width="28" height="16" rx="2" fill="#15803d"/><rect x="21" y="8" width="22" height="10" rx="1" fill="#1d4ed8"/><g fill="#fff"><rect x="23" y="10" width="2" height="2.5"/><rect x="26.5" y="10" width="2" height="2.5"/><rect x="30" y="10" width="2" height="2.5"/><rect x="33.5" y="10" width="2" height="2.5"/></g><circle cx="39" cy="34" r="6" fill="#1f2340"/><circle cx="39" cy="34" r="2" fill="#94a3b8"/></svg>
+      <span class="txt">Your Chapter 1 gadget<span class="hint">UNO, breadboard, screen, knob and buzzer, all still wired.</span></span>
+      <input type="checkbox" class="part-box"></label></li>
+    <li><label>
+      <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M14,14 C14,34 34,14 34,34" fill="none" stroke="#64748b" stroke-width="4" stroke-linecap="round"/><rect x="7" y="3" width="14" height="12" rx="2" fill="#cbd5e1" stroke="#64748b" stroke-width="2"/><rect x="11" y="6" width="2.5" height="4" fill="#64748b"/><rect x="15" y="6" width="2.5" height="4" fill="#64748b"/><rect x="28" y="33" width="12" height="12" rx="2" fill="#1f2340"/></svg>
+      <span class="txt">The USB cable<span class="hint">It stays plugged into the MacBook the whole time. It carries the messages.</span></span>
+      <input type="checkbox" class="part-box"></label></li>
+    <li><label>
+      <svg viewBox="0 0 48 48" aria-hidden="true"><rect x="8" y="8" width="32" height="24" rx="3" fill="#1f2340"/><rect x="11" y="12" width="26" height="17" fill="#38bdf8"/><circle cx="24" cy="10" r="1.3" fill="#22c55e"/><path d="M3,34 H45 L41,40 H7 Z" fill="#94a3b8"/><circle cx="24" cy="20" r="5" fill="#fcd34d"/></svg>
+      <span class="txt">A MacBook with a camera<span class="hint">It needs an Apple silicon chip (M1 or newer). Check: Apple menu → About This Mac → Chip.</span></span>
+      <input type="checkbox" class="part-box"></label></li>
+    <li><label>
+      <svg viewBox="0 0 48 48" aria-hidden="true"><g fill="none" stroke="#2563eb" stroke-width="4" stroke-linecap="round"><path d="M6,20 Q24,2 42,20"/><path d="M12,27 Q24,15 36,27"/><path d="M18,34 Q24,28 30,34"/></g><circle cx="24" cy="40" r="3.5" fill="#2563eb"/></svg>
+      <span class="txt">Internet<span class="hint">Only for Step 1. After that, the AI works offline.</span></span>
+      <input type="checkbox" class="part-box"></label></li>
+    <li><label>
+      <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M8,24 v-8 a7,7 0 0 1 14,0 v8 z" fill="#ef4444"/><rect x="6" y="23" width="18" height="3" rx="1" fill="#b91c1c"/><g stroke="#94a3b8" stroke-width="2"><line x1="11" y1="26" x2="11" y2="44"/><line x1="19" y1="26" x2="19" y2="39"/><line x1="28" y1="34" x2="46" y2="34"/></g><rect x="30" y="29" width="14" height="10" rx="4" fill="#e8c98a"/><rect x="33" y="29" width="2" height="10" fill="#ef4444"/><rect x="36" y="29" width="2" height="10" fill="#ef4444"/><rect x="39" y="29" width="2" height="10" fill="#92400e"/></svg>
+      <span class="txt">Optional: 1 LED and a 220 Ω resistor<span class="hint">For a light on pin 7. No LED? Everything still works without it.</span></span>
+      <input type="checkbox" class="part-box"></label></li>
+  </ul>
+</section>
+
+<!-- ============ STEP 1 ============ -->
+<section class="card step" id="step1" style="--c:var(--s1)">
+  <div class="step-head">
+    <div class="step-title">
+      <span class="step-emoji" aria-hidden="true">🧰</span>
+      <div>
+        <span class="step-num">Step 1</span>
+        <h2>Set up the AI</h2>
+        <span class="time">⏱ About 25 minutes · a parent job · needs internet</span>
+      </div>
+    </div>
+    <label class="done-label"><input type="checkbox" class="done-box" data-step="1"> Done</label>
+  </div>
+  <p>You'll type commands into <b>Terminal</b>. To open it: press <b>⌘ Space</b>, type <i>Terminal</i>, press <b>Return</b>. Copy each command, paste it, press Return, and wait for it to finish.</p>
+  <ol class="cmds">
+    <li><b>Install uv</b>, a tool that installs Python and its add-ons.
+      <div class="code-wrap">
+        <button class="copy-btn" data-target="cmd1" type="button">Copy</button>
+<pre id="cmd1">curl -LsSf https://astral.sh/uv/install.sh | sh</pre>
+      </div>
+      When it finishes, <b>close Terminal and open a new window</b>, so the Mac knows where uv is.</li>
+    <li><b>Go to this chapter's folder.</b>
+      <div class="code-wrap">
+        <button class="copy-btn" data-target="cmd2" type="button">Copy</button>
+<pre id="cmd2">cd ~/"Claude Projects/Door Greeter Bot/chapter-3-code"</pre>
+      </div>
+      <span class="time">Folder somewhere else? Type <code class="inline">cd</code> and a space, drag the <code class="inline">chapter-3-code</code> folder from Finder onto the Terminal window, and press Return.</span></li>
+    <li><b>Make a private Python 3.12</b> just for this project, and switch it on.
+      <div class="code-wrap">
+        <button class="copy-btn" data-target="cmd3" type="button">Copy</button>
+<pre id="cmd3">uv venv --python 3.12
+source .venv/bin/activate</pre>
+      </div></li>
+    <li><b>Install the add-ons:</b> camera tools, the AI, and the USB messenger.
+      <div class="code-wrap">
+        <button class="copy-btn" data-target="cmd4" type="button">Copy</button>
+<pre id="cmd4">uv pip install "mediapipe==1.0.1" opencv-python pyserial</pre>
+      </div></li>
+    <li><b>Download the two AI models</b> (the "trained brains").
+      <div class="code-wrap">
+        <button class="copy-btn" data-target="cmd5" type="button">Copy</button>
+<pre id="cmd5">curl -L -O https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite
+curl -L -O https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task</pre>
+      </div></li>
+    <li><b>Check that everything is ready.</b>
+      <div class="code-wrap">
+        <button class="copy-btn" data-target="cmd6" type="button">Copy</button>
+<pre id="cmd6">python -c "import cv2, mediapipe, serial; print('All set!')"</pre>
+      </div></li>
+  </ol>
+  <div class="term" aria-label="What Terminal should print"><span class="ok">All set!</span></div>
+  <p class="win">🏆 <b>The win:</b> the Mac says <b>All set!</b> and there are two new model files in the <code class="inline">chapter-3-code</code> folder.</p>
+  <div class="warn">
+    <strong>⚠️ Why Python 3.12?</strong>
+    The AI library (MediaPipe) doesn't support newer Python versions yet. uv downloads the right version just for this folder, so it won't touch anything else on the Mac.
+  </div>
+  <h3>Every time you open a new Terminal window</h3>
+  <p>Run these two lines first, so Terminal uses this project's private Python:</p>
+  <div class="code-wrap">
+    <button class="copy-btn" data-target="cmd7" type="button">Copy</button>
+<pre id="cmd7">cd ~/"Claude Projects/Door Greeter Bot/chapter-3-code"
+source .venv/bin/activate</pre>
+  </div>
+  <p>You'll know it worked when the line in Terminal starts with <code class="inline">(chapter-3-code)</code>.</p>
+</section>
+
+<!-- ============ STEP 2 ============ -->
+<section class="card step" id="step2" style="--c:var(--s2)">
+  <div class="step-head">
+    <div class="step-title">
+      <span class="step-emoji" aria-hidden="true">👀</span>
+      <div>
+        <span class="step-num">Step 2</span>
+        <h2>Robot eyes</h2>
+        <span class="time">⏱ About 15 minutes · camera + AI, no Arduino yet</span>
+      </div>
+    </div>
+    <label class="done-label"><input type="checkbox" class="done-box" data-step="2"> Done</label>
+  </div>
+  <p>In Terminal (with the "every time" lines done), run:</p>
+  <div class="code-wrap">
+    <button class="copy-btn" data-target="run2" type="button">Copy</button>
+<pre id="run2">python see_faces.py</pre>
+  </div>
+  <figure class="diagram">
+    <svg viewBox="0 0 600 290" role="img" aria-label="The camera window: a cartoon face with a green box around it, labelled 93 percent sure, and Faces: 1 in the corner">
+      <rect x="20" y="8" width="560" height="274" rx="12" fill="#e5e7eb" stroke="#94a3b8" stroke-width="2"/>
+      <circle cx="40" cy="24" r="5" fill="#ef4444"/><circle cx="56" cy="24" r="5" fill="#eab308"/><circle cx="72" cy="24" r="5" fill="#22c55e"/>
+      <text x="300" y="29" text-anchor="middle" class="sm" style="font-weight:700">Robot Eyes - press Q to quit</text>
+      <rect x="28" y="40" width="544" height="234" rx="4" fill="#475569"/>
+      <path d="M232,274 q0,-56 68,-56 q68,0 68,56 z" fill="#38bdf8"/>
+      <circle cx="300" cy="160" r="54" fill="#fcd34d"/>
+      <circle cx="281" cy="148" r="6" fill="#1f2340"/><circle cx="319" cy="148" r="6" fill="#1f2340"/>
+      <path d="M276,176 q24,22 48,0" fill="none" stroke="#1f2340" stroke-width="5" stroke-linecap="round"/>
+      <rect x="238" y="98" width="124" height="124" fill="none" stroke="#22c55e" stroke-width="5"/>
+      <text x="238" y="88" style="fill:#4ade80;font-size:20px;font-weight:700">93% sure</text>
+      <text x="44" y="82" style="fill:#fde047;font-size:30px;font-weight:800">Faces: 1</text>
+    </svg>
+    <figcaption>A window like this opens, with your real face in it (ours is a cartoon). Every face gets a green box and a score.</figcaption>
+  </figure>
+  <p>To stop: click the camera window and press <b>Q</b>.</p>
+  <div class="warn">
+    <strong>⚠️ The first time</strong>
+    The Mac asks whether Terminal may use the camera. Click <b>Allow</b>, then run the command again.
+  </div>
+  <h3>The important lines</h3>
+  <pre class="excerpt">for face in result.detections:
+    box = face.bounding_box
+    sure = face.categories[0].score               # 0.0 to 1.0
+    cv2.rectangle(frame, (box.origin_x, box.origin_y),
+                  (box.origin_x + box.width, box.origin_y + box.height), (0, 255, 0), 4)
+    cv2.putText(frame, f"{sure:.0%} sure", (box.origin_x, box.origin_y - 12),
+                cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)</pre>
+  <p class="cap-line"><code class="inline">sure</code> is a number from 0.0 to 1.0. The code shows it as a percent.</p>
+  <details class="code-details">
+    <summary>📜 Read the whole program: see_faces.py</summary>
+    <div class="code-wrap">
+      <button class="copy-btn" data-target="code-see" type="button">Copy code</button>
+<pre id="code-see"># Chapter 3, Step 2: Robot Eyes
+# The MacBook camera finds faces and draws a box around each one.
+# Click the camera window and press Q to quit.
+
+from pathlib import Path
+import time
+
+import cv2
+import mediapipe as mp
+
+CAMERA = 0   # if your iPhone's camera opens instead, change this to 1
+
+FACE_MODEL = Path(__file__).parent / "blaze_face_short_range.tflite"
+if not FACE_MODEL.exists():
+    raise SystemExit("Missing the face model. Do Step 1 (download the AI models) first.")
+
+options = mp.tasks.vision.FaceDetectorOptions(
+    base_options=mp.tasks.BaseOptions(model_asset_path=str(FACE_MODEL)),
+    running_mode=mp.tasks.vision.RunningMode.VIDEO,
+    min_detection_confidence=0.6,      # how sure the AI must be before it says "face"
+)
+face_finder = mp.tasks.vision.FaceDetector.create_from_options(options)
+camera = cv2.VideoCapture(CAMERA)
+
+while True:
+    ok, frame = camera.read()
+    if not ok:
+        print("Can't read the camera. See 'Camera won't open' in Troubleshooting.")
+        break
+
+    frame = cv2.flip(frame, 1)                       # mirror it, like a selfie
+    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)     # the AI wants colors in RGB order
+    image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
+    result = face_finder.detect_for_video(image, int(time.monotonic() * 1000))
+
+    for face in result.detections:
+        box = face.bounding_box
+        sure = face.categories[0].score               # 0.0 to 1.0
+        cv2.rectangle(frame, (box.origin_x, box.origin_y),
+                      (box.origin_x + box.width, box.origin_y + box.height), (0, 255, 0), 4)
+        cv2.putText(frame, f"{sure:.0%} sure", (box.origin_x, box.origin_y - 12),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+
+    cv2.putText(frame, f"Faces: {len(result.detections)}", (30, 70),
+                cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 255), 4)
+    cv2.imshow("Robot Eyes - press Q to quit", frame)
+    if cv2.waitKey(1) &amp; 0xFF == ord("q"):
+        break
+
+camera.release()
+cv2.destroyAllWindows()</pre>
+    </div>
+  </details>
+  <div class="kid">
+    <strong>🧒 Kid challenge: fool the AI</strong>
+    Watch the "% sure" number while you try:
+    <ul>
+      <li>Sunglasses, a hat, or a hand over half your face</li>
+      <li>Turn sideways, then slowly turn back</li>
+      <li>Walk far away. How far can you go before it loses you?</li>
+      <li>Hold up a photo of a face on a phone, or a drawing of a smiley face</li>
+      <li>Show it the dog, or a teddy bear</li>
+    </ul>
+    Which tricks worked? Talk about it: if it thinks a <b>photo</b> is a real face, would this be a safe way to unlock a door?
+  </div>
+  <p class="win">🏆 <b>The win:</b> a green box on every face, with how sure the AI is.</p>
+</section>
+
+<!-- ============ STEP 3 ============ -->
+<section class="card step" id="step3" style="--c:var(--s3)">
+  <div class="step-head">
+    <div class="step-title">
+      <span class="step-emoji" aria-hidden="true">🧠</span>
+      <div>
+        <span class="step-num">Step 3</span>
+        <h2>Teach the Arduino to listen</h2>
+        <span class="time">⏱ About 15 minutes · upload a sketch</span>
+      </div>
+    </div>
+    <label class="done-label"><input type="checkbox" class="done-box" data-step="3"> Done</label>
+  </div>
+  <p>Before connecting the eyes to the robot, test the robot by itself. Testers call this <b>testing one piece at a time</b>: if something breaks later, you'll know which half to check.</p>
+
+  <h3>Check the wiring</h3>
+  <figure class="diagram">
+    <svg viewBox="0 0 640 260" role="img" aria-label="Wiring picture: UNO pins 12, 11, 5, 4, 3 and 2 go to the screen, pin 8 goes to the buzzer, pin 7 goes to an optional LED, and the USB cable goes to the MacBook">
+      <rect x="20" y="20" width="170" height="220" rx="12" fill="#0f8a8f"/>
+      <text x="44" y="136" class="w" style="font-size:22px">UNO</text>
+      <g fill="#1f2340"><rect x="178" y="40" width="22" height="24"/><rect x="178" y="98" width="22" height="18"/><rect x="178" y="150" width="22" height="18"/><rect x="178" y="204" width="22" height="18"/></g>
+      <g class="w" text-anchor="end"><text x="170" y="50" class="sm">12 11 5</text><text x="170" y="63" class="sm">4 3 2</text><text x="170" y="112">8</text><text x="170" y="164">7</text><text x="170" y="218">USB</text></g>
+      <path class="wire" d="M200,52 H430" stroke="#7c3aed" stroke-width="10"/>
+      <rect x="430" y="22" width="190" height="60" rx="8" fill="#15803d"/>
+      <rect x="444" y="32" width="162" height="40" rx="4" fill="#1d4ed8" stroke="#1e3a8a" stroke-width="3"/>
+      <text x="525" y="58" text-anchor="middle" class="mono" style="fill:#fff;font-size:16px">I SEE YOU!</text>
+      <text x="315" y="40" text-anchor="middle" class="sm" style="font-weight:700">6 wires to the screen, same as Chapter 1</text>
+      <path class="wire" d="M200,107 H496" stroke="#f97316"/>
+      <circle cx="520" cy="107" r="22" fill="#1f2340"/><circle cx="520" cy="107" r="5" fill="#94a3b8"/>
+      <text x="505" y="103" class="w">+</text>
+      <text x="552" y="112" style="font-weight:700">buzzer</text>
+      <text x="340" y="98" text-anchor="middle" class="sm" style="font-weight:700">pin 8 → buzzer + leg</text>
+      <path class="wire" d="M200,159 H400" stroke="#ef4444" stroke-dasharray="2 10"/>
+      <rect x="400" y="150" width="48" height="18" rx="7" fill="#e8c98a" stroke="#92400e" stroke-width="2"/>
+      <path class="wire" d="M448,159 H496" stroke="#ef4444" stroke-dasharray="2 10"/>
+      <path d="M498,171 v-16 a12,12 0 0 1 24,0 v16 z" fill="#ef4444"/>
+      <text x="532" y="164" style="font-weight:700">LED</text>
+      <text x="300" y="150" text-anchor="middle" class="sm" style="font-weight:700">pin 7 → 220 Ω → LED (optional)</text>
+      <path class="wire" d="M200,213 H452" stroke="#64748b" stroke-width="8"/>
+      <rect x="452" y="188" width="62" height="40" rx="4" fill="#1f2340"/><rect x="457" y="193" width="52" height="30" fill="#38bdf8"/>
+      <path d="M442,228 H524 L518,236 H448 Z" fill="#94a3b8"/>
+      <text x="532" y="216" style="font-weight:700">MacBook</text>
+      <text x="326" y="203" text-anchor="middle" class="sm" style="font-weight:700">USB cable: this is how the messages arrive</text>
+    </svg>
+    <figcaption>Nothing new to build. The screen and buzzer are wired exactly as in Chapter 1.</figcaption>
+  </figure>
+  <div class="table-scroll">
+  <table>
+    <tr><th>UNO pin</th><th>Goes to</th></tr>
+    <tr><td class="pin">12, 11, 5, 4, 3, 2</td><td>The LCD screen (same as Chapter 1)</td></tr>
+    <tr><td class="pin">8</td><td>Passive buzzer <b>+</b> leg</td></tr>
+    <tr><td class="pin">7</td><td>Optional: 220 Ω resistor → LED long leg. LED short leg → <b>−</b> rail</td></tr>
+    <tr><td class="pin">USB</td><td>The MacBook. This is how the messages arrive</td></tr>
+  </table>
+  </div>
+  <div class="warn">
+    <strong>⚠️ Coming from Chapter 2? Free up pin 7</strong>
+    Unplug USB first. Then pull the IR receiver's signal wire (the one from <b>Y</b>) out of UNO pin <span class="pin">7</span>. This sketch uses pin 7 to switch the LED, and two things should never push on the same pin. The receiver's other two wires can stay, or take the whole receiver out and keep it with the kit. Leave the screen, knob and buzzer alone.
+  </div>
+  <div class="tip">
+    <strong>💡 Coming straight from Chapter 1?</strong>
+    Nothing to change. The ultrasonic sensor can stay plugged in. This chapter just doesn't use it.
+  </div>
+
+  <h3>Upload this code</h3>
+  <p>In the Arduino IDE: <b>File → New Sketch</b>, delete what's there, paste this, and upload. Or open the ready-made file <code class="inline">chapter-3-code/robot_brain/robot_brain.ino</code>.</p>
+  <div class="code-wrap">
+    <button class="copy-btn" data-target="code-ino" type="button">Copy code</button>
+<pre id="code-ino">// Chapter 3: Robot Brain
+// The Arduino listens to the MacBook over the USB cable.
+// The MacBook does the seeing. The Arduino does the beeping, blinking, and talking.
+//
+// Messages it understands (one letter each):
+//   F = I see a face          N = nobody there
+//   0 to 5 = number of fingers
+//   r = rock    p = paper    s = scissors
+#include &lt;LiquidCrystal.h&gt;
+
+LiquidCrystal lcd(12, 11, 5, 4, 3, 2);   // RS, E, D4, D5, D6, D7
+
+const int BUZZER_PIN = 8;
+const int LED_PIN    = 7;
+
+// Change these! Max 16 characters each.
+const char* greetings[] = {
+  "Hello, human!",
+  "Nice face!",
+  "Welcome back!",
+  "Robot says hi!",
+  "Looking sharp!"
+};
+const int NUM_GREETINGS = sizeof(greetings) / sizeof(greetings[0]);
+
+const char* MOVES[] = {"ROCK", "PAPER", "SCISSORS"};
+int yourScore = 0;
+int robotScore = 0;
+
+void setup() {
+  pinMode(BUZZER_PIN, OUTPUT);
+  pinMode(LED_PIN, OUTPUT);
+  Serial.begin(9600);
+  lcd.begin(16, 2);
+  randomSeed(analogRead(A0));
+  showIdle();
+  Serial.println("Robot brain ready! Type F, N, 0-5, r, p or s.");
+}
+
+void loop() {
+  if (Serial.available() &gt; 0) {          // did a message arrive?
+    char message = Serial.read();
+
+    if (message == 'F') sawFace();
+    else if (message == 'N') showIdle();
+    else if (message &gt;= '0' &amp;&amp; message &lt;= '5') showFingers(message - '0');
+    else if (message == 'r') playRound(0);
+    else if (message == 'p') playRound(1);
+    else if (message == 's') playRound(2);
+    // anything else (like the Enter key) is ignored
+  }
+}
+
+void showIdle() {
+  digitalWrite(LED_PIN, LOW);
+  lcd.clear();
+  lcd.print("Robot eyes: ON");
+  lcd.setCursor(0, 1);
+  lcd.print("Waiting...");
+}
+
+void sawFace() {
+  Serial.println("Got F: I see a face!");
+  digitalWrite(LED_PIN, HIGH);
+  lcd.clear();
+  lcd.print("I SEE YOU!");
+  lcd.setCursor(0, 1);
+  lcd.print(greetings[random(NUM_GREETINGS)]);
+  playHello();
+}
+
+void showFingers(int count) {
+  Serial.print("Got fingers: ");
+  Serial.println(count);
+  digitalWrite(LED_PIN, HIGH);
+  lcd.clear();
+  lcd.print("Fingers: ");
+  lcd.print(count);
+  lcd.setCursor(0, 1);
+  for (int i = 0; i &lt; count; i++) {
+    lcd.print("| ");                     // one bar per finger
+  }
+  for (int i = 0; i &lt; count; i++) {      // one beep per finger
+    tone(BUZZER_PIN, 880, 80);
+    delay(150);
+  }
+}
+
+// Rock = 0, Paper = 1, Scissors = 2
+void playRound(int yourMove) {
+  int robotMove = random(3);             // the robot picks at random. Or does it?
+
+  Serial.print("You: ");
+  Serial.print(MOVES[yourMove]);
+  Serial.print("   Robot: ");
+  Serial.println(MOVES[robotMove]);
+
+  // Dramatic countdown
+  lcd.clear(); lcd.print("Rock...");     tone(BUZZER_PIN, 523, 150);  delay(350);
+  lcd.clear(); lcd.print("Paper...");    tone(BUZZER_PIN, 587, 150);  delay(350);
+  lcd.clear(); lcd.print("Scissors...");  tone(BUZZER_PIN, 659, 150);  delay(350);
+  lcd.clear(); lcd.print("SHOOT!");      tone(BUZZER_PIN, 1047, 250); delay(500);
+
+  // Show both moves
+  lcd.clear();
+  lcd.print("You:   ");
+  lcd.print(MOVES[yourMove]);
+  lcd.setCursor(0, 1);
+  lcd.print("Robot: ");
+  lcd.print(MOVES[robotMove]);
+  delay(1500);
+
+  // Who won?  0 = tie, 1 = you, 2 = robot
+  int result = (yourMove - robotMove + 3) % 3;
+  lcd.clear();
+  if (result == 0) {
+    lcd.print("TIE!");
+    playTie();
+  } else if (result == 1) {
+    lcd.print("YOU WIN!");
+    yourScore++;
+    playWin();
+  } else {
+    lcd.print("ROBOT WINS!");
+    robotScore++;
+    playLose();
+  }
+  lcd.setCursor(0, 1);
+  lcd.print("You ");
+  lcd.print(yourScore);
+  lcd.print(" Robot ");
+  lcd.print(robotScore);
+}
+
+// ---------- Sounds ----------
+void playHello() {
+  int notes[] = {523, 659, 784, 1047};     // C, E, G, high C
+  for (int i = 0; i &lt; 4; i++) {
+    tone(BUZZER_PIN, notes[i], 150);
+    delay(180);
+  }
+}
+
+void playWin() {
+  int notes[] = {784, 988, 1175, 1568};    // a happy climb
+  for (int i = 0; i &lt; 4; i++) {
+    tone(BUZZER_PIN, notes[i], 120);
+    delay(140);
+  }
+}
+
+void playLose() {
+  int notes[] = {392, 370, 349, 330};      // sad trombone
+  for (int i = 0; i &lt; 4; i++) {
+    tone(BUZZER_PIN, notes[i], 250);
+    delay(300);
+  }
+}
+
+void playTie() {
+  tone(BUZZER_PIN, 659, 200);
+  delay(250);
+  tone(BUZZER_PIN, 659, 200);
+  delay(250);
+}</pre>
+  </div>
+  <p>Open the <b>Serial Monitor</b> and set it to <b>9600 baud</b>. Type one of these in the box at the top, press Return, and watch the robot. <b>Big and small letters matter!</b></p>
+  <div class="table-scroll">
+  <table>
+    <tr><th>Type</th><th>The robot does</th></tr>
+    <tr><td class="pin">F</td><td><i>I SEE YOU!</i>, a random greeting and a tune (and the LED turns on, if you have one)</td></tr>
+    <tr><td class="pin">N</td><td>Back to <i>Robot eyes: ON / Waiting...</i></td></tr>
+    <tr><td class="pin">3</td><td><i>Fingers: 3</i>, three bars, three beeps (try 0 to 5)</td></tr>
+    <tr><td class="pin">r&nbsp;&nbsp;p&nbsp;&nbsp;s</td><td>Plays a round of Rock Paper Scissors with your move</td></tr>
+  </table>
+  </div>
+  <div class="warn">
+    <strong>⚠️ Close the Serial Monitor when you're done</strong>
+    Only one program at a time can talk to the Arduino over USB. In the next steps, that program is Python.
+  </div>
+  <p class="win">🏆 <b>The win:</b> type <b>F</b> and the robot greets you. You are the AI for now!</p>
+</section>
+
+<!-- ============ STEP 4 ============ -->
+<section class="card step" id="step4" style="--c:var(--s4)">
+  <div class="step-head">
+    <div class="step-title">
+      <span class="step-emoji" aria-hidden="true">🚪</span>
+      <div>
+        <span class="step-num">Step 4</span>
+        <h2>AI door greeter</h2>
+        <span class="time">⏱ About 15 minutes · eyes + brain together</span>
+      </div>
+    </div>
+    <label class="done-label"><input type="checkbox" class="done-box" data-step="4"> Done</label>
+  </div>
+  <p>Now connect the eyes to the robot. Make sure the Serial Monitor is <b>closed</b>, then run:</p>
+  <div class="code-wrap">
+    <button class="copy-btn" data-target="run4" type="button">Copy</button>
+<pre id="run4">python face_greeter.py</pre>
+  </div>
+  <p>Step into view and the robot greets you. Leave for 2 seconds and it goes back to waiting. Come back and it greets you again.</p>
+
+  <div class="greet-toy">
+    <h3>Try it: when does Python send a message?</h3>
+    <div class="lab">
+      <div>
+        <div class="cam empty" id="greet-cam" aria-hidden="true"><span class="status" id="greet-status">Waiting for a face...</span><span class="box">🙂</span></div>
+        <div class="btn-row">
+          <button class="btn big" id="greet-toggle" type="button" style="--k:var(--s4)">🙂 Step into view</button>
+          <button class="btn big" id="greet-blink" type="button" style="--k:var(--s3)" disabled>👀 Look away for a moment</button>
+        </div>
+        <p style="margin:6px 0"><b>STAY_GONE_SECONDS =</b>
+          <span class="seg" id="greet-seg">
+            <button class="seg-btn" type="button" data-sec="0" aria-pressed="false">0</button>
+            <button class="seg-btn on" type="button" data-sec="2" aria-pressed="true">2</button>
+            <button class="seg-btn" type="button" data-sec="10" aria-pressed="false">10</button>
+          </span></p>
+      </div>
+      <div class="lab-side">
+        <div class="lcd"><div class="lcd-screen" id="greet-screen" aria-hidden="true"></div></div>
+        <div class="msglog" id="greet-log" aria-live="polite">(no messages yet)</div>
+        <p class="time" id="greet-counts">Camera pictures checked: 0 · Messages sent: 0</p>
+      </div>
+    </div>
+  </div>
+  <p>Python only sends a message when something <b>changes</b>: a face arrives (<b>F</b>) or a face leaves (<b>N</b>). It doesn't shout "F F F F" 30 times a second.</p>
+  <h3>The important lines</h3>
+  <pre class="excerpt">if result.detections:                            # a face is here
+    last_seen = now
+    if not greeted:
+        arduino.write(b"F")                      # tell the Arduino: say hi!
+        print("Face! Sent F")
+        greeted = True
+elif greeted and now - last_seen &gt; STAY_GONE_SECONDS:
+    arduino.write(b"N")                          # tell the Arduino: nobody here
+    print("Gone. Sent N")
+    greeted = False</pre>
+  <details class="code-details">
+    <summary>📜 Read the whole program: face_greeter.py</summary>
+    <div class="code-wrap">
+      <button class="copy-btn" data-target="code-greet" type="button">Copy code</button>
+<pre id="code-greet"># Chapter 3, Step 4: AI Door Greeter
+# When the camera sees a face, tell the Arduino "F".
+# When the face has been gone for a while, tell it "N".
+# Click the camera window and press Q to quit.
+
+from pathlib import Path
+import glob
+import time
+
+import cv2
+import mediapipe as mp
+import serial
+
+CAMERA = 0                 # if your iPhone's camera opens instead, change this to 1
+STAY_GONE_SECONDS = 2      # how long the face must be gone before the robot resets
+
+
+def connect_to_arduino():
+    ports = (glob.glob("/dev/cu.usbmodem*") + glob.glob("/dev/cu.usbserial*")
+             + glob.glob("/dev/cu.wchusbserial*"))
+    if not ports:
+        raise SystemExit("No Arduino found. Is the USB cable plugged in?")
+    try:
+        arduino = serial.Serial(ports[0], 9600)
+    except serial.SerialException:
+        raise SystemExit("The Arduino is busy. Close the Serial Monitor, then try again.")
+    print("Connected to the Arduino on", ports[0])
+    time.sleep(2)          # the Arduino restarts when we connect, so give it a moment
+    return arduino
+
+
+FACE_MODEL = Path(__file__).parent / "blaze_face_short_range.tflite"
+if not FACE_MODEL.exists():
+    raise SystemExit("Missing the face model. Do Step 1 (download the AI models) first.")
+
+options = mp.tasks.vision.FaceDetectorOptions(
+    base_options=mp.tasks.BaseOptions(model_asset_path=str(FACE_MODEL)),
+    running_mode=mp.tasks.vision.RunningMode.VIDEO,
+    min_detection_confidence=0.6,
+)
+face_finder = mp.tasks.vision.FaceDetector.create_from_options(options)
+arduino = connect_to_arduino()
+camera = cv2.VideoCapture(CAMERA)
+
+greeted = False            # have we already said hi to this face?
+last_seen = 0.0            # when did we last see a face?
+
+while True:
+    ok, frame = camera.read()
+    if not ok:
+        print("Can't read the camera. See 'Camera won't open' in Troubleshooting.")
+        break
+
+    frame = cv2.flip(frame, 1)
+    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
+    result = face_finder.detect_for_video(image, int(time.monotonic() * 1000))
+    now = time.monotonic()
+
+    if result.detections:                            # a face is here
+        last_seen = now
+        if not greeted:
+            arduino.write(b"F")                      # tell the Arduino: say hi!
+            print("Face! Sent F")
+            greeted = True
+    elif greeted and now - last_seen &gt; STAY_GONE_SECONDS:
+        arduino.write(b"N")                          # tell the Arduino: nobody here
+        print("Gone. Sent N")
+        greeted = False
+
+    for face in result.detections:
+        box = face.bounding_box
+        cv2.rectangle(frame, (box.origin_x, box.origin_y),
+                      (box.origin_x + box.width, box.origin_y + box.height), (0, 255, 0), 4)
+
+    status = "Greeted!" if greeted else "Waiting for a face..."
+    cv2.putText(frame, status, (30, 70), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 255), 4)
+    cv2.imshow("AI Door Greeter - press Q to quit", frame)
+    if cv2.waitKey(1) &amp; 0xFF == ord("q"):
+        break
+
+arduino.write(b"N")        # leave the robot in its waiting screen
+arduino.close()
+camera.release()
+cv2.destroyAllWindows()</pre>
+    </div>
+  </details>
+  <div class="kid">
+    <strong>🧒 Kid challenge: the waiting number</strong>
+    Open <code class="inline">face_greeter.py</code> and change <code class="inline">STAY_GONE_SECONDS = 2</code> to <code class="inline">0</code>. Run it again and look away for a moment. What goes wrong? Now try <code class="inline">10</code>. Which number feels best?
+  </div>
+  <div class="kid">
+    <strong>🧒 Kid challenge: your own greetings</strong>
+    Write your own greetings in <code class="inline">robot_brain.ino</code> (16 characters at most). To upload: press <b>Q</b> to stop Python first, upload, then run Python again.
+  </div>
+  <p class="win">🏆 <b>The win:</b> walk into view and the robot says hi, all by itself.</p>
+</section>
+
+<!-- ============ STEP 5 ============ -->
+<section class="card step" id="step5" style="--c:var(--s5)">
+  <div class="step-head">
+    <div class="step-title">
+      <span class="step-emoji" aria-hidden="true">✋</span>
+      <div>
+        <span class="step-num">Step 5</span>
+        <h2>Finger counter</h2>
+        <span class="time">⏱ About 20 minutes · hands!</span>
+      </div>
+    </div>
+    <label class="done-label"><input type="checkbox" class="done-box" data-step="5"> Done</label>
+  </div>
+  <div class="code-wrap">
+    <button class="copy-btn" data-target="run5" type="button">Copy</button>
+<pre id="run5">python finger_counter.py</pre>
+  </div>
+  <p>Hold your hand up to the camera. The AI draws your hand's skeleton, and the robot shows how many fingers are up and beeps that many times.</p>
+
+  <h3>How it counts</h3>
+  <figure class="diagram">
+    <svg viewBox="0 0 600 220" role="img" aria-label="Left: a straight finger, its tip is farther from the wrist than its middle joint, so it is up. Right: a curled finger, its tip is closer to the wrist than its middle joint, so it is down.">
+      <g stroke-linecap="round" stroke-linejoin="round" fill="none">
+        <path d="M126,118 V36" stroke="#b45309" stroke-width="32"/>
+        <path d="M416,118 V84 L428,100 L432,126" stroke="#b45309" stroke-width="32"/>
+        <g fill="#fcd34d" stroke="#b45309" stroke-width="3">
+          <circle cx="152" cy="114" r="13"/><circle cx="172" cy="116" r="13"/><circle cx="190" cy="121" r="12"/>
+          <circle cx="442" cy="114" r="13"/><circle cx="462" cy="116" r="13"/><circle cx="480" cy="121" r="12"/>
+          <rect x="100" y="112" width="104" height="80" rx="22"/>
+          <rect x="390" y="112" width="104" height="80" rx="22"/>
+        </g>
+        <path d="M126,124 V36" stroke="#fcd34d" stroke-width="26"/>
+        <path d="M416,124 V84 L428,100 L432,126" stroke="#fcd34d" stroke-width="26"/>
+        <path d="M108,150 q22,-4 34,10" stroke="#b45309" stroke-width="3"/>
+        <path d="M398,150 q22,-4 34,10" stroke="#b45309" stroke-width="3"/>
+      </g>
+      <path d="M126,36 L150,184" stroke="#16a34a" stroke-width="4"/>
+      <path d="M126,80 L150,184" stroke="#2563eb" stroke-width="4" stroke-dasharray="3 7" stroke-linecap="round"/>
+      <path d="M432,126 L440,184" stroke="#dc2626" stroke-width="4"/>
+      <path d="M416,84 L440,184" stroke="#2563eb" stroke-width="4" stroke-dasharray="3 7" stroke-linecap="round"/>
+      <g fill="#c026d3" stroke="#fff" stroke-width="1.5"><circle cx="150" cy="184" r="9"/><circle cx="126" cy="80" r="9"/><circle cx="126" cy="36" r="9"/><circle cx="440" cy="184" r="9"/><circle cx="416" cy="84" r="9"/><circle cx="432" cy="126" r="9"/></g>
+      <g text-anchor="middle"><text x="150" y="187.5" class="dotnum">0</text><text x="126" y="83.5" class="dotnum">6</text><text x="126" y="39.5" class="dotnum">8</text><text x="440" y="187.5" class="dotnum">0</text><text x="416" y="87.5" class="dotnum">6</text><text x="432" y="129.5" class="dotnum">8</text></g>
+      <text x="220" y="60" style="font-weight:700;fill:#15803d">Tip (8) is farther</text>
+      <text x="220" y="78" style="font-weight:700;fill:#15803d">from the wrist (0)</text>
+      <text x="220" y="96" style="font-weight:700;fill:#15803d">than the joint (6)</text>
+      <text x="220" y="124" style="font-weight:800;font-size:20px;fill:#15803d">UP ☝️</text>
+      <text x="510" y="60" style="font-weight:700;fill:#dc2626">Tip (8) is</text>
+      <text x="510" y="78" style="font-weight:700;fill:#dc2626">closer than</text>
+      <text x="510" y="96" style="font-weight:700;fill:#dc2626">the joint (6)</text>
+      <text x="510" y="124" style="font-weight:800;font-size:20px;fill:#dc2626">DOWN</text>
+    </svg>
+    <figcaption>When you curl a finger, the tip folds back toward your wrist. <a href="#hand-toy">Play with the hand toy again ↑</a></figcaption>
+  </figure>
+  <p>The <b>thumb</b> gets its own rule, because it bends sideways: it's up when its tip is farther from the pinky's knuckle than its own middle joint is.</p>
+  <pre class="excerpt">def fingers_up(points):
+    """Returns 5 True/False values: thumb, index, middle, ring, pinky. True = up."""
+    def far(a, b):
+        return math.dist(points[a], points[b])
+    # Thumb: up if its tip is farther from the pinky knuckle (17) than its middle joint (3) is
+    thumb = far(4, 17) &gt; far(3, 17)
+    # Other fingers: up if the tip is farther from the wrist (0) than the middle joint is
+    others = [far(tip, 0) &gt; far(joint, 0) for tip, joint in FINGER_TIPS_AND_JOINTS]
+    return [thumb] + others</pre>
+  <details class="code-details">
+    <summary>📜 Read the whole program: finger_counter.py</summary>
+    <div class="code-wrap">
+      <button class="copy-btn" data-target="code-fingers" type="button">Copy code</button>
+<pre id="code-fingers"># Chapter 3, Step 5: Finger Counter
+# The AI finds 21 points on your hand. We use them to count your fingers
+# and send the number (0 to 5) to the Arduino.
+# Click the camera window and press Q to quit.
+
+from pathlib import Path
+import glob
+import math
+import time
+
+import cv2
+import mediapipe as mp
+import serial
+
+CAMERA = 0              # if your iPhone's camera opens instead, change this to 1
+HOLD_SECONDS = 0.5      # hold the same number this long before it counts
+
+# The 21 hand points: 0 = wrist, 4 = thumb tip, 8 = index tip,
+# 12 = middle tip, 16 = ring tip, 20 = pinky tip.
+FINGER_TIPS_AND_JOINTS = [(8, 6), (12, 10), (16, 14), (20, 18)]   # index, middle, ring, pinky
+HAND_LINES = [(0, 1), (1, 2), (2, 3), (3, 4), (0, 5), (5, 6), (6, 7), (7, 8),
+              (5, 9), (9, 10), (10, 11), (11, 12), (9, 13), (13, 14), (14, 15),
+              (15, 16), (13, 17), (17, 18), (18, 19), (19, 20), (0, 17)]
+
+
+def connect_to_arduino():
+    ports = (glob.glob("/dev/cu.usbmodem*") + glob.glob("/dev/cu.usbserial*")
+             + glob.glob("/dev/cu.wchusbserial*"))
+    if not ports:
+        raise SystemExit("No Arduino found. Is the USB cable plugged in?")
+    try:
+        arduino = serial.Serial(ports[0], 9600)
+    except serial.SerialException:
+        raise SystemExit("The Arduino is busy. Close the Serial Monitor, then try again.")
+    print("Connected to the Arduino on", ports[0])
+    time.sleep(2)          # the Arduino restarts when we connect, so give it a moment
+    return arduino
+
+
+def fingers_up(points):
+    """Returns 5 True/False values: thumb, index, middle, ring, pinky. True = up."""
+    def far(a, b):
+        return math.dist(points[a], points[b])
+    # Thumb: up if its tip is farther from the pinky knuckle (17) than its middle joint (3) is
+    thumb = far(4, 17) &gt; far(3, 17)
+    # Other fingers: up if the tip is farther from the wrist (0) than the middle joint is
+    others = [far(tip, 0) &gt; far(joint, 0) for tip, joint in FINGER_TIPS_AND_JOINTS]
+    return [thumb] + others
+
+
+def draw_hand(frame, points):
+    for a, b in HAND_LINES:
+        cv2.line(frame, points[a], points[b], (255, 255, 255), 3)
+    for point in points:
+        cv2.circle(frame, point, 7, (255, 0, 255), -1)
+
+
+HAND_MODEL = Path(__file__).parent / "gesture_recognizer.task"
+if not HAND_MODEL.exists():
+    raise SystemExit("Missing the hand model. Do Step 1 (download the AI models) first.")
+
+options = mp.tasks.vision.GestureRecognizerOptions(
+    base_options=mp.tasks.BaseOptions(model_asset_path=str(HAND_MODEL)),
+    running_mode=mp.tasks.vision.RunningMode.VIDEO,
+    num_hands=1,
+)
+hand_ai = mp.tasks.vision.GestureRecognizer.create_from_options(options)
+arduino = connect_to_arduino()
+camera = cv2.VideoCapture(CAMERA)
+
+sent = None             # the last number we sent to the Arduino
+candidate = None        # the number we are seeing right now
+candidate_since = 0.0   # when we started seeing it
+last_hand = 0.0         # when we last saw a hand
+
+while True:
+    ok, frame = camera.read()
+    if not ok:
+        print("Can't read the camera. See 'Camera won't open' in Troubleshooting.")
+        break
+
+    frame = cv2.flip(frame, 1)
+    height, width = frame.shape[:2]
+    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
+    result = hand_ai.recognize_for_video(image, int(time.monotonic() * 1000))
+    now = time.monotonic()
+
+    count = None
+    if result.hand_landmarks:
+        hand = result.hand_landmarks[0]
+        points = [(int(p.x * width), int(p.y * height)) for p in hand]
+        draw_hand(frame, points)
+        count = sum(fingers_up(points))
+        last_hand = now
+
+    # Only send a number after it stays the same for HOLD_SECONDS
+    if count != candidate:
+        candidate = count
+        candidate_since = now
+    elif count is not None and count != sent and now - candidate_since &gt;= HOLD_SECONDS:
+        arduino.write(str(count).encode())
+        print("Sent", count)
+        sent = count
+
+    # Hand gone for a second: put the robot back to waiting
+    if count is None and sent is not None and now - last_hand &gt; 1:
+        arduino.write(b"N")
+        print("Hand gone. Sent N")
+        sent = None
+
+    label = "Show me your hand!" if count is None else f"Fingers: {count}"
+    cv2.putText(frame, label, (30, 70), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 255), 4)
+    cv2.imshow("Finger Counter - press Q to quit", frame)
+    if cv2.waitKey(1) &amp; 0xFF == ord("q"):
+        break
+
+arduino.write(b"N")
+arduino.close()
+camera.release()
+cv2.destroyAllWindows()</pre>
+    </div>
+  </details>
+  <div class="kid">
+    <strong>🧒 Kid challenge: why wait?</strong>
+    Open <code class="inline">finger_counter.py</code> and change <code class="inline">HOLD_SECONDS = 0.5</code> to <code class="inline">0</code>. Open and close your hand slowly. What does the robot do? Now try <code class="inline">2</code>. The waiting is called <b>debouncing</b>. It stops the robot from reacting to every tiny wobble.
+  </div>
+  <div class="kid">
+    <strong>🧒 Kid challenge: stump the counter</strong>
+    Which finger counts are hardest for the AI? Try 3 fingers different ways: thumb, index and middle, versus index, middle and ring.
+  </div>
+  <p class="win">🏆 <b>The win:</b> hold up 3 fingers. The screen says 3 and the robot beeps 3 times.</p>
+</section>
+
+<!-- ============ STEP 6 ============ -->
+<section class="card step" id="step6" style="--c:var(--s6); --on:#3b2500">
+  <div class="step-head">
+    <div class="step-title">
+      <span class="step-emoji" aria-hidden="true">✌️</span>
+      <div>
+        <span class="step-num">Step 6</span>
+        <h2>Rock Paper Scissors vs the robot</h2>
+        <span class="time">⏱ About 30 minutes · the big game</span>
+      </div>
+    </div>
+    <label class="done-label"><input type="checkbox" class="done-box" data-step="6"> Done</label>
+  </div>
+  <div class="code-wrap">
+    <button class="copy-btn" data-target="run6" type="button">Copy</button>
+<pre id="run6">python rps_battle.py</pre>
+  </div>
+  <h3>How to play</h3>
+  <ol>
+    <li>Show your move to the camera and <b>hold it still</b> for a moment: ✊ rock, ✋ paper, or ✌️ scissors.</li>
+    <li>Look at the robot's screen: <i>Rock... Paper... Scissors... SHOOT!</i></li>
+    <li>It shows both moves, who won, and the score.</li>
+    <li>Pull your hand away, then go again.</li>
+  </ol>
+  <figure class="diagram">
+    <svg viewBox="0 0 600 196" role="img" aria-label="A fist is called Closed_Fist by the AI, which becomes rock and the letter r. An open hand is Open_Palm, paper, p. A peace sign is Victory, scissors, s.">
+      <g text-anchor="middle">
+        <text x="100" y="52" style="font-size:46px">✊</text><text x="300" y="52" style="font-size:46px">✋</text><text x="500" y="52" style="font-size:46px">✌️</text>
+        <rect x="34" y="66" width="132" height="30" rx="10" fill="#e3edff" stroke="#2563eb" stroke-width="2"/>
+        <rect x="234" y="66" width="132" height="30" rx="10" fill="#e3edff" stroke="#2563eb" stroke-width="2"/>
+        <rect x="434" y="66" width="132" height="30" rx="10" fill="#e3edff" stroke="#2563eb" stroke-width="2"/>
+        <text x="100" y="86" class="mono">Closed_Fist</text><text x="300" y="86" class="mono">Open_Palm</text><text x="500" y="86" class="mono">Victory</text>
+        <text x="100" y="134" style="font-weight:800;font-size:17px">rock</text><text x="300" y="134" style="font-weight:800;font-size:17px">paper</text><text x="500" y="134" style="font-weight:800;font-size:17px">scissors</text>
+        <circle cx="100" cy="170" r="17" fill="#16a34a"/><circle cx="300" cy="170" r="17" fill="#16a34a"/><circle cx="500" cy="170" r="17" fill="#16a34a"/>
+        <text x="100" y="176" class="mono" style="fill:#fff;font-size:18px">r</text><text x="300" y="176" class="mono" style="fill:#fff;font-size:18px">p</text><text x="500" y="176" class="mono" style="fill:#fff;font-size:18px">s</text>
+      </g>
+      <g fill="none" stroke="#1f2340" stroke-width="3" stroke-linecap="round">
+        <path d="M100,100 V114"/><path d="M94,108 l6,7 l6,-7"/><path d="M300,100 V114"/><path d="M294,108 l6,7 l6,-7"/><path d="M500,100 V114"/><path d="M494,108 l6,7 l6,-7"/>
+        <path d="M100,140 V148"/><path d="M300,140 V148"/><path d="M500,140 V148"/>
+      </g>
+    </svg>
+    <figcaption>The AI names the shape. Our code turns the name into a move, and the move into one letter for the Arduino.</figcaption>
+  </figure>
+  <p>The camera window shows what the AI thinks it sees, like <code class="inline">Victory (91%)</code>.</p>
+  <pre class="excerpt"># The AI already knows these gestures. We turn them into game moves.
+GESTURE_TO_MOVE = {"Closed_Fist": "rock", "Open_Palm": "paper", "Victory": "scissors"}
+MOVE_TO_LETTER = {"rock": b"r", "paper": b"p", "scissors": b"s"}</pre>
+  <details class="code-details">
+    <summary>📜 Read the whole program: rps_battle.py</summary>
+    <div class="code-wrap">
+      <button class="copy-btn" data-target="code-rps" type="button">Copy code</button>
+<pre id="code-rps"># Chapter 3, Step 6: Rock Paper Scissors vs the Robot
+# The AI recognizes your hand: fist = rock, open hand = paper, peace sign = scissors.
+# The Arduino picks its own move, shows who won, and keeps score.
+# Click the camera window and press Q to quit.
+
+from pathlib import Path
+import glob
+import time
+
+import cv2
+import mediapipe as mp
+import serial
+
+CAMERA = 0                # if your iPhone's camera opens instead, change this to 1
+HOLD_SECONDS = 0.6        # hold your move this long before it counts
+ROBOT_TURN_SECONDS = 5    # how long the robot needs to play its turn
+
+# The AI already knows these gestures. We turn them into game moves.
+GESTURE_TO_MOVE = {"Closed_Fist": "rock", "Open_Palm": "paper", "Victory": "scissors"}
+MOVE_TO_LETTER = {"rock": b"r", "paper": b"p", "scissors": b"s"}
+
+HAND_LINES = [(0, 1), (1, 2), (2, 3), (3, 4), (0, 5), (5, 6), (6, 7), (7, 8),
+              (5, 9), (9, 10), (10, 11), (11, 12), (9, 13), (13, 14), (14, 15),
+              (15, 16), (13, 17), (17, 18), (18, 19), (19, 20), (0, 17)]
+
+
+def connect_to_arduino():
+    ports = (glob.glob("/dev/cu.usbmodem*") + glob.glob("/dev/cu.usbserial*")
+             + glob.glob("/dev/cu.wchusbserial*"))
+    if not ports:
+        raise SystemExit("No Arduino found. Is the USB cable plugged in?")
+    try:
+        arduino = serial.Serial(ports[0], 9600)
+    except serial.SerialException:
+        raise SystemExit("The Arduino is busy. Close the Serial Monitor, then try again.")
+    print("Connected to the Arduino on", ports[0])
+    time.sleep(2)          # the Arduino restarts when we connect, so give it a moment
+    return arduino
+
+
+def draw_hand(frame, points):
+    for a, b in HAND_LINES:
+        cv2.line(frame, points[a], points[b], (255, 255, 255), 3)
+    for point in points:
+        cv2.circle(frame, point, 7, (255, 0, 255), -1)
+
+
+HAND_MODEL = Path(__file__).parent / "gesture_recognizer.task"
+if not HAND_MODEL.exists():
+    raise SystemExit("Missing the hand model. Do Step 1 (download the AI models) first.")
+
+options = mp.tasks.vision.GestureRecognizerOptions(
+    base_options=mp.tasks.BaseOptions(model_asset_path=str(HAND_MODEL)),
+    running_mode=mp.tasks.vision.RunningMode.VIDEO,
+    num_hands=1,
+)
+hand_ai = mp.tasks.vision.GestureRecognizer.create_from_options(options)
+arduino = connect_to_arduino()
+camera = cv2.VideoCapture(CAMERA)
+
+candidate = None          # the move we are seeing right now
+candidate_since = 0.0     # when we started seeing it
+robot_busy_until = 0.0    # the robot is playing its turn until this time
+need_empty_hand = False   # after a round, pull your hand away before the next one
+
+while True:
+    ok, frame = camera.read()
+    if not ok:
+        print("Can't read the camera. See 'Camera won't open' in Troubleshooting.")
+        break
+
+    frame = cv2.flip(frame, 1)
+    height, width = frame.shape[:2]
+    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
+    result = hand_ai.recognize_for_video(image, int(time.monotonic() * 1000))
+    now = time.monotonic()
+
+    move = None
+    ai_says = "no hand"
+    if result.hand_landmarks:
+        points = [(int(p.x * width), int(p.y * height)) for p in result.hand_landmarks[0]]
+        draw_hand(frame, points)
+    if result.gestures:
+        best_guess = result.gestures[0][0]           # the AI's best guess for this hand
+        ai_says = f"{best_guess.category_name} ({best_guess.score:.0%})"
+        if best_guess.score &gt;= 0.5:
+            move = GESTURE_TO_MOVE.get(best_guess.category_name)
+
+    if now &lt; robot_busy_until:
+        message = "Look at the robot!"
+    elif need_empty_hand:
+        message = "Hand away... then go again"
+        if not result.hand_landmarks:
+            need_empty_hand = False
+    else:
+        message = "Rock, paper or scissors?"
+        if move != candidate:
+            candidate = move
+            candidate_since = now
+        elif move is not None and now - candidate_since &gt;= HOLD_SECONDS:
+            arduino.write(MOVE_TO_LETTER[move])      # send your move to the robot
+            print("You played", move)
+            robot_busy_until = now + ROBOT_TURN_SECONDS
+            need_empty_hand = True
+            candidate = None
+
+    cv2.putText(frame, message, (30, 70), cv2.FONT_HERSHEY_SIMPLEX, 1.6, (0, 255, 255), 4)
+    cv2.putText(frame, "AI sees: " + ai_says, (30, 130), cv2.FONT_HERSHEY_SIMPLEX, 1.1, (255, 255, 0), 3)
+    cv2.imshow("Rock Paper Scissors - press Q to quit", frame)
+    if cv2.waitKey(1) &amp; 0xFF == ord("q"):
+        break
+
+arduino.close()
+camera.release()
+cv2.destroyAllWindows()</pre>
+    </div>
+  </details>
+  <div class="kid">
+    <strong>🧒 Kid challenge: tournament</strong>
+    Kid 1 vs the robot, best of 5. Then Kid 2. Who beat the robot by more? Press the Arduino's reset button to clear the score.
+  </div>
+
+  <h3>🧒 Kid challenge: make the robot cheat</h3>
+  <p>Look at this line in <code class="inline">robot_brain.ino</code>:</p>
+  <pre class="excerpt">int robotMove = random(3);             // the robot picks at random. Or does it?</pre>
+  <p>The robot gets <b>your</b> move before it picks its own. Can you change this one line so the robot <b>always</b> wins?</p>
+  <p class="cap-line">Hint: Rock is 0, Paper is 1, Scissors is 2. Which number beats each one?</p>
+  <details>
+    <summary>Show the answer</summary>
+    <div class="code-wrap">
+      <button class="copy-btn" data-target="ans-cheat" type="button">Copy</button>
+<pre id="ans-cheat">  int robotMove = (yourMove + 1) % 3;   // always picks the move that beats yours</pre>
+    </div>
+    <p>Rock (0) loses to Paper (1). Paper (1) loses to Scissors (2). Scissors (2) loses to Rock, and <code class="inline">% 3</code> wraps 3 back around to 0.</p>
+    <p>Something to talk about: a game app could do this too, and you'd never see the code. How would you find out if a game was cheating?</p>
+  </details>
+
+  <h3>🏆 Boss challenge: a secret gesture</h3>
+  <p>The AI already knows more shapes than rock, paper and scissors: 👍 <b>Thumb_Up</b>, 👎 <b>Thumb_Down</b>, ☝️ <b>Pointing_Up</b>, and 🤟 <b>ILoveYou</b>. Make the robot play a special song when you show 🤟.</p>
+  <p>You'll need to change <b>both</b> programs: Python has to send a new letter, and the Arduino has to understand it. That's how real engineers add a feature that crosses from one part of a system to another.</p>
+  <details>
+    <summary>Show the answer</summary>
+    <p><b>1. In <code class="inline">rps_battle.py</code>,</b> replace the two lines near the top with:</p>
+    <div class="code-wrap">
+      <button class="copy-btn" data-target="ans-boss1" type="button">Copy</button>
+<pre id="ans-boss1">GESTURE_TO_MOVE = {"Closed_Fist": "rock", "Open_Palm": "paper", "Victory": "scissors", "ILoveYou": "love"}
+MOVE_TO_LETTER = {"rock": b"r", "paper": b"p", "scissors": b"s", "love": b"L"}</pre>
+    </div>
+    <p><b>2. In <code class="inline">robot_brain.ino</code>,</b> add this line in <code class="inline">loop()</code>, right after the line for <code class="inline">'s'</code>:</p>
+    <div class="code-wrap">
+      <button class="copy-btn" data-target="ans-boss2" type="button">Copy</button>
+<pre id="ans-boss2">    else if (message == 'L') showLove();</pre>
+    </div>
+    <p><b>3. Still in <code class="inline">robot_brain.ino</code>,</b> add this function above the <code class="inline">// ---------- Sounds ----------</code> line:</p>
+    <div class="code-wrap">
+      <button class="copy-btn" data-target="ans-boss3" type="button">Copy</button>
+<pre id="ans-boss3">void showLove() {
+  lcd.clear();
+  lcd.print("Robot loves you");
+  lcd.setCursor(0, 1);
+  lcd.print("too! &lt;3");
+  playWin();
+}</pre>
+    </div>
+    <p>Press <b>Q</b> to stop Python, upload the sketch, run <code class="inline">python rps_battle.py</code> again, and show the robot 🤟.</p>
+  </details>
+  <p class="win">🏆 <b>The win:</b> a real game against your own robot, with a scoreboard.</p>
+  <div class="celebrate" id="celebrate">
+    <span class="trophy" aria-hidden="true">🏆</span>
+    <b>Certified Robot Vision Engineers!</b>
+    You gave a robot eyes, and taught an AI and an Arduino to talk with one-letter messages. Nice work, team!
+  </div>
+</section>
+
+<!-- ============ TROUBLESHOOTING ============ -->
+<section class="card">
+  <h2><span aria-hidden="true">🕵️</span> Troubleshooting</h2>
+  <p>Detective time. Tap a problem to see what to check.</p>
+  <details>
+    <summary>"command not found: uv"</summary>
+    <p>Close Terminal and open a new window. If it still happens, run <code class="inline">source $HOME/.local/bin/env</code>.</p>
+  </details>
+  <details>
+    <summary>"No module named cv2" or "No module named mediapipe"</summary>
+    <p>You skipped the "every time" lines. Run <code class="inline">source .venv/bin/activate</code> in the <code class="inline">chapter-3-code</code> folder.</p>
+  </details>
+  <details>
+    <summary>Installing mediapipe fails ("no matching distribution")</summary>
+    <p>MediaPipe needs Python 3.12 or older and a Mac with Apple silicon. Make sure you made the private Python with <code class="inline">uv venv --python 3.12</code>.</p>
+  </details>
+  <details>
+    <summary>"Missing the face model" or "Missing the hand model"</summary>
+    <p>Run the two <code class="inline">curl</code> lines from Step 1 again, inside the <code class="inline">chapter-3-code</code> folder.</p>
+  </details>
+  <details>
+    <summary>Camera won't open ("Can't read the camera")</summary>
+    <p>The first time, the Mac asks for permission: click Allow and run it again. If you clicked Don't Allow, go to <b>System Settings → Privacy &amp; Security → Camera</b>, turn on <b>Terminal</b>, then quit and reopen Terminal.</p>
+  </details>
+  <details>
+    <summary>It opens your iPhone's camera instead</summary>
+    <p>Change <code class="inline">CAMERA = 0</code> to <code class="inline">CAMERA = 1</code> at the top of the program.</p>
+  </details>
+  <details>
+    <summary>"No Arduino found"</summary>
+    <p>Check the USB cable. In Terminal, <code class="inline">ls /dev/cu.*</code> should list something with <code class="inline">usbmodem</code> or <code class="inline">usbserial</code> in its name.</p>
+  </details>
+  <details>
+    <summary>"The Arduino is busy"</summary>
+    <p>Close the Serial Monitor in the Arduino IDE (or quit the IDE).</p>
+  </details>
+  <details>
+    <summary>Upload fails because the port is busy</summary>
+    <p>Python is still using the Arduino. Click the camera window and press <b>Q</b>, then upload.</p>
+  </details>
+  <details>
+    <summary>Pressing Q does nothing</summary>
+    <p>Click on the camera window first, then press Q. Or click the Terminal window and press <b>Control + C</b>.</p>
+  </details>
+  <details>
+    <summary>The AI keeps missing faces or hands</summary>
+    <p>Light matters. Face a window or a lamp instead of having one behind you. Stay about half a meter to a meter and a half from the camera, and keep your whole hand in the picture.</p>
+  </details>
+  <details>
+    <summary>The robot reacts late or plays old moves</summary>
+    <p>The Arduino is still finishing its last round. Wait for the score to show before the next move. If it gets confused, press the Arduino's reset button.</p>
+  </details>
+  <details>
+    <summary>Typing a letter in the Serial Monitor does nothing</summary>
+    <p>Check the Serial Monitor is set to <b>9600 baud</b>. Big and small letters are different messages: it's a big <b>F</b> and <b>N</b>, but a small <b>r</b>, <b>p</b> and <b>s</b>.</p>
+  </details>
+  <details>
+    <summary>The LED doesn't light (if you added one)</summary>
+    <p>Flip it around. The long leg must be on the pin 7 side (through the resistor). And if you came from Chapter 2, check the IR receiver's wire is out of pin 7.</p>
+  </details>
+</section>
+
+<!-- ============ WHAT'S IN THIS CHAPTER ============ -->
+<section class="card">
+  <h2><span aria-hidden="true">📁</span> What's in the folder</h2>
+  <pre>chapter-3-code/
+├── robot_brain/robot_brain.ino    ← upload this to the Arduino (Step 3)
+├── see_faces.py                   ← Step 2
+├── face_greeter.py                ← Step 4
+├── finger_counter.py              ← Step 5
+├── rps_battle.py                  ← Step 6
+├── blaze_face_short_range.tflite  (downloaded in Step 1)
+├── gesture_recognizer.task        (downloaded in Step 1)
+└── .venv/                         (made in Step 1: the private Python)</pre>
+  <p class="cap-line">Tested with: Python 3.12, MediaPipe 1.0.1, OpenCV 5.0, pyserial 3.5, LiquidCrystal 1.0.7.</p>
+</section>
+
+<!-- ============ ROUND 2 ============ -->
+<section class="card">
+  <h2><span aria-hidden="true">✨</span> Round 2 ideas</h2>
+  <p>Once Robot Eyes works, here's where it could go next:</p>
+  <ul class="ideas">
+    <li style="--k:var(--s1)"><span class="big" aria-hidden="true">📡</span><b>Wireless:</b> an ESP32 board has Wi-Fi, so the MacBook could send its messages over the home network and the robot wouldn't need the USB cable.</li>
+    <li style="--k:var(--s2)"><span class="big" aria-hidden="true">🚗</span><b>Robot car:</b> send the moves to the ELEGOO Smart Robot Car instead. Point left and it turns left.</li>
+    <li style="--k:var(--s5)"><span class="big" aria-hidden="true">🤘</span><b>Your own gestures:</b> MediaPipe can learn new hand shapes from your own photos.</li>
+    <li style="--k:var(--s3)"><span class="big" aria-hidden="true">🗣️</span><b>Keep the setup:</b> the next chapter, The Talking Robot, uses the same Python setup you made in Step 1.</li>
+  </ul>
+</section>
+
+</div>
+
+<script>
+
+  var STORAGE_KEY = "robotEyesDone";
+  var PARTS_KEY = "robotEyesParts";
+  var boxes = document.querySelectorAll(".done-box");
+  var partBoxes = document.querySelectorAll(".part-box");
+  var barFill = document.getElementById("bar-fill");
+  var progressLabel = document.getElementById("progress-label");
+  var celebrate = document.getElementById("celebrate");
+  var reducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function loadState(key) {
+    try { return JSON.parse(localStorage.getItem(key) || "{}"); }
+    catch (e) { return {}; }
+  }
+  function saveState(key, state) {
+    try { localStorage.setItem(key, JSON.stringify(state)); }
+    catch (e) { /* storage not available, that's fine */ }
+  }
+
+  var state = loadState(STORAGE_KEY);
+  var partState = loadState(PARTS_KEY);
+
+  function updateProgress() {
+    var done = 0;
+    boxes.forEach(function (box) {
+      var card = box.closest(".step");
+      card.classList.toggle("is-done", box.checked);
+      var stop = document.querySelector('.stop[data-stop="' + box.dataset.step + '"]');
+      if (stop) stop.classList.toggle("is-done", box.checked);
+      if (box.checked) done++;
+    });
+    barFill.style.width = (done / boxes.length * 100) + "%";
+    progressLabel.textContent = done + " of " + boxes.length + " steps done";
+    celebrate.classList.toggle("show", done === boxes.length);
+    return done;
+  }
+
+  function confetti() {
+    if (reducedMotion) return;
+    var colors = ["#2563eb", "#ea580c", "#7c3aed", "#db2777", "#16a34a", "#f59e0b"];
+    for (var i = 0; i < 80; i++) {
+      var bit = document.createElement("i");
+      bit.className = "confetti";
+      bit.style.left = (Math.random() * 100) + "vw";
+      bit.style.background = colors[i % colors.length];
+      bit.style.animationDuration = (2 + Math.random() * 2) + "s";
+      bit.style.animationDelay = (Math.random() * 0.8) + "s";
+      document.body.appendChild(bit);
+      setTimeout(function (el) { el.remove(); }, 5200, bit);
+    }
+  }
+
+  boxes.forEach(function (box) {
+    box.checked = !!state[box.dataset.step];
+    box.addEventListener("change", function () {
+      state[box.dataset.step] = box.checked;
+      saveState(STORAGE_KEY, state);
+      if (updateProgress() === boxes.length && box.checked) confetti();
+    });
+  });
+
+  partBoxes.forEach(function (box, i) {
+    box.checked = !!partState[i];
+    box.addEventListener("change", function () {
+      partState[i] = box.checked;
+      saveState(PARTS_KEY, partState);
+    });
+  });
+
+  document.getElementById("reset-btn").addEventListener("click", function () {
+    state = {};
+    partState = {};
+    saveState(STORAGE_KEY, state);
+    saveState(PARTS_KEY, partState);
+    boxes.forEach(function (box) { box.checked = false; });
+    partBoxes.forEach(function (box) { box.checked = false; });
+    updateProgress();
+  });
+
+  updateProgress();
+
+  /* Copy buttons */
+  function fallbackCopy(text) {
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand("copy"); } catch (e) {}
+    document.body.removeChild(ta);
+  }
+  function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text).catch(function () { fallbackCopy(text); });
+    }
+    fallbackCopy(text);
+    return Promise.resolve();
+  }
+  document.querySelectorAll(".copy-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var code = document.getElementById(btn.dataset.target).textContent;
+      var label = btn.dataset.label || (btn.dataset.label = btn.textContent);
+      copyText(code).then(function () {
+        btn.textContent = "Copied!";
+        setTimeout(function () { btn.textContent = label; }, 1500);
+      });
+    });
+  });
+
+  /* ---------- Chapter 3: pretend screens and a pretend robot brain ---------- */
+  var LCD_COLS = 16;
+  var audioCtx = null;
+  function $(id) { return document.getElementById(id); }
+
+  function buzz(freq, delaySec, durSec) {
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    try {
+      if (!audioCtx) audioCtx = new AC();
+      if (audioCtx.state === "suspended") audioCtx.resume();
+      var osc = audioCtx.createOscillator();
+      var gain = audioCtx.createGain();
+      osc.type = "square";
+      osc.frequency.value = freq;
+      gain.gain.value = 0.06;
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      var start = audioCtx.currentTime + (delaySec || 0);
+      osc.start(start);
+      osc.stop(start + durSec);
+    } catch (e) { /* no sound, that's fine */ }
+  }
+
+  function makeLcd(screen) {
+    for (var i = 0; i < LCD_COLS * 2; i++) screen.appendChild(document.createElement("span"));
+    return function (line1, line2) {
+      var cells = screen.children;
+      for (var c = 0; c < LCD_COLS; c++) {
+        cells[c].textContent = line1.charAt(c);
+        cells[LCD_COLS + c].textContent = line2.charAt(c);
+      }
+    };
+  }
+
+  /* The same rules and timing as robot_brain.ino. Messages that arrive while
+     the robot is busy wait in a line, just like on the real Arduino. */
+  var GREETINGS = ["Hello, human!", "Nice face!", "Welcome back!", "Robot says hi!", "Looking sharp!"];
+  var MOVES = ["ROCK", "PAPER", "SCISSORS"];
+
+  function makeBrain(screen, onRound) {
+    var show = makeLcd(screen);
+    var brain = { yourScore: 0, robotScore: 0, busy: false, queue: [], line1: "", line2: "", gen: 0 };
+
+    function lcd(line1, line2) {
+      brain.line1 = line1;
+      brain.line2 = line2 || "";
+      show(brain.line1, brain.line2);
+    }
+    function later(ms, fn) {
+      var gen = brain.gen;
+      setTimeout(function () { if (gen === brain.gen) fn(); }, ms);
+    }
+    function tune(notes, noteSec, gapMs) {
+      for (var i = 0; i < notes.length; i++) buzz(notes[i], i * gapMs / 1000, noteSec);
+      return notes.length * gapMs;
+    }
+    function finish() {
+      brain.busy = false;
+      if (brain.queue.length) brain.send(brain.queue.shift());
+    }
+    function showIdle() { lcd("Robot eyes: ON", "Waiting..."); }
+    function sawFace() {
+      lcd("I SEE YOU!", GREETINGS[Math.floor(Math.random() * GREETINGS.length)]);
+      brain.busy = true;
+      later(tune([523, 659, 784, 1047], 0.15, 180), finish);
+    }
+    function showFingers(count) {
+      var bars = "";
+      for (var i = 0; i < count; i++) bars += "| ";
+      lcd("Fingers: " + count, bars);
+      for (var b = 0; b < count; b++) buzz(880, b * 0.15, 0.08);
+      if (count > 0) { brain.busy = true; later(count * 150, finish); }
+    }
+    function playRound(yourMove) {
+      var robotMove = Math.floor(Math.random() * 3);
+      brain.busy = true;
+      lcd("Rock...");
+      buzz(523, 0, 0.15);
+      later(350, function () { lcd("Paper..."); buzz(587, 0, 0.15); });
+      later(700, function () { lcd("Scissors..."); buzz(659, 0, 0.15); });
+      later(1050, function () { lcd("SHOOT!"); buzz(1047, 0, 0.25); });
+      later(1550, function () { lcd("You:   " + MOVES[yourMove], "Robot: " + MOVES[robotMove]); });
+      later(3050, function () {
+        var result = (yourMove - robotMove + 3) % 3;   // 0 = tie, 1 = you, 2 = robot
+        var soundMs;
+        if (result === 0) {
+          lcd("TIE!");
+          soundMs = tune([659, 659], 0.2, 250);
+        } else if (result === 1) {
+          lcd("YOU WIN!");
+          brain.yourScore++;
+          soundMs = tune([784, 988, 1175, 1568], 0.12, 140);
+        } else {
+          lcd("ROBOT WINS!");
+          brain.robotScore++;
+          soundMs = tune([392, 370, 349, 330], 0.25, 300);
+        }
+        later(soundMs, function () {
+          lcd(brain.line1, "You " + brain.yourScore + " Robot " + brain.robotScore);
+          if (onRound) onRound(result, yourMove, robotMove);
+          finish();
+        });
+      });
+    }
+
+    brain.send = function (message) {
+      if (brain.busy) { brain.queue.push(message); return; }
+      if (message === "F") sawFace();
+      else if (message === "N") showIdle();
+      else if (message >= "0" && message <= "5") showFingers(Number(message));
+      else if (message === "r") playRound(0);
+      else if (message === "p") playRound(1);
+      else if (message === "s") playRound(2);
+      /* anything else is ignored */
+    };
+    /* like pressing the Arduino's reset button */
+    brain.reset = function () {
+      brain.gen++;
+      brain.busy = false;
+      brain.queue = [];
+      brain.yourScore = 0;
+      brain.robotScore = 0;
+      showIdle();
+    };
+    showIdle();
+    return brain;
+  }
+
+  /* ---------- The big idea: a letter flies down the USB cable ---------- */
+  var pipeBrain = makeBrain($("pipe-screen"));
+  var pipeLetter = $("pipe-letter");
+  var pipeLetterText = $("pipe-letter-text");
+  var pipeSay = $("pipe-say");
+  var pipeKeys = document.querySelectorAll(".pipe-key");
+  var PIPE_FROM = 322, PIPE_TO = 468, PIPE_Y = 92;
+
+  function flyLetter(letter, done) {
+    if (reducedMotion) { done(); return; }
+    var start = null;
+    pipeLetterText.textContent = letter;
+    pipeLetter.style.visibility = "visible";
+    function step(now) {
+      if (start === null) start = now;
+      var t = Math.min(1, (now - start) / 600);
+      pipeLetter.setAttribute("transform", "translate(" + (PIPE_FROM + (PIPE_TO - PIPE_FROM) * t) + "," + PIPE_Y + ")");
+      if (t < 1) { requestAnimationFrame(step); return; }
+      pipeLetter.style.visibility = "hidden";
+      done();
+    }
+    requestAnimationFrame(step);
+  }
+  pipeKeys.forEach(function (key) {
+    key.addEventListener("click", function () {
+      if (key.disabled) return;
+      var letter = key.dataset.ch;
+      pipeKeys.forEach(function (k) { k.disabled = true; });
+      pipeSay.textContent = key.dataset.sees + ' The MacBook sends one letter: "' + letter + '"';
+      flyLetter(letter, function () {
+        pipeBrain.send(letter);
+        pipeSay.textContent = 'The Arduino got "' + letter + '": ' + key.dataset.does;
+        pipeKeys.forEach(function (k) { k.disabled = false; });
+      });
+    });
+  });
+
+  /* ---------- How the AI sees: a hand with 21 points ---------- */
+  /* Point numbers are the same as in finger_counter.py: 0 = wrist, 4 = thumb tip,
+     8 = index tip, 12 = middle tip, 16 = ring tip, 20 = pinky tip. */
+  var SVG_NS = "http://www.w3.org/2000/svg";
+  var HAND_OPEN = [
+    [180, 350],
+    [140, 318], [108, 284], [84, 248], [66, 214],
+    [140, 220], [130, 160], [125, 120], [121, 84],
+    [175, 210], [175, 142], [175, 98], [175, 58],
+    [208, 218], [217, 156], [222, 116], [226, 80],
+    [236, 238], [254, 192], [263, 160], [270, 130]
+  ];
+  var HAND_LINES = [[0, 1], [1, 2], [2, 3], [3, 4], [0, 5], [5, 6], [6, 7], [7, 8],
+                    [5, 9], [9, 10], [10, 11], [11, 12], [9, 13], [13, 14], [14, 15],
+                    [15, 16], [13, 17], [17, 18], [18, 19], [19, 20], [0, 17]];
+  var FINGER_TIPS_AND_JOINTS = [[8, 6], [12, 10], [16, 14], [20, 18]];   // index, middle, ring, pinky
+  var FINGERS = [
+    { name: "Thumb", pts: [1, 2, 3, 4], width: 28, tip: 4, joint: 3, ref: 17 },
+    { name: "Index", pts: [5, 6, 7, 8], width: 26, tip: 8, joint: 6, ref: 0 },
+    { name: "Middle", pts: [9, 10, 11, 12], width: 26, tip: 12, joint: 10, ref: 0 },
+    { name: "Ring", pts: [13, 14, 15, 16], width: 25, tip: 16, joint: 14, ref: 0 },
+    { name: "Pinky", pts: [17, 18, 19, 20], width: 22, tip: 20, joint: 18, ref: 0 }
+  ];
+
+  /* The curled-up pose: each fingertip folds back toward the palm. */
+  var HAND_FOLD = HAND_OPEN.map(function (p) { return [p[0], p[1]]; });
+  HAND_FOLD[2] = [122, 288]; HAND_FOLD[3] = [144, 264]; HAND_FOLD[4] = [168, 252];
+  for (var hf = 1; hf < FINGERS.length; hf++) {
+    var fp = FINGERS[hf].pts;
+    var knuckle = HAND_OPEN[fp[0]];
+    var dx = HAND_OPEN[fp[1]][0] - knuckle[0], dy = HAND_OPEN[fp[1]][1] - knuckle[1];
+    HAND_FOLD[fp[1]] = [knuckle[0] + 0.65 * dx, knuckle[1] + 0.65 * dy];
+    HAND_FOLD[fp[2]] = [knuckle[0] + 0.4 * dx + 4, knuckle[1] + 0.4 * dy];
+    HAND_FOLD[fp[3]] = [knuckle[0] + 0.05 * dx + 7, knuckle[1] + 0.05 * dy];
+  }
+
+  function far(points, a, b) {
+    var ddx = points[a][0] - points[b][0], ddy = points[a][1] - points[b][1];
+    return Math.sqrt(ddx * ddx + ddy * ddy);
+  }
+  /* The same counting rule as fingers_up() in finger_counter.py */
+  function fingersUp(points) {
+    var up = [far(points, 4, 17) > far(points, 3, 17)];
+    FINGER_TIPS_AND_JOINTS.forEach(function (pair) {
+      up.push(far(points, pair[0], 0) > far(points, pair[1], 0));
+    });
+    return up;
+  }
+
+  var hand = { want: [true, true, true, true, true], fold: [0, 0, 0, 0, 0], picked: 1, sent: null, timer: null, moving: false };
+  var handSvg = $("hand-svg");
+  var handBrain = makeBrain($("hand-screen"));
+  var handCount = $("hand-count");
+  var handShape = $("hand-shape");
+  var handRule = $("hand-rule");
+  var handSay = $("hand-say");
+  var fingerBtns = document.querySelectorAll(".fbtn");
+  var handParts = { outlines: [], fills: [], lines: [], dots: [], nums: [] };
+
+  function svgEl(name, attrs) {
+    var el = document.createElementNS(SVG_NS, name);
+    for (var key in attrs) el.setAttribute(key, attrs[key]);
+    handSvg.appendChild(el);
+    return el;
+  }
+  function posePoints(fold) {
+    var points = HAND_OPEN.map(function (p) { return [p[0], p[1]]; });
+    FINGERS.forEach(function (finger, f) {
+      finger.pts.forEach(function (n) {
+        points[n] = [HAND_OPEN[n][0] + (HAND_FOLD[n][0] - HAND_OPEN[n][0]) * fold[f],
+                     HAND_OPEN[n][1] + (HAND_FOLD[n][1] - HAND_OPEN[n][1]) * fold[f]];
+      });
+    });
+    return points;
+  }
+  function wantedPoints() {
+    return posePoints(hand.want.map(function (up) { return up ? 0 : 1; }));
+  }
+  function pointList(points, numbers) {
+    return numbers.map(function (n) { return points[n][0].toFixed(1) + "," + points[n][1].toFixed(1); }).join(" ");
+  }
+
+  (function buildHand() {
+    var palm = "M150,356 L116,304 L120,228 L142,206 L176,198 L210,205 L244,228 L240,304 L212,356 Z";
+    svgEl("path", { d: palm, fill: "#b45309", stroke: "#b45309", "stroke-width": 26, "stroke-linejoin": "round" });
+    svgEl("path", { d: palm, fill: "#fcd34d", stroke: "#fcd34d", "stroke-width": 20, "stroke-linejoin": "round" });
+    FINGERS.forEach(function (finger) {
+      handParts.outlines.push(svgEl("polyline", { fill: "none", stroke: "#b45309", "stroke-width": finger.width + 6, "stroke-linecap": "round", "stroke-linejoin": "round" }));
+      handParts.fills.push(svgEl("polyline", { fill: "none", stroke: "#fcd34d", "stroke-width": finger.width, "stroke-linecap": "round", "stroke-linejoin": "round" }));
+    });
+    HAND_LINES.forEach(function () {
+      handParts.lines.push(svgEl("line", { stroke: "#fff", "stroke-width": 3, "stroke-linecap": "round" }));
+    });
+    handParts.jointLine = svgEl("line", { stroke: "#2563eb", "stroke-width": 4, "stroke-dasharray": "3 7", "stroke-linecap": "round" });
+    handParts.tipLine = svgEl("line", { stroke: "#16a34a", "stroke-width": 4, "stroke-linecap": "round" });
+    HAND_OPEN.forEach(function (p, n) {
+      handParts.dots.push(svgEl("circle", { r: 8.5, fill: "#c026d3", stroke: "#fff", "stroke-width": 1.5 }));
+      var num = svgEl("text", { "class": "dotnum", "text-anchor": "middle" });
+      num.textContent = n;
+      handParts.nums.push(num);
+    });
+    FINGERS.forEach(function (finger, f) {
+      var hit = svgEl("polyline", { "class": "hit", points: pointList(HAND_OPEN, finger.pts) });
+      hit.addEventListener("click", function () { toggleFinger(f); });
+    });
+  })();
+
+  function drawHand() {
+    var points = posePoints(hand.fold);
+    FINGERS.forEach(function (finger, f) {
+      var list = pointList(points, finger.pts);
+      handParts.outlines[f].setAttribute("points", list);
+      handParts.fills[f].setAttribute("points", list);
+    });
+    HAND_LINES.forEach(function (pair, i) {
+      var line = handParts.lines[i];
+      line.setAttribute("x1", points[pair[0]][0]); line.setAttribute("y1", points[pair[0]][1]);
+      line.setAttribute("x2", points[pair[1]][0]); line.setAttribute("y2", points[pair[1]][1]);
+    });
+    points.forEach(function (p, n) {
+      handParts.dots[n].setAttribute("cx", p[0]); handParts.dots[n].setAttribute("cy", p[1]);
+      handParts.nums[n].setAttribute("x", p[0]); handParts.nums[n].setAttribute("y", p[1] + 3.2);
+    });
+    var finger = FINGERS[hand.picked];
+    [[handParts.jointLine, finger.joint], [handParts.tipLine, finger.tip]].forEach(function (pair) {
+      pair[0].setAttribute("x1", points[pair[1]][0]); pair[0].setAttribute("y1", points[pair[1]][1]);
+      pair[0].setAttribute("x2", points[finger.ref][0]); pair[0].setAttribute("y2", points[finger.ref][1]);
+    });
+    handParts.tipLine.setAttribute("stroke", hand.want[hand.picked] ? "#16a34a" : "#dc2626");
+  }
+
+  function animateHand() {
+    var moving = false;
+    hand.fold = hand.fold.map(function (value, f) {
+      var goal = hand.want[f] ? 0 : 1;
+      if (reducedMotion || Math.abs(goal - value) < 0.12) return goal;
+      moving = true;
+      return value + (goal > value ? 0.12 : -0.12);
+    });
+    drawHand();
+    hand.moving = moving;
+    if (moving) requestAnimationFrame(animateHand);
+  }
+
+  var SHAPES = {
+    "00000": "✊ Closed_Fist (rock)",
+    "11111": "✋ Open_Palm (paper)",
+    "01100": "✌️ Victory (scissors)",
+    "01000": "☝️ Pointing_Up",
+    "11001": "🤟 ILoveYou"
+  };
+  function describeHand() {
+    var points = wantedPoints();
+    var up = fingersUp(points);
+    var count = 0;
+    var key = "";
+    up.forEach(function (isUp, f) {
+      if (isUp) count++;
+      key += isUp ? "1" : "0";
+      fingerBtns[f].classList.toggle("up", isUp);
+      fingerBtns[f].setAttribute("aria-pressed", isUp ? "true" : "false");
+      fingerBtns[f].querySelector("small").textContent = isUp ? "UP" : "down";
+    });
+    handCount.textContent = count;
+    handShape.textContent = SHAPES[key] || "no special name for this one";
+    var finger = FINGERS[hand.picked];
+    var tipFar = Math.round(far(points, finger.tip, finger.ref));
+    var jointFar = Math.round(far(points, finger.joint, finger.ref));
+    handRule.textContent = finger.name + ": the tip (point " + finger.tip + ") is " + tipFar + " pixels from " +
+      (finger.ref === 0 ? "the wrist (point 0)" : "the pinky's knuckle (point 17)") +
+      ". Its middle joint (point " + finger.joint + ") is " + jointFar + " pixels away. " +
+      (tipFar > jointFar ? "The tip is farther, so this finger is UP." : "The tip is closer, so this finger is DOWN.");
+    return count;
+  }
+  function handChanged() {
+    var count = describeHand();
+    if (!hand.moving) requestAnimationFrame(animateHand);
+    hand.moving = true;
+    clearTimeout(hand.timer);
+    if (count === hand.sent) {
+      handSay.textContent = "Still " + count + ". Same number as last time, so nothing new is sent.";
+      return;
+    }
+    handSay.textContent = "Python sees " + count + ". Hold still for half a second...";
+    hand.timer = setTimeout(function () {
+      hand.sent = count;
+      handBrain.send(String(count));
+      handSay.textContent = 'Python sent "' + count + '" down the USB cable.';
+    }, 500);
+  }
+  function toggleFinger(f) {
+    hand.want[f] = !hand.want[f];
+    hand.picked = f;
+    handChanged();
+  }
+  fingerBtns.forEach(function (btn, f) {
+    btn.addEventListener("click", function () { toggleFinger(f); });
+  });
+  document.querySelectorAll(".shape-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      hand.want = btn.dataset.shape.split("").map(function (bit) { return bit === "1"; });
+      handChanged();
+    });
+  });
+  describeHand();
+  drawHand();
+
+  /* ---------- Play it before you build it: Rock Paper Scissors ---------- */
+  var RPS_GESTURES = ["Closed_Fist", "Open_Palm", "Victory"];
+  var RPS_MOVES = ["rock", "paper", "scissors"];
+  var RPS_LETTERS = ["r", "p", "s"];
+  var rpsSay = $("rps-say");
+  var rpsYou = $("rps-you");
+  var rpsRobot = $("rps-robot");
+  var rpsBtns = document.querySelectorAll(".rps-btn");
+  var rpsBrain = makeBrain($("rps-screen"), function (result) {
+    rpsYou.textContent = rpsBrain.yourScore;
+    rpsRobot.textContent = rpsBrain.robotScore;
+    rpsSay.textContent = (result === 0 ? "A tie!" : result === 1 ? "You beat the robot!" : "The robot got you!") + " Hand away... then go again.";
+    rpsBtns.forEach(function (btn) { btn.disabled = false; });
+  });
+  rpsBtns.forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      if (btn.disabled || rpsBrain.busy) return;
+      var move = Number(btn.dataset.move);
+      rpsBtns.forEach(function (b) { b.disabled = true; });
+      rpsSay.textContent = "AI sees: " + RPS_GESTURES[move] + ". You played " + RPS_MOVES[move] + ', so Python sends "' + RPS_LETTERS[move] + '". Look at the robot!';
+      rpsBrain.send(RPS_LETTERS[move]);
+    });
+  });
+  $("rps-reset").addEventListener("click", function () {
+    rpsBrain.reset();
+    rpsYou.textContent = "0";
+    rpsRobot.textContent = "0";
+    rpsSay.textContent = "Score cleared. Rock, paper or scissors?";
+    rpsBtns.forEach(function (btn) { btn.disabled = false; });
+  });
+
+  /* ---------- Step 4 toy: only send a message when something changes ---------- */
+  /* The same idea as the loop in face_greeter.py */
+  var greetBrain = makeBrain($("greet-screen"));
+  var greet = { faceHere: false, greeted: false, lastSeen: 0, stayGone: 2, looks: 0, sent: 0, timer: null, quiet: 0, blinking: false, log: [] };
+  var greetCam = $("greet-cam");
+  var greetStatus = $("greet-status");
+  var greetLog = $("greet-log");
+  var greetCounts = $("greet-counts");
+  var greetToggle = $("greet-toggle");
+  var greetBlink = $("greet-blink");
+
+  function greetSend(letter, text) {
+    greetBrain.send(letter);
+    greet.sent++;
+    greet.log.push(text);
+    if (greet.log.length > 4) greet.log.shift();
+  }
+  function greetDraw() {
+    greetCam.classList.toggle("empty", !greet.faceHere);
+    greetStatus.textContent = greet.greeted ? "Greeted!" : "Waiting for a face...";
+    greetLog.textContent = greet.log.length ? greet.log.join("\n") : "(no messages yet)";
+    greetCounts.textContent = "Camera pictures checked: " + greet.looks + " · Messages sent: " + greet.sent;
+    greetToggle.textContent = greet.faceHere ? "🚶 Step out of view" : "🙂 Step into view";
+    greetBlink.disabled = !greet.faceHere;
+  }
+  function greetTick() {
+    var now = Date.now() / 1000;
+    greet.looks += 3;                       // about 30 pictures a second
+    if (greet.faceHere) {
+      greet.lastSeen = now;
+      if (!greet.greeted) { greetSend("F", "Face! Sent F"); greet.greeted = true; }
+    } else if (greet.greeted && now - greet.lastSeen > greet.stayGone) {
+      greetSend("N", "Gone. Sent N");
+      greet.greeted = false;
+    }
+    greet.quiet = (greet.faceHere || greet.greeted) ? 0 : greet.quiet + 1;
+    if (greet.quiet > 20) { clearInterval(greet.timer); greet.timer = null; }
+    greetDraw();
+  }
+  function greetWake() {
+    greet.quiet = 0;
+    if (!greet.timer) greet.timer = setInterval(greetTick, 100);
+  }
+  greetToggle.addEventListener("click", function () {
+    greet.blinking = false;
+    greet.faceHere = !greet.faceHere;
+    greetWake();
+    greetDraw();
+  });
+  greetBlink.addEventListener("click", function () {
+    if (!greet.faceHere) return;
+    greet.faceHere = false;
+    greet.blinking = true;
+    greetWake();
+    greetDraw();
+    setTimeout(function () {
+      if (!greet.blinking) return;
+      greet.blinking = false;
+      greet.faceHere = true;
+      greetWake();
+      greetDraw();
+    }, 600);
+  });
+  document.querySelectorAll("#greet-seg .seg-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      greet.stayGone = Number(btn.dataset.sec);
+      document.querySelectorAll("#greet-seg .seg-btn").forEach(function (b) {
+        b.classList.toggle("on", b === btn);
+        b.setAttribute("aria-pressed", b === btn ? "true" : "false");
+      });
+    });
+  });
+  greetDraw();
+</script>
+</body>
+</html>

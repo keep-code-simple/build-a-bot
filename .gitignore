@@ -11,3 +11,10 @@ available-parts/
 /*.jpg
 /*.JPG
 /*.png
+
+# Chapter 3: Python environment and downloaded AI models
+.venv/
+*.tflite
+*.task
+__pycache__/
+*.pyc
