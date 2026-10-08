@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Phone Robot</title>
+<style>
+
+  :root {
+    --bg: #fff7e8;
+    --dots: #f6e3bd;
+    --card: #ffffff;
+    --text: #1f2340;
+    --muted: #5d6180;
+    --line: #e7dcc6;
+    --accent: #2563eb;
+    --accent-soft: #e3edff;
+    --good: #15803d;
+    --good-soft: #dcfce7;
+    --warn: #a16207;
+    --warn-soft: #fef3c7;
+    --code-bg: #1b1f3a;
+    --code-text: #e8eaff;
+    --s1: #2563eb;
+    --s2: #ea580c;
+    --s3: #7c3aed;
+    --s4: #db2777;
+    --s5: #15803d;
+    --s6: #f59e0b;
+    --round: ui-rounded, "SF Pro Rounded", "Arial Rounded MT Bold", "Chalkboard SE", system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14162b;
+      --dots: #1d2040;
+      --card: #20244a;
+      --text: #f1f2ff;
+      --muted: #b3b7da;
+      --line: #383d6e;
+      --accent: #8fb4ff;
+      --accent-soft: #263463;
+      --good: #6ee7a0;
+      --good-soft: #17402b;
+      --warn: #fcd34d;
+      --warn-soft: #453712;
+      --code-bg: #0e1024;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background-color: var(--bg);
+    background-image: radial-gradient(var(--dots) 2px, transparent 2.5px);
+    background-size: 26px 26px;
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 17px;
+    line-height: 1.6;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 0 16px 80px; }
+  h1, h2, h3, .step-num, .done-label, .stop .lbl, .role b, .key { font-family: var(--round); }
+  h1 { font-size: 2.6rem; line-height: 1.1; margin: 0 0 10px; }
+  h2 { font-size: 1.55rem; line-height: 1.2; margin: 0 0 10px; }
+  h3 { font-size: 1.1rem; margin: 24px 0 8px; }
+  a { color: var(--accent); }
+
+  /* ---------- hero ---------- */
+  .hero {
+    margin-top: 16px;
+    border-radius: 28px;
+    padding: 28px 28px 22px;
+    color: #fff;
+    background: linear-gradient(135deg, #2563eb 0%, #7c3aed 55%, #db2777 100%);
+    display: flex; align-items: center; gap: 20px;
+    box-shadow: 0 8px 0 rgba(31, 35, 64, 0.18);
+  }
+  .hero-text { flex: 1; min-width: 0; }
+  .hero .subtitle { font-size: 1.15rem; margin: 0 0 14px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { background: rgba(255,255,255,0.22); border-radius: 99px; padding: 3px 12px; font-size: 0.9rem; font-weight: 600; }
+  .chip-link { color: #fff; text-decoration: none; background: rgba(31,35,64,0.35); }
+  .chip-link:hover { background: rgba(31,35,64,0.55); }
+  .robot { width: 190px; flex-shrink: 0; }
+  .robot .arm { transform-origin: 160px 124px; animation: wave 1.4s ease-in-out infinite alternate; }
+  .robot .pupil { transform-origin: center; transform-box: fill-box; animation: blink 4s infinite; }
+  .robot .antenna { animation: glow 1.2s ease-in-out infinite alternate; }
+  @keyframes wave { from { transform: rotate(-14deg); } to { transform: rotate(22deg); } }
+  @keyframes blink { 0%, 92%, 100% { transform: scaleY(1); } 96% { transform: scaleY(0.1); } }
+  @keyframes glow { from { fill: #fda4af; } to { fill: #fff; } }
+
+  /* ---------- mission map ---------- */
+  .progress {
+    position: sticky; top: 0; z-index: 5;
+    background: var(--bg);
+    padding: 10px 0 12px;
+    border-bottom: 3px dashed var(--line);
+    margin: 14px 0 20px;
+  }
+  .progress-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 0.95rem; font-weight: 600; }
+  .reset-btn { background: none; border: 2px solid var(--line); color: var(--muted); border-radius: 99px; padding: 2px 12px; cursor: pointer; font-size: 0.85rem; }
+  .map { list-style: none; display: flex; justify-content: space-between; padding: 0; margin: 8px 0 8px; }
+  .map li { flex: 1; margin: 0; text-align: center; }
+  .stop { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; text-decoration: none; color: var(--muted); }
+  .stop .dot {
+    width: 44px; height: 44px; border-radius: 50%;
+    display: grid; place-items: center; font-size: 1.3rem;
+    background: var(--card); border: 3px solid var(--line);
+    filter: grayscale(1); opacity: 0.75;
+    transition: transform 0.25s, background 0.25s;
+  }
+  .stop .lbl { font-size: 0.8rem; font-weight: 700; }
+  .stop.is-done { color: var(--text); }
+  .stop.is-done .dot { background: var(--c); border-color: var(--c); filter: none; opacity: 1; transform: scale(1.12) rotate(-6deg); box-shadow: 0 3px 0 rgba(31,35,64,0.25); }
+  .bar { height: 12px; background: var(--line); border-radius: 99px; overflow: hidden; }
+  .bar-fill { height: 100%; width: 0; border-radius: 99px; background: linear-gradient(90deg, var(--s1), var(--s2), var(--s3), var(--s4), var(--s5), var(--s6)); background-size: 860px 100%; transition: width 0.4s; }
+
+  /* ---------- cards ---------- */
+  .card {
+    background: var(--card);
+    border: 2px solid var(--line);
+    border-radius: 22px;
+    padding: 22px 24px;
+    margin: 22px 0;
+    box-shadow: 0 5px 0 var(--line);
+    --c: var(--accent);
+  }
+  .card > h2 { display: flex; align-items: center; gap: 10px; }
+  .step { border-top: 10px solid var(--c); scroll-margin-top: 150px; --on: #fff; }
+  .step.is-done { border-color: var(--c); box-shadow: 0 5px 0 var(--c); }
+  .step-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+  .step-title { display: flex; gap: 14px; align-items: center; }
+  .step-emoji {
+    width: 64px; height: 64px; flex-shrink: 0; border-radius: 20px;
+    display: grid; place-items: center; font-size: 2rem;
+    background: color-mix(in srgb, var(--c) 18%, var(--card));
+    transform: rotate(-4deg);
+  }
+  .step-title h2 { margin: 2px 0 0; }
+  .step-num {
+    display: inline-block; background: var(--c); color: var(--on);
+    font-weight: 800; font-size: 0.85rem; letter-spacing: 0.04em; text-transform: uppercase;
+    border-radius: 99px; padding: 1px 12px;
+  }
+  .time { color: var(--muted); font-size: 0.92rem; }
+  .done-label {
+    display: flex; align-items: center; gap: 8px; white-space: nowrap;
+    border: 3px solid var(--c); border-radius: 99px; padding: 6px 16px; cursor: pointer;
+    font-size: 1rem; font-weight: 700;
+  }
+  .step.is-done .done-label { background: var(--c); color: var(--on); }
+  .done-label input { width: 20px; height: 20px; cursor: pointer; accent-color: var(--good); }
+
+  .roles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 10px 0; }
+  .role { border-radius: 16px; padding: 14px 16px; display: flex; gap: 12px; align-items: center; }
+  .role span { font-size: 2.2rem; }
+  .role b { display: block; font-size: 1.15rem; }
+  .role.builder { background: color-mix(in srgb, var(--s2) 16%, var(--card)); }
+  .role.coder { background: color-mix(in srgb, var(--s3) 16%, var(--card)); }
+  .swap { text-align: center; font-weight: 700; margin: 4px 0 0; }
+
+  table { border-collapse: collapse; width: 100%; margin: 8px 0 14px; font-size: 0.95rem; }
+  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 0.85rem; }
+  .pin { font-family: ui-monospace, Menlo, Consolas, monospace; font-weight: 700; }
+  td .pin, td.pin { color: var(--c); }
+  .table-scroll { overflow-x: auto; }
+
+  .tip, .kid, .warn { border-radius: 16px; padding: 14px 16px; margin: 16px 0; font-size: 0.97rem; border-left: 8px solid; }
+  .tip { background: var(--accent-soft); border-color: var(--accent); }
+  .kid { background: var(--good-soft); border-color: var(--good); }
+  .warn { background: var(--warn-soft); border-color: var(--warn); }
+  .tip strong, .kid strong, .warn strong { display: block; margin-bottom: 2px; font-family: var(--round); font-size: 1.05rem; }
+
+  .code-wrap { position: relative; margin: 12px 0; }
+  pre {
+    background: var(--code-bg); color: var(--code-text);
+    padding: 16px; border-radius: 16px; overflow-x: auto;
+    font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.85rem; line-height: 1.5;
+    margin: 0; border: 3px solid var(--c);
+  }
+  .copy-btn {
+    position: absolute; top: 10px; right: 10px;
+    background: var(--c); color: var(--on, #fff); border: none; border-radius: 99px;
+    padding: 6px 14px; cursor: pointer; font-size: 0.85rem; font-weight: 700;
+  }
+  .copy-btn:hover { filter: brightness(1.15); }
+  code.inline { font-family: ui-monospace, Menlo, Consolas, monospace; background: var(--accent-soft); padding: 1px 6px; border-radius: 6px; font-size: 0.9em; }
+
+  ol, ul { padding-left: 22px; }
+  li { margin: 4px 0; }
+
+  .peek { display: inline-block; margin: 6px 0; padding: 8px 16px; border: 3px dashed #0e7490; border-radius: 99px; text-decoration: none; font-family: var(--round); font-weight: 700; color: var(--text); background: color-mix(in srgb, #0e7490 10%, var(--card)); }
+  .peek:hover { border-style: solid; }
+  .celebrate a { color: #fff; font-family: var(--round); font-weight: 800; }
+
+  /* ---------- photos ---------- */
+  .photos { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 12px 0 4px; }
+  .photos figure { margin: 0; }
+  .photos img { display: block; width: 100%; height: auto; border-radius: 18px; border: 4px solid var(--card); box-shadow: 0 5px 0 var(--line); }
+  .photos figure:nth-child(1) img { transform: rotate(-1.5deg); }
+  .photos figure:nth-child(2) img { transform: rotate(1.5deg); }
+  .photos figcaption { text-align: center; font-family: var(--round); font-weight: 700; margin-top: 10px; }
+  .photos figcaption span { display: block; font-family: inherit; font-weight: 400; color: var(--muted); font-size: 0.9rem; }
+
+  /* ---------- parts ---------- */
+  .parts { list-style: none; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .parts li { margin: 0; }
+  .parts label {
+    display: flex; gap: 12px; align-items: center; height: 100%;
+    border: 2px solid var(--line); border-radius: 16px; padding: 10px 12px; cursor: pointer;
+  }
+  .parts label:has(input:checked) { background: var(--good-soft); border-color: var(--good); }
+  .parts svg { width: 56px; height: 56px; flex-shrink: 0; background: #fffdf6; border-radius: 14px; padding: 4px; }
+  .parts .txt { flex: 1; min-width: 0; font-weight: 600; line-height: 1.35; }
+  .parts .hint { color: var(--muted); font-size: 0.86rem; display: block; font-weight: 400; }
+  .parts input { width: 20px; height: 20px; flex-shrink: 0; accent-color: var(--good); }
+
+  /* ---------- diagrams (always on light "paper") ---------- */
+  .diagram {
+    background: #fffdf6; border: 2px dashed #d9cba8; border-radius: 16px;
+    padding: 8px; margin: 12px 0; overflow-x: auto;
+  }
+  .diagram svg { display: block; width: 100%; min-width: 540px; height: auto; font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
+  .diagram text { fill: #1f2340; font-size: 13px; }
+  .diagram .w, .diagram .w text { fill: #fff; font-weight: 700; }
+  .diagram .sm { font-size: 10px; }
+  .diagram .wire { fill: none; stroke-width: 5; stroke-linecap: round; }
+  .diagram figcaption, .cap { color: #5d6180; font-size: 0.88rem; padding: 4px 6px 2px; }
+  figure { margin: 0; }
+
+  /* ---------- echo demo ---------- */
+  .echo-demo input[type=range] { width: 100%; accent-color: var(--s2); height: 28px; }
+  .echo-readout { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; }
+  .echo-readout div { background: var(--accent-soft); border-radius: 14px; padding: 8px 14px; flex: 1; min-width: 150px; }
+  .echo-readout b { display: block; font-size: 1.4rem; color: var(--accent); font-family: var(--round); }
+  #echo-pulse path { fill: none; stroke: #2563eb; stroke-width: 4; stroke-linecap: round; }
+  #echo-pulse.back path { stroke: #ea580c; }
+  #echo-bubble { opacity: 0; transition: opacity 0.2s; }
+  .is-greeting #echo-bubble { opacity: 1; }
+
+  /* ---------- LCD lab ---------- */
+  .lcd-lab input[type=text] {
+    width: 100%; font: inherit; padding: 9px 14px; border-radius: 12px;
+    border: 2px solid var(--line); background: var(--card); color: var(--text);
+  }
+  .lcd {
+    display: inline-block; max-width: 100%; margin-top: 10px; padding: 12px 14px; border-radius: 10px;
+    background: #14532d; border: 4px solid #0b3a1e;
+  }
+  .lcd-screen { background: #bef264; padding: 6px; border-radius: 4px; display: grid; grid-template-columns: repeat(16, 1fr); gap: 2px; }
+  .lcd-screen span {
+    width: 1.05em; height: 1.5em; display: grid; place-items: center;
+    background: rgba(63, 98, 18, 0.14); color: #1a2e05;
+    font-family: ui-monospace, Menlo, Consolas, monospace; font-weight: 700; font-size: clamp(0.8rem, 3.6vw, 1.25rem);
+  }
+  .lcd-count { font-weight: 700; margin: 8px 0 0; }
+  .lcd-count.bad { color: #dc2626; }
+  .lcd-count.ok { color: var(--good); }
+
+  /* ---------- tune maker ---------- */
+  .keys { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; margin: 10px 0; }
+  .key {
+    border: none; border-radius: 12px 12px 18px 18px; padding: 14px 2px 10px; cursor: pointer;
+    background: var(--k); color: #fff; font-weight: 800; font-size: 1.1rem;
+    box-shadow: 0 5px 0 rgba(31,35,64,0.3);
+  }
+  .key small { display: block; font-family: ui-monospace, Menlo, monospace; font-size: 0.78rem; font-weight: 700; }
+  .key:active { transform: translateY(4px); box-shadow: 0 1px 0 rgba(31,35,64,0.3); }
+  .tune-out { background: var(--code-bg); color: var(--code-text); border-radius: 12px; padding: 10px 14px; font-family: ui-monospace, Menlo, monospace; font-size: 0.88rem; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .tune-out input { flex: 1; min-width: 0; font: inherit; color: inherit; background: rgba(255,255,255,0.12); border: 2px solid var(--c); border-radius: 8px; padding: 5px 8px; }
+  .tune-controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
+  .btn { border: none; border-radius: 99px; padding: 7px 16px; font: inherit; font-weight: 700; cursor: pointer; background: var(--c); color: #fff; }
+  .btn.ghost { background: none; border: 2px solid var(--line); color: var(--muted); }
+
+  details { border: 2px solid var(--line); border-radius: 14px; padding: 10px 14px; margin: 8px 0; background: var(--card); }
+  details[open] { border-color: var(--s2); }
+  summary { cursor: pointer; font-weight: 600; }
+  details p { margin: 8px 0 2px; }
+
+  .ideas { list-style: none; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .ideas li { margin: 0; border-radius: 16px; padding: 12px 14px; background: color-mix(in srgb, var(--k) 14%, var(--card)); border: 2px solid color-mix(in srgb, var(--k) 45%, var(--card)); }
+  .ideas .big { font-size: 1.7rem; display: block; }
+
+  .celebrate {
+    display: none; text-align: center; border-radius: 20px; padding: 22px; margin-top: 20px; color: #fff;
+    background: linear-gradient(135deg, #f59e0b, #db2777 60%, #7c3aed);
+  }
+  .celebrate.show { display: block; animation: pop 0.5s; }
+  .celebrate .trophy { font-size: 3rem; display: block; }
+  .celebrate b { font-family: var(--round); font-size: 1.5rem; display: block; }
+  @keyframes pop { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .confetti { position: fixed; top: -16px; width: 10px; height: 16px; z-index: 50; pointer-events: none; animation: fall linear forwards; }
+  @keyframes fall { to { transform: translateY(110vh) rotate(720deg); } }
+
+  @media (max-width: 620px) {
+    .hero { flex-direction: column-reverse; text-align: center; padding: 20px; }
+    .chips { justify-content: center; }
+    .robot { width: 130px; }
+    h1 { font-size: 2rem; }
+    .step-head { flex-direction: column; }
+    .roles, .parts, .ideas { grid-template-columns: 1fr; }
+    .photos { gap: 10px; }
+    .stop .lbl { display: none; }
+    .stop .dot { width: 38px; height: 38px; font-size: 1.1rem; }
+    .keys { grid-template-columns: repeat(4, 1fr); }
+    .card { padding: 18px 16px; }
+    .step { scroll-margin-top: 120px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .robot .arm, .robot .pupil, .robot .antenna, .celebrate.show { animation: none; }
+    #echo-pulse { display: none; }
+  }
+  @media print {
+    body { background: #fff; }
+    .progress, .copy-btn, .reset-btn, .echo-demo, .lcd-lab, .tune-controls, .robot { display: none; }
+    .card { break-inside: avoid; box-shadow: none; }
+    .hero { color: #000; background: none; box-shadow: none; padding: 0; }
+  }
+
+  /* ---------- Chapter 3 additions ---------- */
+  .robot .arm { animation: wave 1.8s ease-in-out infinite alternate; }
+  @keyframes wave { from { transform: rotate(-4deg); } to { transform: rotate(14deg); } }
+  .robot .scan { animation: scan 2.4s ease-in-out infinite alternate; }
+  @keyframes scan { from { opacity: 0.35; } to { opacity: 1; } }
+
+  /* the real screen is blue with white letters */
+  .lcd-screen { background: #1d4ed8; }
+  .lcd-screen span { background: rgba(255,255,255,0.1); color: #fff; }
+
+  button, .hit { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+  .btn.big { min-height: 48px; padding: 10px 18px; font-size: 1rem; background: var(--k, var(--s1)); }
+  .btn.big:disabled { opacity: 0.5; cursor: default; }
+  .btn.big.ghost { background: none; min-height: 48px; }
+  .btn-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+  .say { font-weight: 700; margin: 10px 0 6px; min-height: 3.2em; }
+  .win { background: var(--good-soft); border: 2px solid var(--good); border-radius: 14px; padding: 10px 14px; margin: 16px 0 4px; }
+  .win b { font-family: var(--round); }
+  .lab { display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 1fr); gap: 20px; align-items: start; }
+  .lab-side { min-width: 0; }
+  .lab-side .lcd { margin-top: 0; }
+  #pipe-letter { visibility: hidden; }
+  .diagram .mono { font-family: ui-monospace, Menlo, Consolas, monospace; font-weight: 700; }
+
+  /* the hand with 21 points */
+  .diagram svg.hand-svg { min-width: 0; max-width: 340px; margin: 0 auto; user-select: none; -webkit-user-select: none; }
+  .hand-svg .hit { fill: none; stroke: transparent; stroke-width: 36; stroke-linecap: round; pointer-events: stroke; cursor: pointer; }
+  .diagram .dotnum { fill: #fff; font-size: 9px; font-weight: 700; pointer-events: none; }
+  .finger-btns { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin: 8px 0; }
+  .fbtn {
+    min-height: 52px; border: 3px solid var(--line); border-radius: 14px; background: var(--card); color: var(--muted);
+    font: inherit; font-family: var(--round); font-weight: 800; font-size: 0.82rem; line-height: 1.2; cursor: pointer; padding: 4px 0;
+  }
+  .fbtn small { display: block; font-size: 0.74rem; font-weight: 700; }
+  .fbtn.up { background: var(--good-soft); border-color: var(--good); color: var(--text); }
+  .count-row { display: flex; align-items: center; gap: 14px; margin: 0 0 10px; }
+  .big-count { font-family: var(--round); font-size: 3.6rem; line-height: 1; font-weight: 800; color: var(--good); min-width: 1ch; }
+  .count-row span { font-weight: 700; }
+  .rule-out { background: var(--accent-soft); border-radius: 14px; padding: 10px 14px; font-size: 0.95rem; margin: 10px 0; }
+
+  /* rock paper scissors */
+  .rps-moves { display: flex; gap: 12px; justify-content: center; margin: 4px 0 12px; }
+  .rps-btn {
+    flex: 1; max-width: 120px; min-height: 104px; border: none; border-radius: 22px; cursor: pointer;
+    background: var(--k); color: #fff; font-size: 2.6rem; line-height: 1.2;
+    box-shadow: 0 6px 0 rgba(31,35,64,0.3);
+  }
+  .rps-btn small { display: block; font-family: var(--round); font-size: 0.9rem; font-weight: 800; }
+  .rps-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(31,35,64,0.3); }
+  .rps-btn:disabled { opacity: 0.45; cursor: default; }
+
+  /* greeter toy */
+  .cam {
+    position: relative; height: 130px; border-radius: 16px; background: #334155; border: 4px solid #0f172a;
+    display: grid; place-items: center; font-size: 3.2rem; line-height: 1; overflow: hidden;
+  }
+  .cam .box { border: 4px solid #22c55e; border-radius: 6px; padding: 6px 12px; }
+  .cam.empty .box { visibility: hidden; }
+  .cam .status { position: absolute; left: 10px; top: 6px; font-size: 0.95rem; font-weight: 800; color: #fde047; font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; line-height: 1.4; }
+  .msglog {
+    font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.85rem; white-space: pre-wrap;
+    background: var(--code-bg); color: var(--code-text); border-radius: 12px; padding: 10px 14px; min-height: 5.4em; margin: 10px 0 6px;
+  }
+  .seg { display: inline-flex; border: 2px solid var(--line); border-radius: 99px; overflow: hidden; background: var(--card); vertical-align: middle; }
+  .seg-btn { min-height: 44px; min-width: 52px; padding: 6px 14px; border: none; background: none; color: var(--muted); font: inherit; font-weight: 700; cursor: pointer; }
+  .seg-btn.on { background: var(--s4); color: #fff; }
+
+  .term { background: #0e1024; color: #e8eaff; border-radius: 14px; padding: 12px 14px; margin: 10px 0; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.85rem; overflow-x: auto; white-space: pre; }
+  .term .ok { color: #6ee7a0; font-weight: 700; }
+  .cmds { padding-left: 22px; }
+  .cmds > li { margin: 14px 0; }
+  .cmds .code-wrap { margin: 6px 0 0; }
+  .code-wrap pre { padding-top: 46px; }
+  pre.excerpt { border-style: dashed; }
+  details.code-details > summary { font-family: var(--round); font-weight: 700; }
+  details.code-details .code-wrap { margin-bottom: 4px; }
+  .cap-line { color: var(--muted); font-size: 0.9rem; margin: 4px 0 12px; }
+
+  @media (max-width: 620px) {
+    .lab { grid-template-columns: minmax(0, 1fr); }
+    .rps-btn { min-height: 92px; font-size: 2.2rem; }
+    .big-count { font-size: 3rem; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .robot .scan { animation: none; }
+  }
+  @media print {
+    .pipe-demo .btn-row, .hand-lab, .rps-sim, .greet-toy { display: none; }
+    details.code-details { display: none; }
+  }
+
+  /* ---------- "you are here" line in the sticky bar ---------- */
+  .here { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-family: var(--round); font-weight: 800; font-size: 1.05rem; line-height: 1.2; opacity: 0; visibility: hidden; transition: opacity 0.25s; }
+  .progress.is-stuck .here, .progress.no-watch .here { opacity: 1; visibility: visible; }
+  .here a { text-decoration: none; font-size: 1.15rem; }
+  .here .here-num { background: var(--accent); color: var(--card); border-radius: 99px; padding: 1px 12px; font-size: 0.8rem; letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap; }
+  .here b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  @media print { .here { display: none; } }
+
+  /* ---------- Chapter 7 additions ---------- */
+  :root { --s7: #0e7490; --s8: #be123c; }
+  .badge-line { font-family: var(--round); margin: 6px 0 2px; }
+  .parts li label > .txt:first-child { padding-left: 4px; }
+  #toy-envelope.open { animation: pop 0.4s; }
+  .toy-move { font: inherit; font-family: var(--round); font-weight: 800; font-size: 1.1rem; cursor: pointer;
+    color: var(--card); background: var(--accent); border: 0; border-radius: 14px; padding: 10px 18px; }
+  .toy-move:hover { filter: brightness(1.1); }
+  .toy-move:active { transform: translateY(2px); }
+</style>
+<script>
+  /* Sound unlock: browsers (Safari and iPads most of all) only allow sound that starts from a tap.
+     Make one shared sound engine, and wake it on the first tap or key press anywhere on the page. */
+  (function () {
+    var RealAudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!RealAudioContext) return;
+    var shared = null;
+    function SharedAudioContext() {
+      if (!shared) shared = new RealAudioContext();
+      return shared;
+    }
+    SharedAudioContext.prototype = RealAudioContext.prototype;
+    window.AudioContext = SharedAudioContext;
+    if (window.webkitAudioContext) window.webkitAudioContext = SharedAudioContext;
+    function wake() {
+      try {
+        var ctx = new SharedAudioContext();
+        if (ctx.state !== "running" && ctx.resume) ctx.resume();
+        var source = ctx.createBufferSource();          /* one silent blip, which is what iOS needs */
+        source.buffer = ctx.createBuffer(1, 1, 22050);
+        source.connect(ctx.destination);
+        source.start(0);
+      } catch (e) { /* no sound available, that's fine */ }
+    }
+    ["pointerdown", "touchend", "keydown"].forEach(function (name) {
+      document.addEventListener(name, wake, true);
+    });
+  })();
+</script>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <div class="hero-text">
+    <h1>The Phone Robot</h1>
+    <p class="subtitle">Bonus: Rock Paper Scissors against a robot that lives in a web page. Open a link on the iPhone, allow the camera, tap Start, and the phone becomes the robot. Nothing to install, no app, no wires.</p>
+    <div class="chips">
+      <a class="chip chip-link" href="index.html">🏠 Home</a>
+      <span class="chip">⭐ Bonus</span>
+      <span class="chip">⏱ One evening</span>
+      <span class="chip">💵 $0</span>
+      <span class="chip">🏅 4 badges to earn</span>
+      <a class="chip chip-link" href="phone-robot/">▶️ Open the Phone Robot</a>
+      <a class="chip chip-link" href="chapter-3-robot-eyes.html">👀 Chapter 3: Robot Eyes</a>
+    </div>
+  </div>
+  <svg class="robot" viewBox="0 0 200 222" role="img" aria-label="A phone with a robot face on its screen">
+    <line x1="100" y1="12" x2="100" y2="26" stroke="#fff" stroke-width="4"/>
+    <circle class="antenna" cx="100" cy="10" r="8" fill="#fda4af"/>
+    <rect x="48" y="24" width="104" height="190" rx="20" fill="#1f2340" stroke="#fff" stroke-width="3"/>
+    <rect x="58" y="42" width="84" height="150" rx="8" fill="#14162b"/>
+    <circle class="scan" cx="100" cy="33" r="3.5" fill="#22c55e"/>
+    <rect x="72" y="62" width="56" height="44" rx="10" fill="#fbbf24"/>
+    <rect class="pupil" x="82" y="72" width="10" height="16" rx="3" fill="#3cc86e"/>
+    <rect class="pupil" x="108" y="72" width="10" height="16" rx="3" fill="#3cc86e"/>
+    <text x="100" y="134" text-anchor="middle" font-weight="800" font-size="15" fill="#6ee7a0">SHOOT!</text>
+    <rect x="68" y="150" width="64" height="26" rx="10" fill="#8fb4ff"/>
+    <text x="100" y="168" text-anchor="middle" font-weight="800" font-size="11" fill="#14162b">Tap to start</text>
+    <rect x="84" y="200" width="32" height="5" rx="2.5" fill="#64748b"/>
+  </svg>
+</header>
+
+<nav class="progress" aria-label="Your progress">
+  <div class="here"><a href="index.html" aria-label="Home">🏠</a><span class="here-num">Bonus</span><b>The Phone Robot</b></div>
+  <div class="progress-row">
+    <span id="progress-label">0 of 4 steps done</span>
+    <button class="reset-btn" id="reset-btn" type="button">Reset checkmarks</button>
+  </div>
+  <ol class="map">
+    <li><a class="stop" data-stop="1" href="#step1" style="--c:var(--s1)"><span class="dot" aria-hidden="true">💻</span><span class="lbl">Mac</span></a></li>
+    <li><a class="stop" data-stop="2" href="#step2" style="--c:var(--s2)"><span class="dot" aria-hidden="true">🌍</span><span class="lbl">Publish</span></a></li>
+    <li><a class="stop" data-stop="3" href="#step3" style="--c:var(--s3)"><span class="dot" aria-hidden="true">📱</span><span class="lbl">Phone</span></a></li>
+    <li><a class="stop" data-stop="4" href="#step4" style="--c:var(--s4)"><span class="dot" aria-hidden="true">✌️</span><span class="lbl">Play</span></a></li>
+  </ol>
+  <div class="bar"><div class="bar-fill" id="bar-fill"></div></div>
+</nav>
+
+<section class="card">
+  <h2><span aria-hidden="true">🚀</span> Before you start</h2>
+  <p><b>You need:</b> an iPhone or iPad with Safari, the MacBook, and Chapter 3 done, so you've seen the AI read hand gestures. <b>No new parts, and it costs nothing.</b></p>
+  <div class="kid">
+    <strong>💡 The big idea</strong>
+    A web page is a program too. This one asks the phone for its camera, borrows a small AI brain from Google, and uses the phone's own voice to talk.
+  </div>
+  <div class="table-scroll">
+  <table>
+    <tr><th></th><th>Eyes</th><th>Brain (runs the AI)</th><th>Screen and voice</th></tr>
+    <tr><td><b>Chapter 3</b></td><td>📷 MacBook camera</td><td>💻 MacBook, with Python</td><td>🤖 Arduino</td></tr>
+    <tr><td><b>Chapter 7</b></td><td>📷 Pi camera</td><td>🍓 Raspberry Pi</td><td>📱 touchscreen in a box</td></tr>
+    <tr><td><b>Phone Robot</b></td><td>📷 iPhone camera</td><td>🧠 Safari, on the phone</td><td>📱 the same phone</td></tr>
+  </table>
+  </div>
+  <p>The phone is the eyes, the brain, the screen and the voice, all in one. It's the <b>same hand AI</b> as Chapter 3, running inside the browser.</p>
+  <div class="warn">
+    <strong>⚠️ This hasn't met a real iPhone yet</strong>
+    The game was tested on the MacBook, in Chrome, with a pretend camera. Your iPhone is the real test. The test list in Step 4 is how you find out.
+  </div>
+</section>
+
+<section class="card step" id="step1" style="--c:var(--s1)">
+  <div class="step-head">
+    <div class="step-title">
+      <span class="step-emoji" aria-hidden="true">💻</span>
+      <div>
+        <span class="step-num">Step 1</span>
+        <h2>Try it on the Mac</h2>
+        <span class="time">⏱ About 10 minutes</span>
+      </div>
+    </div>
+    <label class="done-label"><input type="checkbox" class="done-box" data-step="1"> Done</label>
+  </div>
+  <p>A web page needs a <b>server</b>: a program that hands out the page when a browser asks. The Mac has a tiny one built in.</p>
+  <ol class="cmds">
+    <li><b>Start the tiny server</b> in Terminal.
+      <div class="code-wrap">
+        <button class="copy-btn" data-target="p1" type="button">Copy</button>
+<pre id="p1">cd ~/"Claude Projects/Door Greeter Bot"
+python3 -m http.server 8000</pre>
+      </div></li>
+    <li><b>Open this address</b> in Safari or Chrome on the Mac.
+      <div class="code-wrap">
+        <button class="copy-btn" data-target="p2" type="button">Copy</button>
+<pre id="p2">http://localhost:8000/phone-robot/</pre>
+      </div></li>
+    <li><b>Tap to start</b>, allow the camera, and play a round.</li>
+  </ol>
+  <p class="win">🏆 <b>The win:</b> the robot counts down, reads your hand through the Mac's camera, and tells you who won.</p>
+  <p class="badge-line">🏅 <b>Badge:</b> Web Wizard</p>
+  <p class="cap-line">Stop the server with <b>Control + C</b>. Double-clicking the file won't work: the camera and the AI only switch on for pages that come from a server.</p>
+</section>
+
+<section class="card step" id="step2" style="--c:var(--s2)">
+  <div class="step-head">
+    <div class="step-title">
+      <span class="step-emoji" aria-hidden="true">🌍</span>
+      <div>
+        <span class="step-num">Step 2</span>
+        <h2>Put it on the internet</h2>
+        <span class="time">⏱ About 10 minutes · a parent job</span>
+      </div>
+    </div>
+    <label class="done-label"><input type="checkbox" class="done-box" data-step="2"> Done</label>
+  </div>
+  <p>An iPhone only allows the camera on <b>secure</b> pages, the ones whose address starts with <code class="inline">https</code>. The Build-a-Bot site on GitHub Pages is one of those. So the phone can't just borrow the Mac's tiny server.</p>
+  <p>Push the project to GitHub, the same way as every other chapter. A minute or two later, the Phone Robot is live.</p>
+  <p class="win">🏆 <b>The win:</b> this address opens the start screen on the Mac:</p>
+  <div class="code-wrap">
+    <button class="copy-btn" data-target="p3" type="button">Copy</button>
+<pre id="p3">https://keep-code-simple.github.io/build-a-bot/phone-robot/</pre>
+  </div>
+  <p class="badge-line">🏅 <b>Badge:</b> Published</p>
+</section>
+
+<section class="card step" id="step3" style="--c:var(--s3)">
+  <div class="step-head">
+    <div class="step-title">
+      <span class="step-emoji" aria-hidden="true">📱</span>
+      <div>
+        <span class="step-num">Step 3</span>
+        <h2>Open it on the phone</h2>
+        <span class="time">⏱ About 5 minutes</span>
+      </div>
+    </div>
+    <label class="done-label"><input type="checkbox" class="done-box" data-step="3"> Done</label>
+  </div>
+  <ol>
+    <li>Get the address onto the iPhone. The easiest way: open it on the Mac, then <b>AirDrop</b> it to the phone or send it in a message.</li>
+    <li>Open it in <b>Safari</b>.</li>
+    <li>Tap the giant <b>Tap to start 🤖</b> button. That one tap does three jobs: it lets the robot speak, turns on the camera, and starts downloading the AI.</li>
+    <li>When the phone asks about the camera, tap <b>Allow</b>.</li>
+    <li>Wait for "Loading the robot's brain..." to finish. The first time takes a little while.</li>
+  </ol>
+  <p class="win">🏆 <b>The win:</b> the robot says "Hi! I'm the Phone Robot!" and you see yourself in the corner, mirrored like a selfie.</p>
+  <p class="badge-line">🏅 <b>Badge:</b> Robot in Your Pocket</p>
+  <div class="tip">
+    <strong>💡 Make it look like a real app</strong>
+    In Safari, tap <b>Share</b>, then <b>Add to Home Screen</b>. The robot gets its own icon and opens full screen. If the camera acts up that way, play in a normal Safari tab instead.
+  </div>
+</section>
+
+<section class="card step" id="step4" style="--c:var(--s4)">
+  <div class="step-head">
+    <div class="step-title">
+      <span class="step-emoji" aria-hidden="true">✌️</span>
+      <div>
+        <span class="step-num">Step 4</span>
+        <h2>Play, and test it properly</h2>
+        <span class="time">⏱ As long as you like</span>
+      </div>
+    </div>
+    <label class="done-label"><input type="checkbox" class="done-box" data-step="4"> Done</label>
+  </div>
+  <p>Prop the phone up so it can see your hand, about an arm's length away.</p>
+  <ol>
+    <li><b>Pick a player.</b> Tap a name. Tap and <b>hold</b> a name to change it. Names stay on this phone.</li>
+    <li><b>The robot commits first.</b> It locks its move in a sealed envelope 🔒 before the countdown, so it can't cheat.</li>
+    <li><b>ROCK... PAPER... SCISSORS... SHOOT!</b> Throw your move on SHOOT and hold it still.</li>
+    <li><b>The robot votes.</b> For half a second it checks every camera picture. The move it saw most wins. If it can't tell, it says "I couldn't see that. Again!"</li>
+    <li><b>The envelope opens.</b> ✊ fist = rock, ✋ open hand = paper, ✌️ peace sign = scissors. First to 3 wins.</li>
+    <li><b>Leaderboard:</b> the longest winning streak for each player is saved on the phone.</li>
+  </ol>
+  <h3>The family's iPhone test list</h3>
+  <p>Only you can run these, because only you have the phone:</p>
+  <ul class="parts">
+    <li><label><span class="txt">The camera question appears once, and the video is mirrored<span class="hint">Wave your right hand. The hand on the right of the picture should wave.</span></span><input type="checkbox" class="part-box"></label></li>
+    <li><label><span class="txt">The robot speaks right after the Start tap, and every round<span class="hint">Check the phone isn't on silent, and turn the volume up.</span></span><input type="checkbox" class="part-box"></label></li>
+    <li><label><span class="txt">9 of 10 held moves are read correctly<span class="hint">In normal room light. Keep a tally on paper.</span></span><input type="checkbox" class="part-box"></label></li>
+    <li><label><span class="txt">Locking the phone and coming back resumes the game<span class="hint">The camera and the AI should switch back on by themselves.</span></span><input type="checkbox" class="part-box"></label></li>
+    <li><label><span class="txt">Rotating the phone doesn't break the screen<span class="hint">Try it on the "Who is playing?" screen and during a round.</span></span><input type="checkbox" class="part-box"></label></li>
+    <li><label><span class="txt">It never asks for the microphone<span class="hint">Only the camera. If it asks for the microphone, something is wrong.</span></span><input type="checkbox" class="part-box"></label></li>
+  </ul>
+  <p class="win">🏆 <b>The win:</b> a fair fight against a robot that fits in your pocket.</p>
+  <p class="badge-line">🏅 <b>Badge:</b> Pocket Champion</p>
+  <div class="celebrate" id="celebrate">
+    <span class="trophy" aria-hidden="true">🏆</span>
+    <b>Certified Web Robot Makers!</b>
+    You turned a web page into a robot, and anyone you send the link to can play it. Nice work, team!
+  </div>
+</section>
+
+<section class="card">
+  <h2><span aria-hidden="true">🧪</span> Kid challenges</h2>
+  <p>All of these are near the top of <code class="inline">phone-robot/index.html</code>, in the part called <b>SETTINGS</b>. Change it, save, reload the page.</p>
+  <ul class="ideas">
+    <li style="--k:var(--s1)"><span class="big" aria-hidden="true">🎭</span><b>Give it a personality:</b> write your own win, lose and tie lines. Then tap the ⚙️ on the phone and pick the funniest voice, speed and pitch.</li>
+    <li style="--k:var(--s4)"><span class="big" aria-hidden="true">🤟</span><b>Secret gestures:</b> on the "Who is playing?" screen, hold up 👍 and the robot dances. 🤟 makes it say something nice. 👎 and ☝️ do nothing yet. That's your job.</li>
+    <li style="--k:var(--s2)"><span class="big" aria-hidden="true">🕵️</span><b>The cheat switch:</b> change <code class="inline">robotCheats: false</code> to <code class="inline">true</code>. The envelope shows ❓ instead of 🔒. Can your friends tell it's cheating?</li>
+    <li style="--k:var(--s5)"><span class="big" aria-hidden="true">📨</span><b>Play a friend:</b> send the link to a cousin. The robot runs on their phone too, with their own names and scores.</li>
+  </ul>
+  <h3>The line to change for the cheat switch</h3>
+  <div class="code-wrap">
+    <button class="copy-btn" data-target="p4" type="button">Copy</button>
+<pre id="p4">  robotCheats: true,</pre>
+  </div>
+  <h3>A secret gesture you can add</h3>
+  <div class="code-wrap">
+    <button class="copy-btn" data-target="p5" type="button">Copy</button>
+<pre id="p5">    Thumb_Down: { say: "Boo! Thumbs down to you too!", dance: false },</pre>
+  </div>
+  <p class="cap-line">After changing the code, test on the Mac (Step 1), then push to GitHub so the phone gets the new version. If the phone still shows the old one, pull down on the page to reload it.</p>
+</section>
+
+<section class="card">
+  <h2><span aria-hidden="true">🔬</span> What we tested, and what only you can test</h2>
+  <p><b>Tested on a MacBook:</b></p>
+  <ul>
+    <li>13 automatic tests of the rules pass: the winner for all 9 combinations, turning gestures into moves, the vote, the robot picking before your move is read, cheat mode, and first to 3.</li>
+    <li>The whole game ran in the Chrome browser with the real hand AI and a pretend camera showing a photo of a peace sign: Start, loading, picking a player, the countdown, the vote, the reveal, and a finished match.</li>
+    <li>With an empty picture, it says "I couldn't see that. Again!" and counts down again.</li>
+    <li>Hiding the page stops the camera, and coming back restarts it and carries on.</li>
+    <li>The page asks for the camera only, with the microphone switched off.</li>
+    <li>The screens were checked standing up and lying down.</li>
+  </ul>
+  <p><b>Not tested, because there was no iPhone to test on:</b></p>
+  <ul>
+    <li>Anything in Safari on a real iPhone or iPad.</li>
+    <li>The robot's voice. The test browser has no voice, so we only checked it was asked to say the right lines.</li>
+    <li>Keeping the screen awake, and Add to Home Screen.</li>
+    <li>How fast the AI runs on the phone.</li>
+    <li>A real hand at arm's length, and "9 of 10 right".</li>
+    <li>Renaming a player by holding a name.</li>
+  </ul>
+</section>
+
+<section class="card">
+  <h2><span aria-hidden="true">🕵️</span> Troubleshooting</h2>
+  <p>Detective time. Tap a problem to see what to check.</p>
+  <details>
+    <summary>"I can't see!" (the camera is blocked)</summary>
+    <p>In Safari, tap <b>aA</b> in the address bar, then <b>Website Settings</b>, then <b>Camera</b>, then <b>Allow</b>. Reload the page.</p>
+  </details>
+  <details>
+    <summary>The camera doesn't work when I use the Mac's address on the phone</summary>
+    <p>That's the https rule. The phone only allows the camera on secure pages. Use the GitHub Pages address from Step 2.</p>
+  </details>
+  <details>
+    <summary>"No brain yet!"</summary>
+    <p>The robot downloads its AI each time, so it needs internet. Check the Wi-Fi and tap Try again.</p>
+  </details>
+  <details>
+    <summary>The robot doesn't talk</summary>
+    <p>Flip the phone's silent switch off and turn the volume up. Then tap the ⚙️ and press <b>Say something</b>. Try a different voice in the list.</p>
+  </details>
+  <details>
+    <summary>It says "I couldn't see that" a lot</summary>
+    <p>Hold your move still on SHOOT, about an arm's length away, with light on your hand and not behind it. Watch the corner picture: the pink dots show what the AI sees.</p>
+  </details>
+  <details>
+    <summary>The phone still shows the old version after I changed the code</summary>
+    <p>GitHub Pages takes a minute or two after a push. Then reload the page on the phone. If it's on the Home Screen, close it fully and open it again.</p>
+  </details>
+  <details>
+    <summary>On the Mac it says the page can't be found</summary>
+    <p>Is the tiny server still running in Terminal? It must be started from the <code class="inline">Door Greeter Bot</code> folder, not from inside <code class="inline">phone-robot</code>.</p>
+  </details>
+</section>
+
+<section class="card">
+  <h2><span aria-hidden="true">🔐</span> Privacy</h2>
+  <ul>
+    <li><b>The camera picture stays on the phone.</b> The AI runs inside Safari. No pictures are sent anywhere, and none are saved.</li>
+    <li><b>The page only downloads two things:</b> the AI's code and the hand model, both from Google's public files.</li>
+    <li><b>Names and scores stay on that phone,</b> in the browser's own storage. The shared files say "Player 1" and "Player 2".</li>
+    <li><b>No microphone, no tracking, no ads.</b></li>
+  </ul>
+</section>
+
+<section class="card">
+  <h2><span aria-hidden="true">📁</span> What's in the folder</h2>
+  <pre>phone-robot/
+├── index.html      ← the app: screens, camera, AI, voice, sounds, the game
+├── game.js         ← the rules, with nothing else mixed in
+├── game.test.mjs   ← tests for the rules
+└── icon.png        ← the Home Screen icon
+phone-robot.html    ← this guide</pre>
+  <p>Run the tests with:</p>
+  <div class="code-wrap">
+    <button class="copy-btn" data-target="p6" type="button">Copy</button>
+<pre id="p6">node --test phone-robot/game.test.mjs</pre>
+  </div>
+  <h3>Grown-up corner</h3>
+  <div class="table-scroll">
+  <table>
+    <tr><th>In this bonus</th><th>At work</th></tr>
+    <tr><td>The game is always in exactly one state</td><td>A state machine</td></tr>
+    <tr><td>The rules live in their own file, away from the screen</td><td>Separating logic from the interface, so it can be tested</td></tr>
+    <tr><td>The AI runs in the browser, on the phone</td><td>On-device inference: private, and no server to pay for</td></tr>
+    <tr><td>Try the graphics chip, fall back to the main chip</td><td>Graceful degradation</td></tr>
+    <tr><td>The robot picks before it reads your move</td><td>Commit-reveal</td></tr>
+  </table>
+  </div>
+</section>
+
+</div>
+
+<script>
+
+  var STORAGE_KEY = "phoneRobotDone";
+  var PARTS_KEY = "phoneRobotParts";
+  var boxes = document.querySelectorAll(".done-box");
+  var partBoxes = document.querySelectorAll(".part-box");
+  var barFill = document.getElementById("bar-fill");
+  var progressLabel = document.getElementById("progress-label");
+  var celebrate = document.getElementById("celebrate");
+  var reducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function loadState(key) {
+    try { return JSON.parse(localStorage.getItem(key) || "{}"); }
+    catch (e) { return {}; }
+  }
+  function saveState(key, state) {
+    try { localStorage.setItem(key, JSON.stringify(state)); }
+    catch (e) { /* storage not available, that's fine */ }
+  }
+
+  var state = loadState(STORAGE_KEY);
+  var partState = loadState(PARTS_KEY);
+
+  function updateProgress() {
+    var done = 0;
+    boxes.forEach(function (box) {
+      var card = box.closest(".step");
+      card.classList.toggle("is-done", box.checked);
+      var stop = document.querySelector('.stop[data-stop="' + box.dataset.step + '"]');
+      if (stop) stop.classList.toggle("is-done", box.checked);
+      if (box.checked) done++;
+    });
+    barFill.style.width = (done / boxes.length * 100) + "%";
+    progressLabel.textContent = done + " of " + boxes.length + " steps done";
+    celebrate.classList.toggle("show", done === boxes.length);
+    return done;
+  }
+
+  function confetti() {
+    if (reducedMotion) return;
+    var colors = ["#2563eb", "#ea580c", "#7c3aed", "#db2777", "#16a34a", "#f59e0b"];
+    for (var i = 0; i < 80; i++) {
+      var bit = document.createElement("i");
+      bit.className = "confetti";
+      bit.style.left = (Math.random() * 100) + "vw";
+      bit.style.background = colors[i % colors.length];
+      bit.style.animationDuration = (2 + Math.random() * 2) + "s";
+      bit.style.animationDelay = (Math.random() * 0.8) + "s";
+      document.body.appendChild(bit);
+      setTimeout(function (el) { el.remove(); }, 5200, bit);
+    }
+  }
+
+  boxes.forEach(function (box) {
+    box.checked = !!state[box.dataset.step];
+    box.addEventListener("change", function () {
+      state[box.dataset.step] = box.checked;
+      saveState(STORAGE_KEY, state);
+      if (updateProgress() === boxes.length && box.checked) confetti();
+    });
+  });
+
+  partBoxes.forEach(function (box, i) {
+    box.checked = !!partState[i];
+    box.addEventListener("change", function () {
+      partState[i] = box.checked;
+      saveState(PARTS_KEY, partState);
+    });
+  });
+
+  document.getElementById("reset-btn").addEventListener("click", function () {
+    state = {};
+    partState = {};
+    saveState(STORAGE_KEY, state);
+    saveState(PARTS_KEY, partState);
+    boxes.forEach(function (box) { box.checked = false; });
+    partBoxes.forEach(function (box) { box.checked = false; });
+    updateProgress();
+  });
+
+  updateProgress();
+
+  /* Copy buttons */
+  function fallbackCopy(text) {
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand("copy"); } catch (e) {}
+    document.body.removeChild(ta);
+  }
+  function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text).catch(function () { fallbackCopy(text); });
+    }
+    fallbackCopy(text);
+    return Promise.resolve();
+  }
+  document.querySelectorAll(".copy-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var code = document.getElementById(btn.dataset.target).textContent;
+      var label = btn.dataset.label || (btn.dataset.label = btn.textContent);
+      copyText(code).then(function () {
+        btn.textContent = "Copied!";
+        setTimeout(function () { btn.textContent = label; }, 1500);
+      });
+    });
+  });
+</script>
+<script>
+  /* Show the chapter name in the sticky bar once the big banner has scrolled away. */
+  (function () {
+    var bar = document.querySelector(".progress"), banner = document.querySelector(".hero");
+    if (!bar) return;
+    if (!banner || !("IntersectionObserver" in window)) { bar.classList.add("no-watch"); return; }
+    new IntersectionObserver(function (entries) {
+      bar.classList.toggle("is-stuck", !entries[0].isIntersecting);
+    }).observe(banner);
+  })();
+</script>
+</body>
+</html>

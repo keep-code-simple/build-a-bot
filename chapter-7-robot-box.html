@@ -1,0 +1,1331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Robot Box</title>
+<style>
+
+  :root {
+    --bg: #fff7e8;
+    --dots: #f6e3bd;
+    --card: #ffffff;
+    --text: #1f2340;
+    --muted: #5d6180;
+    --line: #e7dcc6;
+    --accent: #2563eb;
+    --accent-soft: #e3edff;
+    --good: #15803d;
+    --good-soft: #dcfce7;
+    --warn: #a16207;
+    --warn-soft: #fef3c7;
+    --code-bg: #1b1f3a;
+    --code-text: #e8eaff;
+    --s1: #2563eb;
+    --s2: #ea580c;
+    --s3: #7c3aed;
+    --s4: #db2777;
+    --s5: #15803d;
+    --s6: #f59e0b;
+    --round: ui-rounded, "SF Pro Rounded", "Arial Rounded MT Bold", "Chalkboard SE", system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14162b;
+      --dots: #1d2040;
+      --card: #20244a;
+      --text: #f1f2ff;
+      --muted: #b3b7da;
+      --line: #383d6e;
+      --accent: #8fb4ff;
+      --accent-soft: #263463;
+      --good: #6ee7a0;
+      --good-soft: #17402b;
+      --warn: #fcd34d;
+      --warn-soft: #453712;
+      --code-bg: #0e1024;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background-color: var(--bg);
+    background-image: radial-gradient(var(--dots) 2px, transparent 2.5px);
+    background-size: 26px 26px;
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 17px;
+    line-height: 1.6;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 0 16px 80px; }
+  h1, h2, h3, .step-num, .done-label, .stop .lbl, .role b, .key { font-family: var(--round); }
+  h1 { font-size: 2.6rem; line-height: 1.1; margin: 0 0 10px; }
+  h2 { font-size: 1.55rem; line-height: 1.2; margin: 0 0 10px; }
+  h3 { font-size: 1.1rem; margin: 24px 0 8px; }
+  a { color: var(--accent); }
+
+  /* ---------- hero ---------- */
+  .hero {
+    margin-top: 16px;
+    border-radius: 28px;
+    padding: 28px 28px 22px;
+    color: #fff;
+    background: linear-gradient(135deg, #2563eb 0%, #7c3aed 55%, #db2777 100%);
+    display: flex; align-items: center; gap: 20px;
+    box-shadow: 0 8px 0 rgba(31, 35, 64, 0.18);
+  }
+  .hero-text { flex: 1; min-width: 0; }
+  .hero .subtitle { font-size: 1.15rem; margin: 0 0 14px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { background: rgba(255,255,255,0.22); border-radius: 99px; padding: 3px 12px; font-size: 0.9rem; font-weight: 600; }
+  .chip-link { color: #fff; text-decoration: none; background: rgba(31,35,64,0.35); }
+  .chip-link:hover { background: rgba(31,35,64,0.55); }
+  .robot { width: 190px; flex-shrink: 0; }
+  .robot .arm { transform-origin: 160px 124px; animation: wave 1.4s ease-in-out infinite alternate; }
+  .robot .pupil { transform-origin: center; transform-box: fill-box; animation: blink 4s infinite; }
+  .robot .antenna { animation: glow 1.2s ease-in-out infinite alternate; }
+  @keyframes wave { from { transform: rotate(-14deg); } to { transform: rotate(22deg); } }
+  @keyframes blink { 0%, 92%, 100% { transform: scaleY(1); } 96% { transform: scaleY(0.1); } }
+  @keyframes glow { from { fill: #fda4af; } to { fill: #fff; } }
+
+  /* ---------- mission map ---------- */
+  .progress {
+    position: sticky; top: 0; z-index: 5;
+    background: var(--bg);
+    padding: 10px 0 12px;
+    border-bottom: 3px dashed var(--line);
+    margin: 14px 0 20px;
+  }
+  .progress-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 0.95rem; font-weight: 600; }
+  .reset-btn { background: none; border: 2px solid var(--line); color: var(--muted); border-radius: 99px; padding: 2px 12px; cursor: pointer; font-size: 0.85rem; }
+  .map { list-style: none; display: flex; justify-content: space-between; padding: 0; margin: 8px 0 8px; }
+  .map li { flex: 1; margin: 0; text-align: center; }
+  .stop { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; text-decoration: none; color: var(--muted); }
+  .stop .dot {
+    width: 44px; height: 44px; border-radius: 50%;
+    display: grid; place-items: center; font-size: 1.3rem;
+    background: var(--card); border: 3px solid var(--line);
+    filter: grayscale(1); opacity: 0.75;
+    transition: transform 0.25s, background 0.25s;
+  }
+  .stop .lbl { font-size: 0.8rem; font-weight: 700; }
+  .stop.is-done { color: var(--text); }
+  .stop.is-done .dot { background: var(--c); border-color: var(--c); filter: none; opacity: 1; transform: scale(1.12) rotate(-6deg); box-shadow: 0 3px 0 rgba(31,35,64,0.25); }
+  .bar { height: 12px; background: var(--line); border-radius: 99px; overflow: hidden; }
+  .bar-fill { height: 100%; width: 0; border-radius: 99px; background: linear-gradient(90deg, var(--s1), var(--s2), var(--s3), var(--s4), var(--s5), var(--s6)); background-size: 860px 100%; transition: width 0.4s; }
+
+  /* ---------- cards ---------- */
+  .card {
+    background: var(--card);
+    border: 2px solid var(--line);
+    border-radius: 22px;
+    padding: 22px 24px;
+    margin: 22px 0;
+    box-shadow: 0 5px 0 var(--line);
+    --c: var(--accent);
+  }
+  .card > h2 { display: flex; align-items: center; gap: 10px; }
+  .step { border-top: 10px solid var(--c); scroll-margin-top: 150px; --on: #fff; }
+  .step.is-done { border-color: var(--c); box-shadow: 0 5px 0 var(--c); }
+  .step-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+  .step-title { display: flex; gap: 14px; align-items: center; }
+  .step-emoji {
+    width: 64px; height: 64px; flex-shrink: 0; border-radius: 20px;
+    display: grid; place-items: center; font-size: 2rem;
+    background: color-mix(in srgb, var(--c) 18%, var(--card));
+    transform: rotate(-4deg);
+  }
+  .step-title h2 { margin: 2px 0 0; }
+  .step-num {
+    display: inline-block; background: var(--c); color: var(--on);
+    font-weight: 800; font-size: 0.85rem; letter-spacing: 0.04em; text-transform: uppercase;
+    border-radius: 99px; padding: 1px 12px;
+  }
+  .time { color: var(--muted); font-size: 0.92rem; }
+  .done-label {
+    display: flex; align-items: center; gap: 8px; white-space: nowrap;
+    border: 3px solid var(--c); border-radius: 99px; padding: 6px 16px; cursor: pointer;
+    font-size: 1rem; font-weight: 700;
+  }
+  .step.is-done .done-label { background: var(--c); color: var(--on); }
+  .done-label input { width: 20px; height: 20px; cursor: pointer; accent-color: var(--good); }
+
+  .roles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 10px 0; }
+  .role { border-radius: 16px; padding: 14px 16px; display: flex; gap: 12px; align-items: center; }
+  .role span { font-size: 2.2rem; }
+  .role b { display: block; font-size: 1.15rem; }
+  .role.builder { background: color-mix(in srgb, var(--s2) 16%, var(--card)); }
+  .role.coder { background: color-mix(in srgb, var(--s3) 16%, var(--card)); }
+  .swap { text-align: center; font-weight: 700; margin: 4px 0 0; }
+
+  table { border-collapse: collapse; width: 100%; margin: 8px 0 14px; font-size: 0.95rem; }
+  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 0.85rem; }
+  .pin { font-family: ui-monospace, Menlo, Consolas, monospace; font-weight: 700; }
+  td .pin, td.pin { color: var(--c); }
+  .table-scroll { overflow-x: auto; }
+
+  .tip, .kid, .warn { border-radius: 16px; padding: 14px 16px; margin: 16px 0; font-size: 0.97rem; border-left: 8px solid; }
+  .tip { background: var(--accent-soft); border-color: var(--accent); }
+  .kid { background: var(--good-soft); border-color: var(--good); }
+  .warn { background: var(--warn-soft); border-color: var(--warn); }
+  .tip strong, .kid strong, .warn strong { display: block; margin-bottom: 2px; font-family: var(--round); font-size: 1.05rem; }
+
+  .code-wrap { position: relative; margin: 12px 0; }
+  pre {
+    background: var(--code-bg); color: var(--code-text);
+    padding: 16px; border-radius: 16px; overflow-x: auto;
+    font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.85rem; line-height: 1.5;
+    margin: 0; border: 3px solid var(--c);
+  }
+  .copy-btn {
+    position: absolute; top: 10px; right: 10px;
+    background: var(--c); color: var(--on, #fff); border: none; border-radius: 99px;
+    padding: 6px 14px; cursor: pointer; font-size: 0.85rem; font-weight: 700;
+  }
+  .copy-btn:hover { filter: brightness(1.15); }
+  code.inline { font-family: ui-monospace, Menlo, Consolas, monospace; background: var(--accent-soft); padding: 1px 6px; border-radius: 6px; font-size: 0.9em; }
+
+  ol, ul { padding-left: 22px; }
+  li { margin: 4px 0; }
+
+  .peek { display: inline-block; margin: 6px 0; padding: 8px 16px; border: 3px dashed #0e7490; border-radius: 99px; text-decoration: none; font-family: var(--round); font-weight: 700; color: var(--text); background: color-mix(in srgb, #0e7490 10%, var(--card)); }
+  .peek:hover { border-style: solid; }
+  .celebrate a { color: #fff; font-family: var(--round); font-weight: 800; }
+
+  /* ---------- photos ---------- */
+  .photos { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 12px 0 4px; }
+  .photos figure { margin: 0; }
+  .photos img { display: block; width: 100%; height: auto; border-radius: 18px; border: 4px solid var(--card); box-shadow: 0 5px 0 var(--line); }
+  .photos figure:nth-child(1) img { transform: rotate(-1.5deg); }
+  .photos figure:nth-child(2) img { transform: rotate(1.5deg); }
+  .photos figcaption { text-align: center; font-family: var(--round); font-weight: 700; margin-top: 10px; }
+  .photos figcaption span { display: block; font-family: inherit; font-weight: 400; color: var(--muted); font-size: 0.9rem; }
+
+  /* ---------- parts ---------- */
+  .parts { list-style: none; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .parts li { margin: 0; }
+  .parts label {
+    display: flex; gap: 12px; align-items: center; height: 100%;
+    border: 2px solid var(--line); border-radius: 16px; padding: 10px 12px; cursor: pointer;
+  }
+  .parts label:has(input:checked) { background: var(--good-soft); border-color: var(--good); }
+  .parts svg { width: 56px; height: 56px; flex-shrink: 0; background: #fffdf6; border-radius: 14px; padding: 4px; }
+  .parts .txt { flex: 1; min-width: 0; font-weight: 600; line-height: 1.35; }
+  .parts .hint { color: var(--muted); font-size: 0.86rem; display: block; font-weight: 400; }
+  .parts input { width: 20px; height: 20px; flex-shrink: 0; accent-color: var(--good); }
+
+  /* ---------- diagrams (always on light "paper") ---------- */
+  .diagram {
+    background: #fffdf6; border: 2px dashed #d9cba8; border-radius: 16px;
+    padding: 8px; margin: 12px 0; overflow-x: auto;
+  }
+  .diagram svg { display: block; width: 100%; min-width: 540px; height: auto; font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
+  .diagram text { fill: #1f2340; font-size: 13px; }
+  .diagram .w, .diagram .w text { fill: #fff; font-weight: 700; }
+  .diagram .sm { font-size: 10px; }
+  .diagram .wire { fill: none; stroke-width: 5; stroke-linecap: round; }
+  .diagram figcaption, .cap { color: #5d6180; font-size: 0.88rem; padding: 4px 6px 2px; }
+  figure { margin: 0; }
+
+  /* ---------- echo demo ---------- */
+  .echo-demo input[type=range] { width: 100%; accent-color: var(--s2); height: 28px; }
+  .echo-readout { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; }
+  .echo-readout div { background: var(--accent-soft); border-radius: 14px; padding: 8px 14px; flex: 1; min-width: 150px; }
+  .echo-readout b { display: block; font-size: 1.4rem; color: var(--accent); font-family: var(--round); }
+  #echo-pulse path { fill: none; stroke: #2563eb; stroke-width: 4; stroke-linecap: round; }
+  #echo-pulse.back path { stroke: #ea580c; }
+  #echo-bubble { opacity: 0; transition: opacity 0.2s; }
+  .is-greeting #echo-bubble { opacity: 1; }
+
+  /* ---------- LCD lab ---------- */
+  .lcd-lab input[type=text] {
+    width: 100%; font: inherit; padding: 9px 14px; border-radius: 12px;
+    border: 2px solid var(--line); background: var(--card); color: var(--text);
+  }
+  .lcd {
+    display: inline-block; max-width: 100%; margin-top: 10px; padding: 12px 14px; border-radius: 10px;
+    background: #14532d; border: 4px solid #0b3a1e;
+  }
+  .lcd-screen { background: #bef264; padding: 6px; border-radius: 4px; display: grid; grid-template-columns: repeat(16, 1fr); gap: 2px; }
+  .lcd-screen span {
+    width: 1.05em; height: 1.5em; display: grid; place-items: center;
+    background: rgba(63, 98, 18, 0.14); color: #1a2e05;
+    font-family: ui-monospace, Menlo, Consolas, monospace; font-weight: 700; font-size: clamp(0.8rem, 3.6vw, 1.25rem);
+  }
+  .lcd-count { font-weight: 700; margin: 8px 0 0; }
+  .lcd-count.bad { color: #dc2626; }
+  .lcd-count.ok { color: var(--good); }
+
+  /* ---------- tune maker ---------- */
+  .keys { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; margin: 10px 0; }
+  .key {
+    border: none; border-radius: 12px 12px 18px 18px; padding: 14px 2px 10px; cursor: pointer;
+    background: var(--k); color: #fff; font-weight: 800; font-size: 1.1rem;
+    box-shadow: 0 5px 0 rgba(31,35,64,0.3);
+  }
+  .key small { display: block; font-family: ui-monospace, Menlo, monospace; font-size: 0.78rem; font-weight: 700; }
+  .key:active { transform: translateY(4px); box-shadow: 0 1px 0 rgba(31,35,64,0.3); }
+  .tune-out { background: var(--code-bg); color: var(--code-text); border-radius: 12px; padding: 10px 14px; font-family: ui-monospace, Menlo, monospace; font-size: 0.88rem; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .tune-out input { flex: 1; min-width: 0; font: inherit; color: inherit; background: rgba(255,255,255,0.12); border: 2px solid var(--c); border-radius: 8px; padding: 5px 8px; }
+  .tune-controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
+  .btn { border: none; border-radius: 99px; padding: 7px 16px; font: inherit; font-weight: 700; cursor: pointer; background: var(--c); color: #fff; }
+  .btn.ghost { background: none; border: 2px solid var(--line); color: var(--muted); }
+
+  details { border: 2px solid var(--line); border-radius: 14px; padding: 10px 14px; margin: 8px 0; background: var(--card); }
+  details[open] { border-color: var(--s2); }
+  summary { cursor: pointer; font-weight: 600; }
+  details p { margin: 8px 0 2px; }
+
+  .ideas { list-style: none; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .ideas li { margin: 0; border-radius: 16px; padding: 12px 14px; background: color-mix(in srgb, var(--k) 14%, var(--card)); border: 2px solid color-mix(in srgb, var(--k) 45%, var(--card)); }
+  .ideas .big { font-size: 1.7rem; display: block; }
+
+  .celebrate {
+    display: none; text-align: center; border-radius: 20px; padding: 22px; margin-top: 20px; color: #fff;
+    background: linear-gradient(135deg, #f59e0b, #db2777 60%, #7c3aed);
+  }
+  .celebrate.show { display: block; animation: pop 0.5s; }
+  .celebrate .trophy { font-size: 3rem; display: block; }
+  .celebrate b { font-family: var(--round); font-size: 1.5rem; display: block; }
+  @keyframes pop { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .confetti { position: fixed; top: -16px; width: 10px; height: 16px; z-index: 50; pointer-events: none; animation: fall linear forwards; }
+  @keyframes fall { to { transform: translateY(110vh) rotate(720deg); } }
+
+  @media (max-width: 620px) {
+    .hero { flex-direction: column-reverse; text-align: center; padding: 20px; }
+    .chips { justify-content: center; }
+    .robot { width: 130px; }
+    h1 { font-size: 2rem; }
+    .step-head { flex-direction: column; }
+    .roles, .parts, .ideas { grid-template-columns: 1fr; }
+    .photos { gap: 10px; }
+    .stop .lbl { display: none; }
+    .stop .dot { width: 38px; height: 38px; font-size: 1.1rem; }
+    .keys { grid-template-columns: repeat(4, 1fr); }
+    .card { padding: 18px 16px; }
+    .step { scroll-margin-top: 120px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .robot .arm, .robot .pupil, .robot .antenna, .celebrate.show { animation: none; }
+    #echo-pulse { display: none; }
+  }
+  @media print {
+    body { background: #fff; }
+    .progress, .copy-btn, .reset-btn, .echo-demo, .lcd-lab, .tune-controls, .robot { display: none; }
+    .card { break-inside: avoid; box-shadow: none; }
+    .hero { color: #000; background: none; box-shadow: none; padding: 0; }
+  }
+
+  /* ---------- Chapter 3 additions ---------- */
+  .robot .arm { animation: wave 1.8s ease-in-out infinite alternate; }
+  @keyframes wave { from { transform: rotate(-4deg); } to { transform: rotate(14deg); } }
+  .robot .scan { animation: scan 2.4s ease-in-out infinite alternate; }
+  @keyframes scan { from { opacity: 0.35; } to { opacity: 1; } }
+
+  /* the real screen is blue with white letters */
+  .lcd-screen { background: #1d4ed8; }
+  .lcd-screen span { background: rgba(255,255,255,0.1); color: #fff; }
+
+  button, .hit { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+  .btn.big { min-height: 48px; padding: 10px 18px; font-size: 1rem; background: var(--k, var(--s1)); }
+  .btn.big:disabled { opacity: 0.5; cursor: default; }
+  .btn.big.ghost { background: none; min-height: 48px; }
+  .btn-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+  .say { font-weight: 700; margin: 10px 0 6px; min-height: 3.2em; }
+  .win { background: var(--good-soft); border: 2px solid var(--good); border-radius: 14px; padding: 10px 14px; margin: 16px 0 4px; }
+  .win b { font-family: var(--round); }
+  .lab { display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 1fr); gap: 20px; align-items: start; }
+  .lab-side { min-width: 0; }
+  .lab-side .lcd { margin-top: 0; }
+  #pipe-letter { visibility: hidden; }
+  .diagram .mono { font-family: ui-monospace, Menlo, Consolas, monospace; font-weight: 700; }
+
+  /* the hand with 21 points */
+  .diagram svg.hand-svg { min-width: 0; max-width: 340px; margin: 0 auto; user-select: none; -webkit-user-select: none; }
+  .hand-svg .hit { fill: none; stroke: transparent; stroke-width: 36; stroke-linecap: round; pointer-events: stroke; cursor: pointer; }
+  .diagram .dotnum { fill: #fff; font-size: 9px; font-weight: 700; pointer-events: none; }
+  .finger-btns { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin: 8px 0; }
+  .fbtn {
+    min-height: 52px; border: 3px solid var(--line); border-radius: 14px; background: var(--card); color: var(--muted);
+    font: inherit; font-family: var(--round); font-weight: 800; font-size: 0.82rem; line-height: 1.2; cursor: pointer; padding: 4px 0;
+  }
+  .fbtn small { display: block; font-size: 0.74rem; font-weight: 700; }
+  .fbtn.up { background: var(--good-soft); border-color: var(--good); color: var(--text); }
+  .count-row { display: flex; align-items: center; gap: 14px; margin: 0 0 10px; }
+  .big-count { font-family: var(--round); font-size: 3.6rem; line-height: 1; font-weight: 800; color: var(--good); min-width: 1ch; }
+  .count-row span { font-weight: 700; }
+  .rule-out { background: var(--accent-soft); border-radius: 14px; padding: 10px 14px; font-size: 0.95rem; margin: 10px 0; }
+
+  /* rock paper scissors */
+  .rps-moves { display: flex; gap: 12px; justify-content: center; margin: 4px 0 12px; }
+  .rps-btn {
+    flex: 1; max-width: 120px; min-height: 104px; border: none; border-radius: 22px; cursor: pointer;
+    background: var(--k); color: #fff; font-size: 2.6rem; line-height: 1.2;
+    box-shadow: 0 6px 0 rgba(31,35,64,0.3);
+  }
+  .rps-btn small { display: block; font-family: var(--round); font-size: 0.9rem; font-weight: 800; }
+  .rps-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(31,35,64,0.3); }
+  .rps-btn:disabled { opacity: 0.45; cursor: default; }
+
+  /* greeter toy */
+  .cam {
+    position: relative; height: 130px; border-radius: 16px; background: #334155; border: 4px solid #0f172a;
+    display: grid; place-items: center; font-size: 3.2rem; line-height: 1; overflow: hidden;
+  }
+  .cam .box { border: 4px solid #22c55e; border-radius: 6px; padding: 6px 12px; }
+  .cam.empty .box { visibility: hidden; }
+  .cam .status { position: absolute; left: 10px; top: 6px; font-size: 0.95rem; font-weight: 800; color: #fde047; font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; line-height: 1.4; }
+  .msglog {
+    font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.85rem; white-space: pre-wrap;
+    background: var(--code-bg); color: var(--code-text); border-radius: 12px; padding: 10px 14px; min-height: 5.4em; margin: 10px 0 6px;
+  }
+  .seg { display: inline-flex; border: 2px solid var(--line); border-radius: 99px; overflow: hidden; background: var(--card); vertical-align: middle; }
+  .seg-btn { min-height: 44px; min-width: 52px; padding: 6px 14px; border: none; background: none; color: var(--muted); font: inherit; font-weight: 700; cursor: pointer; }
+  .seg-btn.on { background: var(--s4); color: #fff; }
+
+  .term { background: #0e1024; color: #e8eaff; border-radius: 14px; padding: 12px 14px; margin: 10px 0; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.85rem; overflow-x: auto; white-space: pre; }
+  .term .ok { color: #6ee7a0; font-weight: 700; }
+  .cmds { padding-left: 22px; }
+  .cmds > li { margin: 14px 0; }
+  .cmds .code-wrap { margin: 6px 0 0; }
+  .code-wrap pre { padding-top: 46px; }
+  pre.excerpt { border-style: dashed; }
+  details.code-details > summary { font-family: var(--round); font-weight: 700; }
+  details.code-details .code-wrap { margin-bottom: 4px; }
+  .cap-line { color: var(--muted); font-size: 0.9rem; margin: 4px 0 12px; }
+
+  @media (max-width: 620px) {
+    .lab { grid-template-columns: minmax(0, 1fr); }
+    .rps-btn { min-height: 92px; font-size: 2.2rem; }
+    .big-count { font-size: 3rem; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .robot .scan { animation: none; }
+  }
+  @media print {
+    .pipe-demo .btn-row, .hand-lab, .rps-sim, .greet-toy { display: none; }
+    details.code-details { display: none; }
+  }
+
+  /* ---------- "you are here" line in the sticky bar ---------- */
+  .here { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-family: var(--round); font-weight: 800; font-size: 1.05rem; line-height: 1.2; opacity: 0; visibility: hidden; transition: opacity 0.25s; }
+  .progress.is-stuck .here, .progress.no-watch .here { opacity: 1; visibility: visible; }
+  .here a { text-decoration: none; font-size: 1.15rem; }
+  .here .here-num { background: var(--accent); color: var(--card); border-radius: 99px; padding: 1px 12px; font-size: 0.8rem; letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap; }
+  .here b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  @media print { .here { display: none; } }
+
+  /* ---------- Chapter 7 additions ---------- */
+  :root { --s7: #0e7490; --s8: #be123c; }
+  .badge-line { font-family: var(--round); margin: 6px 0 2px; }
+  .parts li label > .txt:first-child { padding-left: 4px; }
+  #toy-envelope.open { animation: pop 0.4s; }
+  .toy-move { font: inherit; font-family: var(--round); font-weight: 800; font-size: 1.1rem; cursor: pointer;
+    color: var(--card); background: var(--accent); border: 0; border-radius: 14px; padding: 10px 18px; }
+  .toy-move:hover { filter: brightness(1.1); }
+  .toy-move:active { transform: translateY(2px); }
+</style>
+<script>
+  /* Sound unlock: browsers (Safari and iPads most of all) only allow sound that starts from a tap.
+     Make one shared sound engine, and wake it on the first tap or key press anywhere on the page. */
+  (function () {
+    var RealAudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!RealAudioContext) return;
+    var shared = null;
+    function SharedAudioContext() {
+      if (!shared) shared = new RealAudioContext();
+      return shared;
+    }
+    SharedAudioContext.prototype = RealAudioContext.prototype;
+    window.AudioContext = SharedAudioContext;
+    if (window.webkitAudioContext) window.webkitAudioContext = SharedAudioContext;
+    function wake() {
+      try {
+        var ctx = new SharedAudioContext();
+        if (ctx.state !== "running" && ctx.resume) ctx.resume();
+        var source = ctx.createBufferSource();          /* one silent blip, which is what iOS needs */
+        source.buffer = ctx.createBuffer(1, 1, 22050);
+        source.connect(ctx.destination);
+        source.start(0);
+      } catch (e) { /* no sound available, that's fine */ }
+    }
+    ["pointerdown", "touchend", "keydown"].forEach(function (name) {
+      document.addEventListener(name, wake, true);
+    });
+  })();
+</script>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <div class="hero-text">
+    <h1>The Robot Box</h1>
+    <p class="subtitle">Chapter 7: the robot gets its own body. A Raspberry Pi, a camera and a touchscreen go inside a box, and the AI runs without the MacBook. When you get bored of one game, you reprogram the box into something new.</p>
+    <div class="chips">
+      <a class="chip chip-link" href="index.html">🏠 Home</a>
+      <span class="chip">📖 Chapter 7</span>
+      <span class="chip">⏱ Path A: one Sunday · Path B: two or three</span>
+      <span class="chip">👥 2 builders + a parent</span>
+      <span class="chip">🏅 8 badges to earn</span>
+      <a class="chip chip-link" href="chapter-6-dino-bot.html">← Chapter 6: Dino Bot</a>
+      <a class="chip chip-link" href="chapter-3-robot-eyes.html">👀 Chapter 3: Robot Eyes</a>
+    </div>
+  </div>
+  <svg class="robot" viewBox="0 0 200 222" role="img" aria-label="A box with a screen showing a robot face, a camera on top and two big buttons">
+    <line x1="100" y1="14" x2="100" y2="34" stroke="#fff" stroke-width="4"/>
+    <circle class="antenna" cx="100" cy="12" r="8" fill="#fda4af"/>
+    <rect x="30" y="34" width="140" height="170" rx="18" fill="#fbbf24" stroke="#fff" stroke-width="3"/>
+    <circle cx="100" cy="52" r="9" fill="#1f2340" stroke="#fff" stroke-width="2"/>
+    <circle class="scan" cx="100" cy="52" r="4" fill="#22c55e"/>
+    <rect x="46" y="68" width="108" height="78" rx="8" fill="#10121c" stroke="#1e3a8a" stroke-width="3"/>
+    <rect class="pupil" x="64" y="86" width="20" height="28" rx="6" fill="#3cc86e"/>
+    <rect class="pupil" x="116" y="86" width="20" height="28" rx="6" fill="#3cc86e"/>
+    <text x="100" y="136" text-anchor="middle" font-family="ui-monospace, Menlo, monospace" font-weight="700" font-size="10" fill="#fff">SHOW YOUR HAND</text>
+    <circle cx="72" cy="174" r="14" fill="#16a34a" stroke="#fff" stroke-width="3"/>
+    <text x="72" y="179" text-anchor="middle" font-weight="800" font-size="14" fill="#fff">A</text>
+    <circle cx="128" cy="174" r="14" fill="#dc2626" stroke="#fff" stroke-width="3"/>
+    <text x="128" y="179" text-anchor="middle" font-weight="800" font-size="14" fill="#fff">B</text>
+  </svg>
+</header>
+
+<nav class="progress" aria-label="Your progress">
+  <div class="here"><a href="index.html" aria-label="Home">🏠</a><span class="here-num">Chapter 7</span><b>The Robot Box</b></div>
+  <div class="progress-row">
+    <span id="progress-label">0 of 8 steps done</span>
+    <button class="reset-btn" id="reset-btn" type="button">Reset checkmarks</button>
+  </div>
+  <ol class="map">
+    <li><a class="stop" data-stop="1" href="#step1" style="--c:var(--s1)"><span class="dot" aria-hidden="true">🍓</span><span class="lbl">Pi</span></a></li>
+    <li><a class="stop" data-stop="2" href="#step2" style="--c:var(--s2)"><span class="dot" aria-hidden="true">📷</span><span class="lbl">Camera</span></a></li>
+    <li><a class="stop" data-stop="3" href="#step3" style="--c:var(--s3)"><span class="dot" aria-hidden="true">🧠</span><span class="lbl">Brain</span></a></li>
+    <li><a class="stop" data-stop="4" href="#step4" style="--c:var(--s4)"><span class="dot" aria-hidden="true">🔌</span><span class="lbl">Autostart</span></a></li>
+    <li><a class="stop" data-stop="5" href="#step5" style="--c:var(--s5)"><span class="dot" aria-hidden="true">📱</span><span class="lbl">Screen</span></a></li>
+    <li><a class="stop" data-stop="6" href="#step6" style="--c:var(--s6)"><span class="dot" aria-hidden="true">🔘</span><span class="lbl">Buttons</span></a></li>
+    <li><a class="stop" data-stop="7" href="#step7" style="--c:var(--s7)"><span class="dot" aria-hidden="true">📦</span><span class="lbl">Box</span></a></li>
+    <li><a class="stop" data-stop="8" href="#step8" style="--c:var(--s8)"><span class="dot" aria-hidden="true">✌️</span><span class="lbl">Play</span></a></li>
+  </ol>
+  <div class="bar"><div class="bar-fill" id="bar-fill"></div></div>
+</nav>
+
+<!-- ============ BEFORE YOU START ============ -->
+<section class="card">
+  <h2><span aria-hidden="true">🚀</span> Before you start</h2>
+  <p><b>You need:</b> Chapter 3 done on the MacBook, so you've seen the AI find hands. Path A reuses your Chapter 1 gadget.</p>
+  <p><b>Two paths, same software:</b></p>
+  <div class="roles">
+    <div class="role builder"><span aria-hidden="true">🅰️</span><div><b>Path A: start simple</b>One Sunday. The Pi replaces the MacBook, and your Arduino is still the screen and the buzzer.</div></div>
+    <div class="role coder"><span aria-hidden="true">🅱️</span><div><b>Path B: the full box</b>Two or three Sundays. Add a touchscreen, a speaker and arcade buttons, and put it all in a box.</div></div>
+  </div>
+  <p class="swap">Do Path A first. Path B builds on it.</p>
+  <div class="kid">
+    <strong>💡 The big rule of this chapter</strong>
+    The hardware is fixed. The behavior is software. Change the code, and the same box becomes a different gadget.
+  </div>
+  <div class="tip">
+    <strong>💡 Parent tip</strong>
+    Steps 1 to 4 need you: they use Terminal and a new computer. You can also try the whole thing on the MacBook first, with no new parts at all. See "Try it on the Mac first" below.
+  </div>
+  <div class="warn">
+    <strong>⚠️ This page hasn't met a real Raspberry Pi yet</strong>
+    The games were tested on a MacBook. The Raspberry Pi steps were written from the Pi's instructions but not run on a real one. Expect to fix a small thing or two on your first build. The "What we tested" card near the bottom has the full list.
+  </div>
+</section>
+
+<!-- ============ THE BIG IDEA ============ -->
+<section class="card">
+  <h2><span aria-hidden="true">💡</span> The big idea: the robot moves out of the laptop</h2>
+  <p>A <b>Raspberry Pi</b> is a whole computer the size of a deck of cards. It runs Python, and it has a camera port, a screen port, Wi-Fi and USB.</p>
+  <div class="table-scroll">
+  <table>
+    <tr><th></th><th>Eyes</th><th>Brain (runs the AI)</th><th>Screen and sound</th></tr>
+    <tr><td><b>Chapters 3 and 4</b></td><td>📷 MacBook camera</td><td>💻 MacBook</td><td>🤖 Arduino, on USB</td></tr>
+    <tr><td><b>Chapter 7, Path A</b></td><td>📷 Pi camera</td><td>🍓 Raspberry Pi</td><td>🤖 Arduino, on USB</td></tr>
+    <tr><td><b>Chapter 7, Path B</b></td><td>📷 Pi camera</td><td>🍓 Raspberry Pi</td><td>📱 touchscreen, 🔊 speaker, 🔘 buttons, all in one box</td></tr>
+  </table>
+  </div>
+  <p>The Pi is slower than the MacBook. The trick to making it <i>feel</i> just as fast is the <b>AI Camera</b>: it has its own little AI chip, so it can find people and body poses by itself and hand the Pi the answer.</p>
+  <h3>Who does the seeing?</h3>
+  <p>The AI Camera's chip can find people, pets, things and body poses. It can <b>not</b> find hands or faces. So the work is split:</p>
+  <div class="table-scroll">
+  <table>
+    <tr><th>What the app needs</th><th>Who runs it</th></tr>
+    <tr><td>People, pets and everyday things</td><td>🎥 The AI Camera's chip</td></tr>
+    <tr><td>Body pose (a stick figure)</td><td>🎥 The AI Camera's chip</td></tr>
+    <tr><td>Hand gestures (Rock Paper Scissors)</td><td>🍓 The Pi's processor</td></tr>
+    <tr><td>Faces</td><td>🍓 The Pi's processor</td></tr>
+  </table>
+  </div>
+  <p>An app never picks a model. It just says what it needs, like <code class="inline">needs = {"hands"}</code>, and a part of the code called the <b>vision router</b> decides who does the job. On the MacBook, the Mac does all of it.</p>
+</section>
+
+<!-- ============ FAIR PLAY TOY ============ -->
+<section class="card" id="envelope-toy">
+  <h2><span aria-hidden="true">🔒</span> Play it here: the sealed envelope</h2>
+  <p>In Chapter 3 you made the robot cheat by peeking at your move. This time the robot <b>can't</b> cheat: it locks its move in a sealed envelope <b>before</b> the countdown. Try it.</p>
+  <div class="kid" id="toy-box" style="text-align:center">
+    <strong id="toy-status">The robot is choosing...</strong>
+    <div id="toy-envelope" style="font-size:3.4rem; line-height:1.2" aria-hidden="true">✉️🔒</div>
+    <div id="toy-buttons" style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin:10px 0">
+      <button class="toy-move" data-move="rock" type="button">✊ Rock</button>
+      <button class="toy-move" data-move="paper" type="button">✋ Paper</button>
+      <button class="toy-move" data-move="scissors" type="button">✌️ Scissors</button>
+    </div>
+    <div id="toy-score">You 0 · Robot 0</div>
+    <label style="display:block; margin-top:8px"><input type="checkbox" id="toy-cheat"> Turn on cheat mode</label>
+  </div>
+  <p id="toy-log" class="cap-line" aria-live="polite">Log: nothing yet.</p>
+  <p>Look at the <b>log</b> after each round. In fair mode the robot's move is written down <i>before</i> yours. In cheat mode the envelope shows <b>?</b>, because it's empty: the robot waits to see your move. The real box works the same way, and it has a test that checks the order.</p>
+  <p class="cap-line">Grown-ups call this <b>commit and reveal</b>. It's how you prove you didn't change your answer.</p>
+</section>
+
+<!-- ============ MAC FIRST ============ -->
+<section class="card" id="mac-first">
+  <h2><span aria-hidden="true">💻</span> Try it on the Mac first (no new parts)</h2>
+  <p>The box's software also runs on the MacBook. The Mac's camera is the eyes, a window is the screen, and the keyboard is the two buttons. This is how you'll write new apps later.</p>
+  <ol class="cmds">
+    <li><b>Go to the robot-box folder.</b>
+      <div class="code-wrap">
+        <button class="copy-btn" data-target="mac1" type="button">Copy</button>
+<pre id="mac1">cd ~/"Claude Projects/Door Greeter Bot/robot-box"</pre>
+      </div></li>
+    <li><b>Make its private Python and install the add-ons.</b> You installed <code class="inline">uv</code> in Chapter 3.
+      <div class="code-wrap">
+        <button class="copy-btn" data-target="mac2" type="button">Copy</button>
+<pre id="mac2">uv venv --python 3.12
+source .venv/bin/activate
+uv pip install -r requirements.txt</pre>
+      </div></li>
+    <li><b>Download the hand AI.</b>
+      <div class="code-wrap">
+        <button class="copy-btn" data-target="mac3" type="button">Copy</button>
+<pre id="mac3">python setup/download_models.py</pre>
+      </div></li>
+    <li><b>Start the box.</b>
+      <div class="code-wrap">
+        <button class="copy-btn" data-target="mac4" type="button">Copy</button>
+<pre id="mac4">python box.py --desktop</pre>
+      </div></li>
+  </ol>
+  <div class="table-scroll">
+  <table>
+    <tr><th>On the box</th><th>On the Mac</th></tr>
+    <tr><td>Button <b>A</b> (green): select / play</td><td><b>A</b>, Space or Return</td></tr>
+    <tr><td>Button <b>B</b> (red): back / menu</td><td><b>B</b> or Escape</td></tr>
+    <tr><td>Touchscreen</td><td>Click with the mouse</td></tr>
+    <tr><td>Hold B for 2 seconds: debug numbers</td><td><b>D</b></td></tr>
+    <tr><td></td><td><b>Q</b> quits</td></tr>
+  </table>
+  </div>
+  <p>In the menu, <b>B moves to the next app and A opens it</b>. Or just click a tile.</p>
+  <p class="win">🏆 <b>The win:</b> a menu with two games, and Rock Paper Scissors reading your hand through the Mac's camera.</p>
+  <p class="cap-line">The first time, the Mac asks if Terminal may use the camera. Say yes.</p>
+</section>
+
+<!-- ============ SHOPPING ============ -->
+<section class="card">
+  <h2><span aria-hidden="true">🛒</span> Shopping list</h2>
+  <p>Prices were checked in October 2026. Raspberry Pi prices rose three times in 2026 because of a worldwide memory shortage, so check before you buy. Budget: <b>Path A roughly $230 to $250</b>, <b>Path B roughly $300 to $350</b>.</p>
+  <div class="table-scroll">
+  <table>
+    <tr><th>Part</th><th>A</th><th>B</th><th>Notes</th></tr>
+    <tr><td><b>Raspberry Pi 5, 8 GB</b></td><td>✅</td><td>✅</td><td>$130 list price. Seeing and speaking at the same time needs the room. The 4 GB ($85) works for one light app.</td></tr>
+    <tr><td><b>Official 27 W USB-C power supply</b></td><td>✅</td><td>✅</td><td><b>Required.</b> Weak power is the top cause of random Pi crashes. Don't use a phone charger.</td></tr>
+    <tr><td><b>Active Cooler</b> (the Pi 5's fan)</td><td>✅</td><td>✅</td><td><b>Required.</b> AI keeps the chip busy. Without the fan, the Pi quietly slows itself down when hot.</td></tr>
+    <tr><td><b>microSD card, 32 to 64 GB</b></td><td>✅</td><td>✅</td><td>A good brand, rated A2. Cheap cards wear out, and that's the most common way a Pi "dies".</td></tr>
+    <tr><td><b>Raspberry Pi AI Camera</b></td><td>✅</td><td>✅</td><td>$70 list price. A normal camera for every app, plus its own AI chip. The Camera Module 3 is cheaper but has no AI chip.</td></tr>
+    <tr><td><b>Touch Display 2</b></td><td></td><td>✅</td><td>5-inch, $40 (or 7-inch, $60). Plugs into the Pi's display port.</td></tr>
+    <tr><td><b>Small USB speaker</b></td><td></td><td>✅</td><td>The Pi 5 has no headphone jack.</td></tr>
+    <tr><td><b>2 arcade buttons</b> + jumper wires</td><td></td><td>✅</td><td>Big, clicky buttons are half the fun. One green, one red.</td></tr>
+    <tr><td><b>Project box</b></td><td></td><td>✅</td><td>Room for the Pi, fan, screen and speaker.</td></tr>
+    <tr><td><b>Your Chapter 1 Arduino</b></td><td>✅</td><td>optional</td><td>Path A uses it as the screen and the buzzer.</td></tr>
+    <tr><td><i>Later:</i> NVMe SSD + M.2 HAT+</td><td></td><td>optional</td><td>Faster and tougher than an SD card. Not for day one.</td></tr>
+  </table>
+  </div>
+</section>
+
+<!-- ============ PATH A ============ -->
+<h2 class="section-title" style="font-family:var(--round); margin:26px 4px 6px">🅰️ Path A: start simple</h2>
+
+<section class="card step" id="step1" style="--c:var(--s1)">
+  <div class="step-head">
+    <div class="step-title">
+      <span class="step-emoji" aria-hidden="true">🍓</span>
+      <div>
+        <span class="step-num">Path A · Step 1</span>
+        <h2>Set up the Pi</h2>
+        <span class="time">⏱ About 30 minutes · a parent job</span>
+      </div>
+    </div>
+    <label class="done-label"><input type="checkbox" class="done-box" data-step="1"> Done</label>
+  </div>
+  <ol>
+    <li>On the Mac, open <b>Raspberry Pi Imager</b> and write <b>Raspberry Pi OS (64-bit)</b> to the microSD card. In its settings: set the hostname to <code class="inline">robotbox</code>, pick a username, add the home Wi-Fi, and <b>turn on SSH</b>.</li>
+    <li>With the <b>power off</b>: attach the cooler and the camera's ribbon cable, and push in the card.</li>
+    <li>Plug in the official power supply. Wait about a minute.</li>
+    <li>From the Mac's Terminal, connect to the box. Use the username you picked.
+      <div class="code-wrap">
+        <button class="copy-btn" data-target="a1" type="button">Copy</button>
+<pre id="a1">ssh YOUR-USERNAME@robotbox.local</pre>
+      </div></li>
+  </ol>
+  <p class="win">🏆 <b>The win:</b> the Terminal line now ends in <code class="inline">@robotbox</code>. You're typing on the box, from the Mac.</p>
+  <p class="badge-line">🏅 <b>Badge:</b> Pi Pilot</p>
+</section>
+
+<section class="card step" id="step2" style="--c:var(--s2)">
+  <div class="step-head">
+    <div class="step-title">
+      <span class="step-emoji" aria-hidden="true">📷</span>
+      <div>
+        <span class="step-num">Path A · Step 2</span>
+        <h2>Camera check</h2>
+        <span class="time">⏱ About 10 minutes</span>
+      </div>
+    </div>
+    <label class="done-label"><input type="checkbox" class="done-box" data-step="2"> Done</label>
+  </div>
+  <p>Take a test photo on the Pi:</p>
+  <div class="code-wrap">
+    <button class="copy-btn" data-target="a2" type="button">Copy</button>
+<pre id="a2">rpicam-still -o test.jpg</pre>
+  </div>
+  <p>With a monitor plugged in, <code class="inline">rpicam-hello --timeout 5000</code> shows a 5-second live picture instead.</p>
+  <p>If you have the <b>AI Camera</b>, install its models once. The first start after this can take several minutes while the camera loads them.</p>
+  <div class="code-wrap">
+    <button class="copy-btn" data-target="a2b" type="button">Copy</button>
+<pre id="a2b">sudo apt install imx500-all</pre>
+  </div>
+  <p class="win">🏆 <b>The win:</b> a file called <code class="inline">test.jpg</code> on the Pi, and no error message.</p>
+  <p class="badge-line">🏅 <b>Badge:</b> Eye Doctor</p>
+</section>
+
+<section class="card step" id="step3" style="--c:var(--s3)">
+  <div class="step-head">
+    <div class="step-title">
+      <span class="step-emoji" aria-hidden="true">🧠</span>
+      <div>
+        <span class="step-num">Path A · Step 3</span>
+        <h2>Move the brain</h2>
+        <span class="time">⏱ About 30 minutes · most of it is waiting</span>
+      </div>
+    </div>
+    <label class="done-label"><input type="checkbox" class="done-box" data-step="3"> Done</label>
+  </div>
+  <ol class="cmds">
+    <li><b>Plug your Chapter 1 Arduino into the Pi's USB port.</b> It should still have <code class="inline">robot_brain.ino</code> from Chapter 3 on it.</li>
+    <li><b>Copy the project onto the Pi.</b>
+      <div class="code-wrap">
+        <button class="copy-btn" data-target="a3" type="button">Copy</button>
+<pre id="a3">git clone https://github.com/keep-code-simple/build-a-bot.git
+cd build-a-bot/robot-box</pre>
+      </div></li>
+    <li><b>Run the setup script.</b> It installs the AI, downloads the hand model, and sets up autostart for Path A. Go get a snack.
+      <div class="code-wrap">
+        <button class="copy-btn" data-target="a3b" type="button">Copy</button>
+<pre id="a3b">bash setup/install.sh --path-a</pre>
+      </div></li>
+    <li><b>Play a round.</b>
+      <div class="code-wrap">
+        <button class="copy-btn" data-target="a3c" type="button">Copy</button>
+<pre id="a3c">.venv/bin/python box.py --app rps --arduino</pre>
+      </div></li>
+  </ol>
+  <p>Show a fist, an open hand or a peace sign to the Pi's camera. The Arduino's screen plays the round, exactly like Chapter 3. Press <b>Control + C</b> to stop.</p>
+  <p class="win">🏆 <b>The win:</b> Rock Paper Scissors works, and the MacBook isn't doing any of the thinking.</p>
+  <p class="badge-line">🏅 <b>Badge:</b> Brain Transplant. The AI moved from the laptop into its own little computer.</p>
+  <div class="tip">
+    <strong>💡 In Path A the Arduino still picks the robot's move</strong>
+    That's Chapter 3's sketch, and it picks <i>after</i> it gets your move. The sealed envelope arrives in Path B, when the box has its own screen.
+  </div>
+</section>
+
+<section class="card step" id="step4" style="--c:var(--s4)">
+  <div class="step-head">
+    <div class="step-title">
+      <span class="step-emoji" aria-hidden="true">🔌</span>
+      <div>
+        <span class="step-num">Path A · Step 4</span>
+        <h2>Make it start on its own</h2>
+        <span class="time">⏱ About 15 minutes</span>
+      </div>
+    </div>
+    <label class="done-label"><input type="checkbox" class="done-box" data-step="4"> Done</label>
+  </div>
+  <p>The setup script already told the Pi to start the game when it powers on. Test it:</p>
+  <div class="code-wrap">
+    <button class="copy-btn" data-target="a4" type="button">Copy</button>
+<pre id="a4">sudo reboot</pre>
+  </div>
+  <p>Close the Mac. Wait about a minute. Show your hand to the camera.</p>
+  <p class="win">🏆 <b>The win:</b> the robot plays, and there is <b>no computer anywhere</b>. Just the Pi, the camera and the Arduino.</p>
+  <p class="badge-line">🏅 <b>Badge:</b> Unplugged</p>
+  <p class="cap-line">To stop it starting by itself: <code class="inline">bash setup/install.sh --uninstall-autostart</code></p>
+</section>
+
+<!-- ============ PATH B ============ -->
+<h2 class="section-title" style="font-family:var(--round); margin:26px 4px 6px">🅱️ Path B: the full box</h2>
+
+<section class="card step" id="step5" style="--c:var(--s5)">
+  <div class="step-head">
+    <div class="step-title">
+      <span class="step-emoji" aria-hidden="true">📱</span>
+      <div>
+        <span class="step-num">Path B · Step 1</span>
+        <h2>Screen and sound</h2>
+        <span class="time">⏱ About 30 minutes</span>
+      </div>
+    </div>
+    <label class="done-label"><input type="checkbox" class="done-box" data-step="5"> Done</label>
+  </div>
+  <ol>
+    <li><b>Shut the Pi down</b> and unplug it. Never connect ribbon cables with the power on.</li>
+    <li>Connect the <b>Touch Display 2</b>: the ribbon cable to the Pi's display port, and its power wires to the GPIO pins. Follow the picture in the display's own instructions.</li>
+    <li>Plug in the <b>USB speaker</b>.</li>
+    <li>Power on, connect from the Mac, and switch the box to Path B:
+      <div class="code-wrap">
+        <button class="copy-btn" data-target="b1" type="button">Copy</button>
+<pre id="b1">cd build-a-bot/robot-box
+bash setup/install.sh
+sudo reboot</pre>
+      </div></li>
+  </ol>
+  <p class="win">🏆 <b>The win:</b> after the restart, the <b>Robot Box menu</b> appears on the touchscreen by itself. Tap a game.</p>
+  <p class="badge-line">🏅 <b>Badge:</b> Lights, Screen, Action</p>
+</section>
+
+<section class="card step" id="step6" style="--c:var(--s6); --on:#3b2500">
+  <div class="step-head">
+    <div class="step-title">
+      <span class="step-emoji" aria-hidden="true">🔘</span>
+      <div>
+        <span class="step-num">Path B · Step 2</span>
+        <h2>Arcade buttons</h2>
+        <span class="time">⏱ About 20 minutes · power off first</span>
+      </div>
+    </div>
+    <label class="done-label"><input type="checkbox" class="done-box" data-step="6"> Done</label>
+  </div>
+  <p>Each button has two legs. One leg goes to a GPIO pin, the other to any <b>GND</b> pin. No resistors needed: the software switches on the Pi's built-in ones.</p>
+  <div class="table-scroll">
+  <table>
+    <tr><th>Button</th><th>Pin</th><th>Job</th></tr>
+    <tr><td><b>A</b> (green)</td><td>GPIO 17</td><td>Select / play</td></tr>
+    <tr><td><b>B</b> (red)</td><td>GPIO 27</td><td>Back / menu. Hold 2 seconds for the debug numbers.</td></tr>
+  </table>
+  </div>
+  <p class="win">🏆 <b>The win:</b> in the menu, B moves the white outline to the next app, and A opens it.</p>
+  <p class="badge-line">🏅 <b>Badge:</b> Button Masher</p>
+  <div class="warn">
+    <strong>⚠️ Turning the box off</strong>
+    Use the Pi 5's own little <b>power button</b>, and make it reachable from outside the box. Pulling the plug while the Pi is saving something can scramble the SD card.
+  </div>
+</section>
+
+<section class="card step" id="step7" style="--c:var(--s7)">
+  <div class="step-head">
+    <div class="step-title">
+      <span class="step-emoji" aria-hidden="true">📦</span>
+      <div>
+        <span class="step-num">Path B · Step 3</span>
+        <h2>Build the box</h2>
+        <span class="time">⏱ 60 to 90 minutes · a parent helps with cutting and drilling</span>
+      </div>
+    </div>
+    <label class="done-label"><input type="checkbox" class="done-box" data-step="7"> Done</label>
+  </div>
+  <ul>
+    <li><b>The Pi</b> sits on standoffs, so nothing metal touches its underside.</li>
+    <li><b>The screen</b> looks out through a window in the front.</li>
+    <li><b>The camera</b> goes at the top, facing out, at face height when the box sits on a table.</li>
+    <li><b>The speaker</b> sits behind a few drilled holes.</li>
+    <li><b>The buttons</b> go on the front. <b>The power cable</b> comes out the back.</li>
+    <li>Leave <b>air holes near the fan</b>. A box with no air is an oven.</li>
+  </ul>
+  <p><b>Kid job:</b> design the face of the box. Stickers, a name, a paint job. It's yours.</p>
+  <p class="win">🏆 <b>The win:</b> one box, one cable, and everything still works when you close the lid.</p>
+  <p class="badge-line">🏅 <b>Badge:</b> Box Builder</p>
+</section>
+
+<section class="card step" id="step8" style="--c:var(--s8)">
+  <div class="step-head">
+    <div class="step-title">
+      <span class="step-emoji" aria-hidden="true">✌️</span>
+      <div>
+        <span class="step-num">Path B · Step 4</span>
+        <h2>Play (forever)</h2>
+        <span class="time">⏱ As long as you like</span>
+      </div>
+    </div>
+    <label class="done-label"><input type="checkbox" class="done-box" data-step="8"> Done</label>
+  </div>
+  <p>The box boots straight into the menu. Pick <b>Rock Paper Scissors</b>.</p>
+  <ol>
+    <li><b>Show your hand</b> to wake it up.</li>
+    <li><b>Pick a player.</b> Tap a name, or press A to change it. Then show your hand to start.</li>
+    <li><b>The robot commits first.</b> It locks its move in the sealed envelope 🔒 before the countdown.</li>
+    <li><b>ROCK... PAPER... SCISSORS... SHOOT!</b> Throw your move on SHOOT.</li>
+    <li><b>The box reads your hand</b> for half a second and takes a vote: the move it saw in most of the pictures wins. If it's not sure, it says "I couldn't see that. Again!" and the envelope stays sealed.</li>
+    <li><b>The envelope opens.</b> First to 3 wins the match.</li>
+    <li><b>Leaderboard:</b> the longest winning streak for each player is saved on the box.</li>
+  </ol>
+  <p class="win">🏆 <b>The win:</b> a fair fight against your own robot, in its own body.</p>
+  <p class="badge-line">🏅 <b>Badge:</b> It's Alive</p>
+  <div class="tip">
+    <strong>💡 The cheat switch</strong>
+    Copy <code class="inline">config.example.json</code> to <code class="inline">config.json</code> and set <code class="inline">"robot_cheats": true</code>. The envelope then shows <b>?</b> instead of a lock, so the cheating is out in the open. Can your friends spot it?
+  </div>
+  <div class="celebrate" id="celebrate">
+    <span class="trophy" aria-hidden="true">🏆</span>
+    <b>Certified Robot Box Builders!</b>
+    You gave the robot its own body, and you can turn it into anything you can code. Nice work, team!
+  </div>
+</section>
+
+<!-- ============ MAKE A NEW APP ============ -->
+<section class="card" id="new-app">
+  <h2><span aria-hidden="true">🛠️</span> Make a new app (the part you come back to)</h2>
+  <p>Bored of Rock Paper Scissors? Don't put the box away. Give it a new brain. Every app is just a <b>folder</b>.</p>
+  <ol class="cmds">
+    <li><b>On the Mac, copy the template folder.</b> Call the copy anything without spaces.
+      <div class="code-wrap">
+        <button class="copy-btn" data-target="n1" type="button">Copy</button>
+<pre id="n1">cd ~/"Claude Projects/Door Greeter Bot/robot-box"
+cp -r apps/_template apps/my_app</pre>
+      </div></li>
+    <li><b>Open <code class="inline">apps/my_app/app.py</code></b> and change the name, the color, and which AI it needs.</li>
+    <li><b>Fill in <code class="inline">update()</code> and <code class="inline">draw()</code>.</b> That's your whole game.</li>
+    <li><b>Try it on the Mac.</b>
+      <div class="code-wrap">
+        <button class="copy-btn" data-target="n2" type="button">Copy</button>
+<pre id="n2">python box.py --desktop --app my_app</pre>
+      </div></li>
+    <li><b>Send it to the box.</b> Push it to GitHub from the Mac. On the box, pick <b>Check for updates</b> in the menu, then restart.</li>
+  </ol>
+  <h3>The shape of every app</h3>
+  <div class="code-wrap">
+    <button class="copy-btn" data-target="n3" type="button">Copy code</button>
+<pre id="n3">from core import draw
+
+
+class App:
+    name = "My App"                 # what the menu tile says
+    color = (255, 170, 0)           # the tile's color: red, green, blue
+    needs = set()                   # which AI to switch on, like {"hands"}
+
+    def start(self, box):           # the app opens
+        self.box = box
+        self.count = 0
+
+    def update(self, box, frame, vision, dt):   # every frame: change the game
+        pass
+
+    def draw(self, screen):         # every frame: draw the game
+        wide, high = screen.get_size()
+        screen.fill(draw.BLACK)
+        draw.text(screen, f"You pressed A {self.count} times", (wide / 2, high / 2), 8)
+
+    def on_button(self, box, name): # "A", "B", or ("touch", x, y)
+        if name == "A":
+            self.count += 1
+            box.beep(880, 100)
+            return True
+        return False                # False for "B" means: go back to the menu
+
+    def stop(self, box):            # the app closes
+        pass</pre>
+  </div>
+  <h3>What <code class="inline">needs</code> can be</h3>
+  <div class="table-scroll">
+  <table>
+    <tr><th>Ask for</th><th>You get, every frame</th></tr>
+    <tr><td><code class="inline">"hands"</code></td><td><code class="inline">vision.hands</code>: each hand's gesture name, how sure the AI is, and its 21 points</td></tr>
+    <tr><td><code class="inline">"faces"</code></td><td><code class="inline">vision.faces</code>: a box around each face</td></tr>
+    <tr><td><code class="inline">"people"</code></td><td><code class="inline">vision.people</code>: a box around each person</td></tr>
+    <tr><td><code class="inline">"objects"</code></td><td><code class="inline">vision.objects</code>: everyday things with names, like "cat" or "cup"</td></tr>
+    <tr><td><code class="inline">"pose"</code></td><td><code class="inline">vision.poses</code>: body points for a stick figure</td></tr>
+  </table>
+  </div>
+  <p class="cap-line">Rock Paper Scissors needs only the hand model, and that's the one the setup downloaded. For the others, run <code class="inline">python setup/download_models.py faces</code> (or <code class="inline">people</code>, <code class="inline">objects</code>, <code class="inline">pose</code>) first.</p>
+  <h3>What <code class="inline">box</code> can do for you</h3>
+  <div class="table-scroll">
+  <table>
+    <tr><th>Write this</th><th>And the box...</th></tr>
+    <tr><td><code class="inline">box.say("Hello!")</code></td><td>says it out loud</td></tr>
+    <tr><td><code class="inline">box.beep(880, 200)</code></td><td>beeps: pitch, then milliseconds</td></tr>
+    <tr><td><code class="inline">box.tune("WIN")</code></td><td>plays a tune: HELLO, WIN, LOSE, TIE, COUNT, SHOOT or OOPS</td></tr>
+    <tr><td><code class="inline">box.scores.record("my_app", "Kid 1", 12)</code></td><td>saves a high score</td></tr>
+    <tr><td><code class="inline">box.scores.table("my_app")</code></td><td>gives you the leaderboard</td></tr>
+    <tr><td><code class="inline">box.arduino.send("F")</code></td><td>sends a Chapter 3 letter to the Arduino, if one is plugged in</td></tr>
+    <tr><td><code class="inline">box.config</code></td><td>hands you the settings from config.json</td></tr>
+  </table>
+  </div>
+  <div class="kid">
+    <strong>💡 Your first app: read the Reaction Tester</strong>
+    <code class="inline">apps/reaction/app.py</code> is the smallest complete game on the box, and it uses no AI. Read it top to bottom before you write your own. Then pick an idea from <code class="inline">robot-box-ideas.md</code>: a staring-contest judge, a pet detector, a scoreboard, and more.
+  </div>
+  <div class="tip">
+    <strong>💡 If your app breaks, the box doesn't</strong>
+    A typo makes the box skip your app, and the log says why. A crash while playing shows "Oops! This app crashed" with the reason, then goes back to the menu. Breaking things is how you learn, so the box is built for it.
+  </div>
+</section>
+
+<!-- ============ FAST AND SOLID ============ -->
+<section class="card">
+  <h2><span aria-hidden="true">⚡</span> Fast and solid</h2>
+  <p>A Pi can't match the MacBook's raw speed. It gets close by <b>not doing work it doesn't have to</b>.</p>
+  <ul>
+    <li><b>Only run what's needed.</b> An app's AI is loaded when it opens and let go when it closes.</li>
+    <li><b>Small pictures for the AI.</b> The AI gets a shrunken copy of each picture. The screen shows the full one.</li>
+    <li><b>The camera's chip helps.</b> People, things and poses are found by the AI Camera itself.</li>
+    <li><b>Talking never freezes the game.</b> Sentences wait in a line, and a helper says them one by one.</li>
+    <li><b>The box watches itself.</b> If you see <b>"I'm too hot!"</b> or <b>"I need a better charger!"</b> in the corner, believe it.</li>
+    <li><b>A crash recovers.</b> A broken app goes back to the menu. If the whole launcher crashes, it restarts itself.</li>
+  </ul>
+  <h3>Measure, don't guess</h3>
+  <p>Hold button B for 2 seconds (or press <b>D</b> on the Mac). The debug numbers show how many pictures a second the box handles, the chip's temperature, and who is doing the seeing. Write your real numbers here after the first build:</p>
+  <div class="table-scroll">
+  <table>
+    <tr><th></th><th>Pictures a second</th><th>Chip temperature</th></tr>
+    <tr><td>MacBook, Rock Paper Scissors</td><td>________</td><td>(not shown)</td></tr>
+    <tr><td>Robot Box, Rock Paper Scissors</td><td>________</td><td>________</td></tr>
+  </table>
+  </div>
+</section>
+
+<!-- ============ CHECKLIST ============ -->
+<section class="card">
+  <h2><span aria-hidden="true">✅</span> The family's test list</h2>
+  <p>Only you can run these, because only you have the box:</p>
+  <ul class="parts">
+    <li><label><span class="txt">It boots into the menu by itself<span class="hint">Plug it in and touch nothing for a minute.</span></span><input type="checkbox" class="part-box"></label></li>
+    <li><label><span class="txt">Rock Paper Scissors gets 9 of 10 right<span class="hint">In normal room light. Keep a tally on paper.</span></span><input type="checkbox" class="part-box"></label></li>
+    <li><label><span class="txt">Buttons, voice and sound all work<span class="hint">A, B, the countdown beeps and "You win!"</span></span><input type="checkbox" class="part-box"></label></li>
+    <li><label><span class="txt">The power button shuts down cleanly<span class="hint">Then it starts again when pressed.</span></span><input type="checkbox" class="part-box"></label></li>
+    <li><label><span class="txt">A new app arrives with Check for updates<span class="hint">Push from the Mac, update on the box, restart.</span></span><input type="checkbox" class="part-box"></label></li>
+    <li><label><span class="txt">No warnings after 20 minutes of play<span class="hint">No "too hot" and no "better charger" in the corner.</span></span><input type="checkbox" class="part-box"></label></li>
+  </ul>
+</section>
+
+<!-- ============ WHAT WE TESTED ============ -->
+<section class="card">
+  <h2><span aria-hidden="true">🔬</span> What we tested, and what only you can test</h2>
+  <p><b>Tested on a MacBook:</b></p>
+  <ul>
+    <li>55 automatic tests pass: the winner for all 9 combinations, the vote, the robot committing before your move is read, cheat mode showing, scores surviving a scrambled file, apps loading, a broken app being skipped, a crashing app returning to the menu, the vision router, and the hot and low-power warnings.</li>
+    <li>A whole Rock Paper Scissors match ran through the real launcher with the real hand AI, reading a sample photo of a peace sign through a pretend camera.</li>
+    <li>Every screen was drawn and checked in both shapes: lying down (1280 × 720) and standing up (720 × 1280).</li>
+  </ul>
+  <p><b>Not tested, because there was no Raspberry Pi to test on:</b></p>
+  <ul>
+    <li>The Pi camera and the AI Camera's chip (people, things, pose).</li>
+    <li>The arcade buttons and the touchscreen.</li>
+    <li>The Piper and espeak voices, and the USB speaker.</li>
+    <li>Reading the Pi's temperature and power warnings from a real Pi.</li>
+    <li>The setup script and starting by itself.</li>
+    <li>A live camera with a real hand, and "9 of 10 right". The Mac test used a photo.</li>
+    <li>How fast it runs on a Pi 5.</li>
+  </ul>
+</section>
+
+<!-- ============ TROUBLESHOOTING ============ -->
+<section class="card">
+  <h2><span aria-hidden="true">🕵️</span> Troubleshooting</h2>
+  <p>Detective time. Tap a problem to see what to check.</p>
+  <details>
+    <summary>"Oops! This app crashed" says an AI model is missing</summary>
+    <p>The app needs a model you haven't downloaded. The message tells you the exact command, like <code class="inline">python setup/download_models.py hands</code>.</p>
+  </details>
+  <details>
+    <summary>My new app isn't in the menu</summary>
+    <p>Check three things: the folder is inside <code class="inline">apps/</code>, the file is called <code class="inline">app.py</code>, and the folder name doesn't start with <code class="inline">_</code>. Then look at the Terminal (or <code class="inline">data/box.log</code>) for a line starting with "Skipped the app". It says what's wrong.</p>
+  </details>
+  <details>
+    <summary>It says "I couldn't see that" a lot</summary>
+    <p>Hold your move still on SHOOT, about an arm's length from the camera, with light on your hand and not behind it. Press D (or hold B) and check the pictures-a-second number. If it's below about 5, the box has too few pictures to vote with.</p>
+  </details>
+  <details>
+    <summary>"Can't open the camera" on the Mac</summary>
+    <p>Another program is using it, or Terminal isn't allowed to. Check System Settings → Privacy &amp; Security → Camera. If your iPhone's camera opens instead, change <code class="inline">"number": 0</code> to <code class="inline">1</code> in <code class="inline">config.json</code>.</p>
+  </details>
+  <details>
+    <summary>No sound on the box</summary>
+    <p>Is the USB speaker plugged in? The Pi 5 has no headphone jack. Test it on the Pi with <code class="inline">espeak-ng hello</code>.</p>
+  </details>
+  <details>
+    <summary>"I need a better charger!" or "I'm too hot!"</summary>
+    <p>Charger: use the official 27 W supply, not a phone charger. Hot: is the fan spinning, and does the box have air holes near it?</p>
+  </details>
+  <details>
+    <summary>The box doesn't start by itself</summary>
+    <p>Connect from the Mac and look at <code class="inline">robot-box/data/last-run.log</code> and <code class="inline">data/box.log</code>. For Path A, <code class="inline">systemctl status robot-box</code> shows what happened.</p>
+  </details>
+  <details>
+    <summary>"No Arduino found" in Path A</summary>
+    <p>Is the USB cable in the Pi? Is anything else (like the Arduino app's Serial Monitor) talking to it? Only one program can talk to the Arduino at a time.</p>
+  </details>
+</section>
+
+<!-- ============ PRIVACY ============ -->
+<section class="card">
+  <h2><span aria-hidden="true">🔐</span> Privacy rules</h2>
+  <ul>
+    <li><b>No photos are saved.</b> Each picture is looked at and thrown away.</li>
+    <li><b>Nothing goes to the internet.</b> The AI runs on the box. "Check for updates" only downloads code.</li>
+    <li><b>Real names stay home.</b> Names go in <code class="inline">config.json</code>, which never goes to GitHub. The shared files say "Kid 1" and "Kid 2".</li>
+    <li><b>Future apps that save pictures or know faces</b> must say so on screen, and be switched on by you.</li>
+  </ul>
+</section>
+
+<!-- ============ FOLDER ============ -->
+<section class="card">
+  <h2><span aria-hidden="true">📁</span> What's in the folder</h2>
+  <pre>robot-box/
+├── box.py                 ← the launcher: menu, switching apps, the main loop
+├── core/                  ← parts every app shares
+│   ├── camera.py            Pi camera or Mac camera
+│   ├── vision.py            the vision router: who does the seeing
+│   ├── ai_camera.py         the AI Camera's own chip
+│   ├── health.py            too hot? weak charger? how fast?
+│   ├── sound.py             beeps, tunes and the voice
+│   ├── buttons.py           arcade buttons, keyboard and touch
+│   ├── draw.py              text and buttons for any screen size
+│   ├── scores.py            high scores
+│   └── arduino.py           the optional Arduino on USB
+├── apps/
+│   ├── _template/app.py   ← copy this to make a new app
+│   ├── rps/               ← Rock Paper Scissors (app.py = screens, game.py = rules)
+│   └── reaction/app.py    ← Reaction Tester: the smallest complete app
+├── setup/                 ← install.sh for the Pi, and the model downloader
+├── config.example.json    ← copy to config.json for real names
+└── tests/                 ← run with: pytest</pre>
+  <p class="cap-line">Tested on a Mac with: Python 3.12, MediaPipe 1.1.0, OpenCV 5.0, pygame 2.6.1, pytest 9.1.</p>
+</section>
+
+<!-- ============ GROWN-UP ============ -->
+<section class="card">
+  <h2><span aria-hidden="true">👨‍👩‍👦</span> Grown-up corner</h2>
+  <div class="table-scroll">
+  <table>
+    <tr><th>In this chapter</th><th>At work</th></tr>
+    <tr><td>Apps as folders with the same small shape</td><td>A plugin architecture</td></tr>
+    <tr><td>The <code class="inline">box</code> helpers every app shares</td><td>A platform layer, or SDK</td></tr>
+    <tr><td>Write on the Mac, update on the box</td><td>A (very small) deployment pipeline</td></tr>
+    <tr><td>A crashed app goes back to the menu</td><td>Fault isolation</td></tr>
+    <tr><td>The same software for Path A and Path B</td><td>Hardware abstraction</td></tr>
+    <tr><td>Apps ask for "hands", not for a model</td><td>Routing by capability</td></tr>
+    <tr><td>The robot commits before it reads your move</td><td>Commit-reveal: fairness you can check</td></tr>
+  </table>
+  </div>
+  <h3>Facts checked (October 2026)</h3>
+  <ul>
+    <li>Pi 5 list prices, 8 GB $130 and 4 GB $85: <a href="https://www.tomshardware.com/raspberry-pi/component-shortages-drive-raspberry-pi-prices-up-by-up-to-23-percent-escalating-lpddr4-lpddr5-costs-trigger-the-third-price-hike-of-the-year">Tom's Hardware</a></li>
+    <li>AI Camera, what its chip can run, and the <code class="inline">imx500-all</code> package: <a href="https://www.raspberrypi.com/documentation/accessories/ai-camera.html">Raspberry Pi AI Camera docs</a> and its <a href="https://github.com/raspberrypi/imx500-models">model zoo</a> (no face or hand models)</li>
+    <li>Touch Display 2 sizes and prices: <a href="https://www.raspberrypi.com/products/touch-display-2/">Raspberry Pi</a></li>
+    <li>MediaPipe 1.1.0 on the Pi's kind of processor: <a href="https://pypi.org/project/mediapipe/">PyPI</a></li>
+    <li>Using the Pi camera from a private Python: <a href="https://pydevtools.com/handbook/how-to/how-to-use-picamera2-and-gpio-with-uv-on-raspberry-pi/">picamera2 with uv</a></li>
+    <li>Piper, the offline voice: <a href="https://github.com/OHF-Voice/piper1-gpl">piper1-gpl</a></li>
+  </ul>
+  <p class="cap-line">These facts and prices come from the chapter's plan. They were not looked up again when this page was built.</p>
+</section>
+
+<!-- ============ ROUND 2 ============ -->
+<section class="card">
+  <h2><span aria-hidden="true">✨</span> What will the box become next?</h2>
+  <p>The full list is in <code class="inline">robot-box-ideas.md</code>. A few favorites:</p>
+  <ul class="ideas">
+    <li style="--k:var(--s1)"><span class="big" aria-hidden="true">👀</span><b>Staring Contest Judge:</b> two players face the camera. The first one to blink loses, and the robot calls it.</li>
+    <li style="--k:var(--s2)"><span class="big" aria-hidden="true">🤸</span><b>Weirdest Pose:</b> the robot draws your skeleton, and the strangest pose wins.</li>
+    <li style="--k:var(--s5)"><span class="big" aria-hidden="true">🐱</span><b>Pet Detector:</b> counts the cat's visits and plays a sound.</li>
+    <li style="--k:var(--s3)"><span class="big" aria-hidden="true">🏆</span><b>Scoreboard:</b> a touchscreen scoreboard for family games. No AI, and a great first app to build alone.</li>
+  </ul>
+</section>
+
+</div>
+
+<script>
+
+  var STORAGE_KEY = "robotBoxDone";
+  var PARTS_KEY = "robotBoxParts";
+  var boxes = document.querySelectorAll(".done-box");
+  var partBoxes = document.querySelectorAll(".part-box");
+  var barFill = document.getElementById("bar-fill");
+  var progressLabel = document.getElementById("progress-label");
+  var celebrate = document.getElementById("celebrate");
+  var reducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function loadState(key) {
+    try { return JSON.parse(localStorage.getItem(key) || "{}"); }
+    catch (e) { return {}; }
+  }
+  function saveState(key, state) {
+    try { localStorage.setItem(key, JSON.stringify(state)); }
+    catch (e) { /* storage not available, that's fine */ }
+  }
+
+  var state = loadState(STORAGE_KEY);
+  var partState = loadState(PARTS_KEY);
+
+  function updateProgress() {
+    var done = 0;
+    boxes.forEach(function (box) {
+      var card = box.closest(".step");
+      card.classList.toggle("is-done", box.checked);
+      var stop = document.querySelector('.stop[data-stop="' + box.dataset.step + '"]');
+      if (stop) stop.classList.toggle("is-done", box.checked);
+      if (box.checked) done++;
+    });
+    barFill.style.width = (done / boxes.length * 100) + "%";
+    progressLabel.textContent = done + " of " + boxes.length + " steps done";
+    celebrate.classList.toggle("show", done === boxes.length);
+    return done;
+  }
+
+  function confetti() {
+    if (reducedMotion) return;
+    var colors = ["#2563eb", "#ea580c", "#7c3aed", "#db2777", "#16a34a", "#f59e0b"];
+    for (var i = 0; i < 80; i++) {
+      var bit = document.createElement("i");
+      bit.className = "confetti";
+      bit.style.left = (Math.random() * 100) + "vw";
+      bit.style.background = colors[i % colors.length];
+      bit.style.animationDuration = (2 + Math.random() * 2) + "s";
+      bit.style.animationDelay = (Math.random() * 0.8) + "s";
+      document.body.appendChild(bit);
+      setTimeout(function (el) { el.remove(); }, 5200, bit);
+    }
+  }
+
+  boxes.forEach(function (box) {
+    box.checked = !!state[box.dataset.step];
+    box.addEventListener("change", function () {
+      state[box.dataset.step] = box.checked;
+      saveState(STORAGE_KEY, state);
+      if (updateProgress() === boxes.length && box.checked) confetti();
+    });
+  });
+
+  partBoxes.forEach(function (box, i) {
+    box.checked = !!partState[i];
+    box.addEventListener("change", function () {
+      partState[i] = box.checked;
+      saveState(PARTS_KEY, partState);
+    });
+  });
+
+  document.getElementById("reset-btn").addEventListener("click", function () {
+    state = {};
+    partState = {};
+    saveState(STORAGE_KEY, state);
+    saveState(PARTS_KEY, partState);
+    boxes.forEach(function (box) { box.checked = false; });
+    partBoxes.forEach(function (box) { box.checked = false; });
+    updateProgress();
+  });
+
+  updateProgress();
+
+  /* Copy buttons */
+  function fallbackCopy(text) {
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand("copy"); } catch (e) {}
+    document.body.removeChild(ta);
+  }
+  function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text).catch(function () { fallbackCopy(text); });
+    }
+    fallbackCopy(text);
+    return Promise.resolve();
+  }
+  document.querySelectorAll(".copy-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var code = document.getElementById(btn.dataset.target).textContent;
+      var label = btn.dataset.label || (btn.dataset.label = btn.textContent);
+      copyText(code).then(function () {
+        btn.textContent = "Copied!";
+        setTimeout(function () { btn.textContent = label; }, 1500);
+      });
+    });
+  });
+
+  /* ---------- The sealed envelope: the same order of events as apps/rps/game.py ---------- */
+  (function () {
+    var MOVES = ["rock", "paper", "scissors"];
+    var BEATS = { rock: "scissors", paper: "rock", scissors: "paper" };      // rock beats scissors...
+    var ICON = { rock: "✊", paper: "✋", scissors: "✌️" };
+    var status = document.getElementById("toy-status");
+    var envelope = document.getElementById("toy-envelope");
+    var score = document.getElementById("toy-score");
+    var logLine = document.getElementById("toy-log");
+    var cheat = document.getElementById("toy-cheat");
+    var buttons = document.querySelectorAll(".toy-move");
+    var robotMove = null, you = 0, robot = 0, busy = false, log = [];
+
+    function commit() {                       // the robot picks FIRST, before it can see your move
+      busy = false;
+      log = [];
+      if (cheat.checked) {
+        robotMove = null;
+        envelope.textContent = "✉️❓";
+        status.textContent = "The envelope is EMPTY. Pick your move...";
+        log.push("1. robot: nothing in the envelope (cheat mode)");
+      } else {
+        robotMove = MOVES[Math.floor(Math.random() * 3)];
+        envelope.textContent = "✉️🔒";
+        status.textContent = "The robot locked in its move. Pick yours!";
+        log.push("1. robot committed its move (sealed)");
+      }
+      envelope.classList.remove("open");
+      logLine.textContent = "Log: " + log.join("  →  ");
+    }
+
+    function play(move) {
+      if (busy) return;
+      busy = true;
+      log.push("2. you showed " + move);
+      if (robotMove === null) {               // cheat mode: pick the move that beats yours
+        robotMove = MOVES.filter(function (m) { return BEATS[m] === move; })[0];
+        log.push("3. robot picked " + robotMove + " AFTER seeing yours");
+      } else {
+        log.push("3. envelope opened: " + robotMove);
+      }
+      var result = move === robotMove ? "Tie!" : BEATS[move] === robotMove ? "You win!" : "Robot wins!";
+      if (result === "You win!") you++;
+      if (result === "Robot wins!") robot++;
+      envelope.textContent = ICON[move] + " vs " + ICON[robotMove];
+      envelope.classList.add("open");
+      status.textContent = result;
+      score.textContent = "You " + you + " · Robot " + robot;
+      logLine.textContent = "Log: " + log.join("  →  ");
+      setTimeout(commit, 2200);
+    }
+
+    buttons.forEach(function (button) {
+      button.addEventListener("click", function () { play(button.dataset.move); });
+    });
+    cheat.addEventListener("change", function () { if (!busy) commit(); });
+    commit();
+  })();
+</script>
+<script>
+  /* Show the chapter name in the sticky bar once the big banner has scrolled away. */
+  (function () {
+    var bar = document.querySelector(".progress"), banner = document.querySelector(".hero");
+    if (!bar) return;
+    if (!banner || !("IntersectionObserver" in window)) { bar.classList.add("no-watch"); return; }
+    new IntersectionObserver(function (entries) {
+      bar.classList.toggle("is-stuck", !entries[0].isIntersecting);
+    }).observe(banner);
+  })();
+</script>
+</body>
+</html>

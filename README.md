@@ -13,7 +13,9 @@ This is project #1 in a series of hands-on builds for two brothers.
 | 3 | 👀 Robot Eyes | `chapter-3-robot-eyes.html` | The Mac's camera + AI (Python) | Ready to build |
 | 4 | 🗣️ The Talking Robot | `chapter-4-talking-robot.html` + `chapter-4-code/` | A phone, the clock and the camera, through the Mac | Ready to build |
 | 6 | 🦖 Dino Bot | `chapter-6-dino-bot.html` + `chapter-6-code/` | Light sensors watching the screen | Ready to build |
+| 7 | 📦 The Robot Box | `chapter-7-robot-box.html` + `robot-box/` | A Raspberry Pi with a camera, in its own box (also runs on the Mac) | Ready to build; Pi parts not tested on a real Pi yet |
 | Bonus | 🔬 Inside the Robot | `inside-the-robot.html` | Nothing to build: tap, drag and slide | Play any time after Chapter 1 |
+| Bonus | 📱 The Phone Robot | `phone-robot.html` + `phone-robot/` | An iPhone's camera, with the AI running in Safari | Ready to play; tested in a Mac browser, not on an iPhone yet |
 
 Each chapter keeps the screen and buzzer wired the same way and swaps only the input. The rest of this README describes Chapter 1; Chapter 2's differences are below.
 
@@ -32,7 +34,7 @@ Type a secret code on the kit's remote. The screen shows stars, the right code p
 
 | | |
 |---|---|
-| **Builders** | Two kids, ages 13 (7th grade) and 10 (5th grade) |
+| **Builders** | Two kids |
 | **Helper** | A parent, mostly asking "what do you think will happen?" |
 | **Time** | About 2 to 2½ hours, snack breaks included |
 | **Experience needed** | None |

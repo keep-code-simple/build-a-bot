@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Phone Robot</title>
+<!-- These lines let "Share → Add to Home Screen" make a full-screen, app-like icon on an iPhone -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Phone Robot">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#14162b">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="icon" href="icon.png">
+<style>
+  /* The same colors and rounded font as the rest of Build-a-Bot */
+  :root {
+    --bg: #fff7e8;
+    --card: #ffffff;
+    --text: #1f2340;
+    --muted: #5d6180;
+    --line: #e7dcc6;
+    --accent: #2563eb;
+    --good: #15803d;
+    --bad: #dc2626;
+    --gold: #b45309;
+    --on-accent: #ffffff;
+    --round: ui-rounded, "SF Pro Rounded", "Arial Rounded MT Bold", "Chalkboard SE", system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14162b;
+      --card: #20244a;
+      --text: #f1f2ff;
+      --muted: #b3b7da;
+      --line: #383d6e;
+      --accent: #8fb4ff;
+      --good: #6ee7a0;
+      --bad: #fca5a5;
+      --gold: #fcd34d;
+      --on-accent: #14162b;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; overflow: hidden; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--round);
+    font-weight: 700;
+    -webkit-user-select: none; user-select: none;       /* it's an app: no accidental text selection */
+    -webkit-touch-callout: none;
+    touch-action: manipulation;                         /* no double-tap zoom */
+  }
+
+  /* One screen shows at a time. Each fills the whole phone. */
+  .screen {
+    position: fixed; inset: 0;
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+    gap: 2.5vmin; text-align: center;
+    padding: calc(env(safe-area-inset-top) + 9vmin) calc(env(safe-area-inset-right) + 5vmin)
+             calc(env(safe-area-inset-bottom) + 5vmin) calc(env(safe-area-inset-left) + 5vmin);
+  }
+  .screen.on { display: flex; }
+
+  h1 { font-size: 11vmin; line-height: 1.05; margin: 0; }
+  .big { font-size: 15vmin; line-height: 1.05; margin: 0; }
+  .huge { font-size: 22vmin; line-height: 1; margin: 0; }
+  .words { font-size: 6vmin; line-height: 1.25; margin: 0; }
+  .small { font-size: 4.2vmin; line-height: 1.3; margin: 0; color: var(--muted); font-weight: 600; }
+  .good { color: var(--good); }
+  .bad { color: var(--bad); }
+  .gold { color: var(--gold); }
+
+  button {
+    font: inherit; color: var(--on-accent); background: var(--accent);
+    border: 0; border-radius: 5vmin; padding: 4.5vmin 6vmin; font-size: 7vmin;
+    width: min(100%, 130vmin); cursor: pointer;
+    box-shadow: 0 1.2vmin 0 rgba(0, 0, 0, 0.22);
+  }
+  button:active { transform: translateY(0.8vmin); box-shadow: 0 0.4vmin 0 rgba(0, 0, 0, 0.22); }
+  button.plain { background: var(--card); color: var(--text); border: 0.6vmin solid var(--line); box-shadow: none; }
+  #start-button { font-size: 10vmin; padding: 8vmin 6vmin; }
+
+  .robot { font-size: 26vmin; line-height: 1; }
+  .robot.dance { animation: dance 0.35s ease-in-out 6 alternate; }
+  @keyframes dance { from { transform: rotate(-14deg) translateY(0); } to { transform: rotate(14deg) translateY(-4vmin); } }
+
+  /* The score, always visible while a match is on */
+  #score {
+    position: fixed; top: calc(env(safe-area-inset-top) + 1.5vmin); left: 0; right: 0; z-index: 5;
+    display: none; justify-content: center; text-align: center; font-size: 5.5vmin; color: var(--gold);
+    padding: 0 16vmin;
+  }
+  #score.on { display: flex; }
+
+  /* The gear button and the settings panel */
+  #gear {
+    position: fixed; top: calc(env(safe-area-inset-top) + 1vmin); right: calc(env(safe-area-inset-right) + 2vmin); z-index: 6;
+    width: 12vmin; height: 12vmin; padding: 0; font-size: 6.5vmin; border-radius: 50%;
+    background: var(--card); color: var(--text); border: 0.5vmin solid var(--line); box-shadow: none;
+  }
+  #settings { z-index: 10; background: var(--bg); justify-content: flex-start; overflow-y: auto; gap: 3.5vmin; }
+  #settings label { display: block; width: 100%; font-size: 4.6vmin; text-align: left; }
+  #settings select, #settings input[type=range] { width: 100%; font: inherit; font-size: 4.6vmin; margin-top: 1vmin; }
+  #settings select { padding: 2vmin; border-radius: 3vmin; border: 0.5vmin solid var(--line); background: var(--card); color: var(--text); }
+  #settings button { font-size: 5.5vmin; padding: 3.5vmin 5vmin; }
+
+  /* The live camera in a corner, mirrored like a selfie, with the hand's skeleton on top */
+  #camera {
+    position: fixed; z-index: 4; display: none;
+    right: calc(env(safe-area-inset-right) + 3vmin); bottom: calc(env(safe-area-inset-bottom) + 3vmin);
+    width: 36vmin; aspect-ratio: 4 / 3; border-radius: 4vmin; overflow: hidden;
+    border: 0.8vmin solid var(--line); background: #000;
+  }
+  #camera.on { display: block; }
+  #camera.wide { width: 62vmin; right: 50%; transform: translateX(50%); }
+  #camera video, #camera canvas {
+    position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+    transform: scaleX(-1);                               /* the mirror */
+  }
+  #ai-sees {
+    position: fixed; z-index: 4; display: none; left: calc(env(safe-area-inset-left) + 3vmin);
+    bottom: calc(env(safe-area-inset-bottom) + 3vmin); max-width: 52vmin; text-align: left;
+  }
+  #ai-sees.on { display: block; }
+
+  /* Screens that sit above the camera corner keep their words out of its way */
+  .screen.room-below { padding-bottom: calc(env(safe-area-inset-bottom) + 36vmin); }
+  .screen.room-below-wide { padding-bottom: calc(env(safe-area-inset-bottom) + 54vmin); }
+
+  .envelope { font-size: 26vmin; line-height: 1; }
+  .moves { display: flex; gap: 5vmin; align-items: flex-end; justify-content: center; }
+  .moves div { font-size: 4.6vmin; }
+  .moves .hand { font-size: 24vmin; line-height: 1.1; display: block; }
+  .moves .vs { font-size: 7vmin; padding-bottom: 12vmin; color: var(--muted); }
+  .pop { animation: pop 0.25s ease-out; }
+  @keyframes pop { from { transform: scale(0.6); opacity: 0.3; } to { transform: scale(1); opacity: 1; } }
+  #players { display: flex; flex-direction: column; gap: 3vmin; width: 100%; align-items: center; }
+  #players button small { display: block; font-size: 3.6vmin; font-weight: 600; opacity: 0.85; }
+  table { border-collapse: collapse; font-size: 5.2vmin; }
+  td { padding: 0.6vmin 3vmin; }
+
+  /* Lying down (landscape): the same screens, a little tighter */
+  @media (orientation: landscape) {
+    .screen { gap: 1.6vmin; padding-top: calc(env(safe-area-inset-top) + 13vmin); }
+    .screen.room-below, .screen.room-below-wide { padding-bottom: 5vmin; padding-right: calc(env(safe-area-inset-right) + 44vmin); }
+    #camera.wide { width: 40vmin; right: calc(env(safe-area-inset-right) + 3vmin); transform: none; }
+    #players { flex-direction: row; }
+    #players button { font-size: 5.5vmin; padding: 4vmin 2vmin; }
+    .robot, .envelope { font-size: 20vmin; }
+    #start-button { font-size: 9vmin; padding: 5vmin; }
+    h1 { font-size: 9vmin; }
+  }
+  @media (prefers-reduced-motion: reduce) { .robot.dance, .pop { animation: none; } }
+</style>
+</head>
+<body>
+
+<div id="score"></div>
+<button id="gear" type="button" aria-label="Settings" hidden>⚙️</button>
+
+<section class="screen on" data-screen="START">
+  <div class="robot" aria-hidden="true">🤖</div>
+  <h1>Phone Robot</h1>
+  <p class="words">Rock Paper Scissors against your phone!</p>
+  <button id="start-button" type="button">Tap to start 🤖</button>
+  <p class="small">The camera picture stays on this phone. Nothing is sent anywhere.</p>
+</section>
+
+<section class="screen" data-screen="LOADING">
+  <div class="robot" aria-hidden="true">🧠</div>
+  <p class="words" id="loading-words">Loading the robot's brain...</p>
+  <p class="small">The first time takes a little while.</p>
+</section>
+
+<section class="screen room-below-wide" data-screen="PICK_PLAYER">
+  <h1>Who is playing?</h1>
+  <div id="players"></div>
+  <p class="small">Tap a name to play. Tap and hold to change the name.</p>
+</section>
+
+<section class="screen room-below" data-screen="COMMIT">
+  <div class="envelope pop" id="envelope" aria-hidden="true">✉️🔒</div>
+  <p class="words" id="commit-words">I picked my move. It's locked in!</p>
+</section>
+
+<section class="screen room-below" data-screen="COUNTDOWN">
+  <p class="big" id="count-word">ROCK...</p>
+  <p class="words"><span id="count-envelope">✉️🔒</span></p>
+</section>
+
+<section class="screen room-below" data-screen="READ">
+  <p class="huge good">SHOOT!</p>
+  <p class="words">Hold it...</p>
+</section>
+
+<section class="screen room-below" data-screen="AGAIN">
+  <p class="big">Again!</p>
+  <p class="words" id="again-words">I couldn't see that.</p>
+</section>
+
+<section class="screen" data-screen="REVEAL">
+  <div class="moves pop">
+    <div><span class="hand" id="your-hand">✊</span>You</div>
+    <span class="vs">vs</span>
+    <div><span class="hand" id="robot-hand">✋</span>Robot</div>
+  </div>
+  <p class="big" id="reveal-result">TIE!</p>
+  <p class="words" id="reveal-line"></p>
+</section>
+
+<section class="screen" data-screen="MATCH_OVER">
+  <div class="robot" id="over-robot" aria-hidden="true">🤖</div>
+  <h1 id="over-title">You win!</h1>
+  <p class="words gold">Best win streaks</p>
+  <table id="leaderboard"></table>
+  <button id="again-button" type="button">Play again</button>
+  <button id="change-button" class="plain" type="button">Change player</button>
+</section>
+
+<section class="screen" data-screen="ERROR">
+  <div class="robot" aria-hidden="true">😵</div>
+  <h1 id="error-title">Oops!</h1>
+  <p class="words" id="error-words"></p>
+  <button id="retry-button" type="button">Try again</button>
+</section>
+
+<section class="screen" id="settings">
+  <h1>Settings</h1>
+  <label>The robot's voice
+    <select id="voice-select"></select></label>
+  <label>Speed: <span id="rate-number"></span>
+    <input id="rate" type="range" min="0.5" max="1.6" step="0.1"></label>
+  <label>Pitch (low to squeaky): <span id="pitch-number"></span>
+    <input id="pitch" type="range" min="0.3" max="2" step="0.1"></label>
+  <button id="test-voice" type="button">Say something</button>
+  <button id="close-settings" class="plain" type="button">Done</button>
+  <p class="small" id="tech-line"></p>
+</section>
+
+<div id="camera">
+  <video id="video" playsinline muted autoplay></video>
+  <canvas id="skeleton"></canvas>
+</div>
+<p class="small" id="ai-sees"></p>
+
+<script type="module">
+import {
+  MOVES, gestureToMove, majorityMove, updateMatch, newRound,
+} from "./game.js";
+
+/* ============================================================
+   SETTINGS: change these! This is where the robot gets its personality.
+   ============================================================ */
+const SETTINGS = {
+  greeting: "Hi! I'm the Phone Robot!",
+
+  // What the robot says when IT wins. One line for each move it won with.
+  robotWinsLines: {
+    rock: "Ha! Rock smashes scissors!",
+    paper: "Ha! Paper covers rock!",
+    scissors: "Ha! Scissors cut paper!",
+  },
+  // What it says when YOU win, and for a tie. It picks one at random. Add your own!
+  youWinLines: ["You got me!", "Nice one!", "How did you do that?"],
+  tieLines: ["Tie! Great minds...", "Same move! Again!"],
+  youWinMatchLine: "You win the match! I want a rematch!",
+  robotWinsMatchLine: "I win the match! Robots rule!",
+
+  // The cheat switch. true = the robot waits to see your move first.
+  // The envelope then shows "?" instead of a lock, so the cheating is out in the open.
+  robotCheats: false,
+
+  // Secret gestures. They work on the "Who is playing?" and "match over" screens.
+  // Each one can make the robot say something, dance, or both. null = nothing yet. Fill them in!
+  secretGestures: {
+    Thumb_Up: { say: "Yeah! Thumbs up!", dance: true },
+    ILoveYou: { say: "Aww. You're my favorite human!", dance: false },
+    Thumb_Down: null,
+    Pointing_Up: null,
+  },
+
+  countSeconds: 0.8,      // time for each word of "Rock... Paper... Scissors... SHOOT!"
+  readSeconds: 0.5,       // after SHOOT, collect your gesture for this long, then vote
+  revealSeconds: 3.2,     // how long the result stays on screen
+};
+
+/* Where the AI comes from. The page only DOWNLOADS these. It never uploads anything. */
+const AI_CODE = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.1.0";
+const AI_MODEL = "https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task";
+
+const HAND_ICON = { rock: "✊", paper: "✋", scissors: "✌️" };
+const DEFAULT_NAMES = ["Player 1", "Player 2", "Guest"];
+
+const $ = (id) => document.getElementById(id);
+const pickOne = (list) => list[Math.floor(Math.random() * list.length)];
+
+/* ============================================================
+   MEMORY: names, streaks and voice settings live ONLY in this phone's browser.
+   ============================================================ */
+function remember(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch (problem) { /* private mode: that's fine */ }
+}
+function recall(key, fallback) {
+  try {
+    const saved = JSON.parse(localStorage.getItem(key));
+    return saved === null || saved === undefined ? fallback : saved;
+  } catch (problem) { return fallback; }
+}
+let names = recall("phoneRobotNames", DEFAULT_NAMES).slice(0, 3);
+let bestStreaks = recall("phoneRobotStreaks", [0, 0, 0]);
+let voiceSettings = recall("phoneRobotVoice", { name: "", rate: 1, pitch: 1 });
+
+/* ============================================================
+   CAMERA: video only. We NEVER ask for the microphone.
+   (On an iPhone, an open microphone can make the robot's voice go quiet.)
+   ============================================================ */
+const video = $("video");
+let cameraStream = null;
+
+async function startCamera() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    throw Object.assign(new Error("no camera access"), { name: "NotSecureError" });
+  }
+  cameraStream = await navigator.mediaDevices.getUserMedia({
+    video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } },
+    audio: false,
+  });
+  video.srcObject = cameraStream;
+  await video.play();
+}
+
+function stopCamera() {
+  if (cameraStream) cameraStream.getTracks().forEach((track) => track.stop());
+  cameraStream = null;
+  video.srcObject = null;
+}
+
+/* ============================================================
+   AI: the same hand-gesture model as Chapter 3, running inside the browser.
+   ============================================================ */
+let recognizer = null;        // the AI, once it's loaded
+let aiRunsOn = "";            // "GPU" (the graphics chip) or "CPU" (the main chip)
+let visionCode = null;
+let modelBytes = null;
+let looping = false;
+let lastVideoTime = -1;
+let hand = { gesture: "", score: 0, visible: false };     // what the AI sees right now
+
+async function downloadModel(showProgress) {
+  const answer = await fetch(AI_MODEL);
+  if (!answer.ok) throw new Error("model download failed: " + answer.status);
+  const total = Number(answer.headers.get("content-length")) || 0;
+  if (!answer.body || !total) return new Uint8Array(await answer.arrayBuffer());
+  const reader = answer.body.getReader();
+  const bytes = new Uint8Array(total);
+  let got = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    bytes.set(value, got);
+    got += value.length;
+    showProgress(Math.round(got / total * 100));
+  }
+  return bytes;
+}
+
+async function makeRecognizer(delegate) {
+  const files = await visionCode.FilesetResolver.forVisionTasks(AI_CODE + "/wasm");
+  return visionCode.GestureRecognizer.createFromOptions(files, {
+    baseOptions: { modelAssetBuffer: modelBytes, delegate },
+    runningMode: "VIDEO",
+    numHands: 1,
+  });
+}
+
+async function loadAI(showProgress) {
+  if (recognizer) return;
+  if (!visionCode) visionCode = await import(AI_CODE);
+  if (!modelBytes) modelBytes = await downloadModel(showProgress);
+  try {
+    recognizer = await makeRecognizer("GPU");      // the graphics chip is faster...
+    aiRunsOn = "GPU";
+  } catch (problem) {
+    recognizer = await makeRecognizer("CPU");      // ...but the main chip always works
+    aiRunsOn = "CPU";
+  }
+}
+
+function startLooking() {
+  if (looping) return;
+  looping = true;
+  requestAnimationFrame(look);
+}
+function stopLooking() { looping = false; }
+
+async function look() {
+  if (!looping) return;
+  if (recognizer && video.readyState >= 2 && video.currentTime !== lastVideoTime) {   // skip pictures we've seen
+    lastVideoTime = video.currentTime;
+    try {
+      const result = recognizer.recognizeForVideo(video, performance.now());
+      const guess = result.gestures.length ? result.gestures[0][0] : null;
+      hand = {
+        gesture: guess ? guess.categoryName : "",
+        score: guess ? guess.score : 0,
+        visible: result.landmarks.length > 0,
+      };
+      drawSkeleton(result.landmarks[0]);
+      sawPicture();
+    } catch (problem) {
+      if (aiRunsOn === "GPU") {                    // the graphics chip gave up: switch to the main chip
+        aiRunsOn = "CPU";
+        recognizer = await makeRecognizer("CPU");
+      } else {
+        looping = false;
+        showError("The robot's brain stopped", "Reload the page to wake it up again.");
+        return;
+      }
+    }
+  }
+  requestAnimationFrame(look);
+}
+
+// The 21 hand points are joined by these lines (the same list as finger_counter.py in Chapter 3).
+const HAND_LINES = [[0, 1], [1, 2], [2, 3], [3, 4], [0, 5], [5, 6], [6, 7], [7, 8], [5, 9], [9, 10],
+  [10, 11], [11, 12], [9, 13], [13, 14], [14, 15], [15, 16], [13, 17], [17, 18], [18, 19], [19, 20], [0, 17]];
+const skeleton = $("skeleton");
+
+function drawSkeleton(points) {
+  if (skeleton.width !== video.videoWidth) {
+    skeleton.width = video.videoWidth;
+    skeleton.height = video.videoHeight;
+  }
+  const pen = skeleton.getContext("2d");
+  pen.clearRect(0, 0, skeleton.width, skeleton.height);
+  if (!points) return;
+  const spot = (point) => [point.x * skeleton.width, point.y * skeleton.height];
+  pen.lineWidth = skeleton.width / 90;
+  pen.strokeStyle = "#ffffff";
+  for (const [from, to] of HAND_LINES) {
+    pen.beginPath();
+    pen.moveTo(...spot(points[from]));
+    pen.lineTo(...spot(points[to]));
+    pen.stroke();
+  }
+  pen.fillStyle = "#ff00ff";
+  for (const point of points) {
+    pen.beginPath();
+    pen.arc(...spot(point), skeleton.width / 70, 0, Math.PI * 2);
+    pen.fill();
+  }
+}
+
+/* ============================================================
+   VOICE: Safari's built-in voice.
+   An iPhone ignores speech until the page has spoken DURING a tap. See startTapped().
+   ============================================================ */
+let voices = [];
+const spoken = [];            // everything the robot was asked to say (handy for testing)
+
+function loadVoices() {
+  if (!("speechSynthesis" in window)) return;
+  voices = speechSynthesis.getVoices().filter((voice) => voice.lang.toLowerCase().startsWith("en"));
+  const select = $("voice-select");
+  select.innerHTML = "";
+  for (const voice of voices) {
+    const option = document.createElement("option");
+    option.value = voice.name;
+    option.textContent = `${voice.name} (${voice.lang})`;
+    select.appendChild(option);
+  }
+  if (voices.some((voice) => voice.name === voiceSettings.name)) select.value = voiceSettings.name;
+}
+if ("speechSynthesis" in window) {
+  speechSynthesis.addEventListener("voiceschanged", loadVoices);    // voices arrive in the background
+  loadVoices();
+}
+
+function say(words) {
+  spoken.push(words);
+  if (!("speechSynthesis" in window)) return;
+  const speech = new SpeechSynthesisUtterance(words);
+  const voice = voices.find((one) => one.name === voiceSettings.name) || voices[0];
+  if (voice) speech.voice = voice;
+  speech.lang = voice ? voice.lang : "en-US";
+  speech.rate = voiceSettings.rate;
+  speech.pitch = voiceSettings.pitch;
+  if (speechSynthesis.paused) speechSynthesis.resume();
+  speechSynthesis.speak(speech);
+}
+
+// If the voice ever gets stuck, this clears the line so the next sentence can start.
+function unstickVoice() {
+  if ("speechSynthesis" in window) speechSynthesis.cancel();
+}
+
+/* ============================================================
+   SOUNDS: beeps made from math, like the Arduino's buzzer.
+   ============================================================ */
+let audio = null;
+
+function wakeSound() {                 // must be called during a tap
+  const AudioMaker = window.AudioContext || window.webkitAudioContext;
+  if (!AudioMaker) return;
+  if (!audio) audio = new AudioMaker();
+  if (audio.state === "suspended") audio.resume();
+}
+
+// notes is a list of [pitch in hertz, length in milliseconds]. 0 hertz is a short silence.
+function tune(notes) {
+  if (!audio) return;
+  let when = audio.currentTime;
+  for (const [hz, ms] of notes) {
+    const seconds = ms / 1000;
+    if (hz > 0) {
+      const tone = audio.createOscillator();
+      const volume = audio.createGain();
+      tone.frequency.value = hz;
+      tone.type = "square";
+      volume.gain.setValueAtTime(0.12, when);
+      volume.gain.exponentialRampToValueAtTime(0.001, when + seconds);    // fade out, so it doesn't click
+      tone.connect(volume).connect(audio.destination);
+      tone.start(when);
+      tone.stop(when + seconds);
+    }
+    when += seconds;
+  }
+}
+const TUNES = {
+  count: [[523, 150]],
+  shoot: [[1047, 300]],
+  win: [[784, 120], [988, 120], [1175, 120], [1568, 250]],          // a happy climb
+  lose: [[392, 250], [370, 250], [349, 250], [330, 400]],           // sad trombone
+  tie: [[659, 200], [0, 50], [659, 200]],
+};
+
+/* ============================================================
+   GOOD PHONE MANNERS: keep the screen on, and rest when the page is hidden.
+   ============================================================ */
+let wakeLock = null;
+let started = false;
+
+async function keepScreenOn() {
+  try {
+    if ("wakeLock" in navigator) wakeLock = await navigator.wakeLock.request("screen");
+  } catch (problem) { /* low battery mode can say no. The game still works. */ }
+}
+
+document.addEventListener("visibilitychange", async () => {
+  if (!started) return;
+  if (document.hidden) {                 // phone locked, or another app: stop the AI and the camera
+    stopTimers();
+    stopLooking();
+    stopCamera();
+    unstickVoice();
+  } else {                               // welcome back: switch everything on again
+    try {
+      await startCamera();
+      startLooking();
+      keepScreenOn();
+      resume();
+    } catch (problem) {
+      showCameraError(problem);
+    }
+  }
+});
+
+/* ============================================================
+   GAME SCREENS: showing the right screen, and filling in its words.
+   ============================================================ */
+let state = "START";
+
+function show(screenName) {
+  for (const screen of document.querySelectorAll(".screen[data-screen]")) {
+    screen.classList.toggle("on", screen.dataset.screen === screenName);
+  }
+  const playing = ["COMMIT", "COUNTDOWN", "READ", "AGAIN", "REVEAL"].includes(screenName);
+  const cameraOn = !["START", "LOADING", "ERROR", "REVEAL", "MATCH_OVER"].includes(screenName);
+  $("score").classList.toggle("on", playing || screenName === "MATCH_OVER");
+  $("camera").classList.toggle("on", cameraOn);
+  $("camera").classList.toggle("wide", screenName === "PICK_PLAYER");
+  $("ai-sees").classList.toggle("on", cameraOn && screenName !== "PICK_PLAYER");
+  $("gear").hidden = ["START", "LOADING"].includes(screenName);
+}
+
+function showScore() {
+  $("score").textContent = `${names[player]}  ${match.player} : ${match.robot}  Robot`;
+}
+
+function showPlayers() {
+  const box = $("players");
+  box.innerHTML = "";
+  names.forEach((name, number) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = name;
+    if (bestStreaks[number] > 0) {
+      const best = document.createElement("small");
+      best.textContent = `best streak: ${bestStreaks[number]}`;
+      button.appendChild(best);
+    }
+    // A short tap picks the player. A long hold (over half a second) renames them.
+    let holdTimer = null;
+    let wasHeld = false;
+    button.addEventListener("pointerdown", () => {
+      wasHeld = false;
+      holdTimer = setTimeout(() => { wasHeld = true; rename(number); }, 600);
+    });
+    for (const end of ["pointerup", "pointerleave", "pointercancel"]) {
+      button.addEventListener(end, () => clearTimeout(holdTimer));
+    }
+    button.addEventListener("click", () => { if (!wasHeld) choosePlayer(number); });
+    button.addEventListener("contextmenu", (event) => event.preventDefault());
+    box.appendChild(button);
+  });
+}
+
+function rename(number) {
+  const typed = prompt("New name (it stays on this phone):", names[number]);
+  if (typed && typed.trim()) {
+    names[number] = typed.trim().slice(0, 14);
+    remember("phoneRobotNames", names);
+  }
+  showPlayers();
+}
+
+function showLeaderboard() {
+  const rows = names.map((name, number) => [name, bestStreaks[number]])
+    .filter((row) => row[1] > 0).sort((a, b) => b[1] - a[1]);
+  const table = $("leaderboard");
+  table.innerHTML = "";
+  for (const [name, best] of rows) {
+    const row = table.insertRow();
+    row.insertCell().textContent = name;
+    row.insertCell().textContent = best;
+  }
+  if (!rows.length) table.insertRow().insertCell().textContent = "Nobody yet. Win a round!";
+}
+
+function showError(title, words) {
+  stopTimers();
+  state = "ERROR";
+  $("error-title").textContent = title;
+  $("error-words").textContent = words;
+  show("ERROR");
+}
+
+function showCameraError(problem) {
+  if (problem.name === "NotAllowedError" || problem.name === "SecurityError") {
+    showError("I can't see!", "The camera is blocked. In Safari, tap aA, then Website Settings, then Camera, then Allow. Then reload.");
+  } else if (problem.name === "NotSecureError") {
+    showError("I can't see!", "This page must be opened with https for the camera to work.");
+  } else {
+    showError("I can't see!", "I couldn't find a camera. Is another app using it?");
+  }
+}
+
+// The little line next to the camera: what does the AI think it sees?
+let lastSeesLine = "";
+function showWhatAISees() {
+  let line = "Show me your hand! Not too close, not too far.";
+  if (hand.visible) {
+    const move = gestureToMove(hand.gesture, hand.score);
+    line = move ? `I see: ${HAND_ICON[move]} ${move}` : "I see a hand...";
+  }
+  if (line !== lastSeesLine) {
+    lastSeesLine = line;
+    $("ai-sees").textContent = line;
+  }
+}
+
+/* ============================================================
+   STATE MACHINE: the game is always in exactly one state.
+     START → LOADING → PICK_PLAYER → COMMIT → COUNTDOWN → READ → REVEAL → (next round or MATCH_OVER)
+   go(state) switches to a state and does that state's job.
+   ============================================================ */
+let player = 0;                               // which of the three names is playing
+let match = { player: 0, robot: 0 };
+let round = null;                             // the round being played (see newRound in game.js)
+let streak = 0;                               // rounds won in a row
+let seenMoves = [];                           // the move in each picture during the read window
+let sawAHand = false;
+let timers = [];
+const log = [];                               // a diary of each round, for the curious (and for tests)
+
+function later(seconds, job) {
+  timers.push(setTimeout(job, seconds * 1000));
+}
+function stopTimers() {
+  timers.forEach(clearTimeout);
+  timers = [];
+}
+
+function go(next) {
+  stopTimers();
+  state = next;
+  JOBS[next]();
+}
+
+const JOBS = {
+  PICK_PLAYER() {
+    showPlayers();
+    show("PICK_PLAYER");
+  },
+
+  // The robot picks FIRST and seals its move, before the countdown even starts.
+  COMMIT() {
+    round = newRound({ cheats: SETTINGS.robotCheats, log: (line) => log.push(line) });
+    round.commit();
+    const envelope = round.sealed ? "✉️🔒" : "✉️❓";
+    $("envelope").textContent = envelope;
+    $("count-envelope").textContent = envelope;
+    $("commit-words").textContent = round.sealed ? "I picked my move. It's locked in!" : "My envelope is empty. I'm peeking!";
+    showScore();
+    show("COMMIT");
+    later(1.4, () => go("COUNTDOWN"));
+  },
+
+  COUNTDOWN() {
+    const words = ["Rock", "Paper", "Scissors"];
+    show("COUNTDOWN");
+    words.forEach((word, number) => {
+      later(number * SETTINGS.countSeconds, () => {
+        $("count-word").textContent = word.toUpperCase() + "...";
+        tune(TUNES.count);
+        say(word);
+      });
+    });
+    later(words.length * SETTINGS.countSeconds, () => go("READ"));
+  },
+
+  // SHOOT! For half a second, every picture gets a vote.
+  READ() {
+    seenMoves = [];
+    sawAHand = false;
+    tune(TUNES.shoot);
+    say("Shoot!");
+    show("READ");
+    const decide = (lastChance) => {
+      if (seenMoves.length < 2 && !lastChance) {      // a slow phone: wait a bit longer for pictures
+        later(1, () => decide(true));
+        return;
+      }
+      const move = majorityMove(seenMoves);
+      if (move) {
+        finishRound(move);
+      } else {
+        go("AGAIN");
+      }
+    };
+    later(SETTINGS.readSeconds, () => decide(false));
+  },
+
+  // Couldn't tell. The envelope stays sealed, and we count down again.
+  AGAIN() {
+    $("again-words").textContent = sawAHand
+      ? "I couldn't see that. Hold your move still!"
+      : "Show me your hand! Not too close, not too far.";
+    say("I couldn't see that. Again!");
+    show("AGAIN");
+    later(2.4, () => go("COUNTDOWN"));
+  },
+
+  REVEAL() {
+    show("REVEAL");
+    later(SETTINGS.revealSeconds, afterReveal);
+  },
+
+  MATCH_OVER() {
+    const youWon = match.matchWinner === "player";
+    $("over-title").textContent = youWon ? `${names[player]} wins!` : "The robot wins!";
+    $("over-title").className = youWon ? "good" : "bad";
+    $("over-robot").textContent = youWon ? "🏆" : "🤖";
+    showLeaderboard();
+    showScore();
+    say(youWon ? SETTINGS.youWinMatchLine : SETTINGS.robotWinsMatchLine);
+    show("MATCH_OVER");
+  },
+};
+
+// Every time the AI has looked at a new picture, this runs.
+function sawPicture() {
+  showWhatAISees();
+  if (state === "READ") {
+    seenMoves.push(gestureToMove(hand.gesture, hand.score));
+    if (hand.visible) sawAHand = true;
+  }
+  if (state === "PICK_PLAYER" || state === "MATCH_OVER") checkSecretGesture();
+}
+
+function finishRound(move) {
+  const result = round.readPlayer(move);            // only NOW does the envelope open
+  match = updateMatch(match, result);
+  $("your-hand").textContent = HAND_ICON[round.playerMove];
+  $("robot-hand").textContent = HAND_ICON[round.robotMove];
+  const title = $("reveal-result");
+  let line;
+  if (result === "player") {
+    streak += 1;
+    if (streak > (bestStreaks[player] || 0)) {
+      bestStreaks[player] = streak;
+      remember("phoneRobotStreaks", bestStreaks);
+    }
+    title.textContent = "YOU WIN!";
+    title.className = "big good";
+    line = pickOne(SETTINGS.youWinLines);
+    tune(TUNES.win);
+  } else if (result === "robot") {
+    streak = 0;
+    title.textContent = "ROBOT WINS!";
+    title.className = "big bad";
+    line = SETTINGS.robotWinsLines[round.robotMove];
+    tune(TUNES.lose);
+  } else {
+    title.textContent = "TIE!";
+    title.className = "big gold";
+    line = pickOne(SETTINGS.tieLines);
+    tune(TUNES.tie);
+  }
+  $("reveal-line").textContent = line;
+  say(line);
+  showScore();
+  go("REVEAL");
+}
+
+function afterReveal() {
+  go(match.over ? "MATCH_OVER" : "COMMIT");
+}
+
+function choosePlayer(number) {
+  unstickVoice();
+  player = number;
+  streak = 0;
+  startMatch();
+}
+
+function startMatch() {
+  match = { player: 0, robot: 0 };
+  go("COMMIT");
+}
+
+// Coming back after the phone was locked: pick up where we left off.
+function resume() {
+  if (state === "REVEAL") {
+    afterReveal();
+  } else if (["COMMIT", "COUNTDOWN", "READ", "AGAIN"].includes(state)) {
+    if (round && round.committed && !round.result) go("COUNTDOWN");     // same envelope, count again
+    else go("COMMIT");
+  } else if (state !== "ERROR" && state !== "START" && state !== "LOADING") {
+    show(state);
+  }
+}
+
+// Secret gestures: hold one for a moment and the robot reacts.
+let secretName = "";
+let secretSince = 0;
+let secretRestUntil = 0;
+function checkSecretGesture() {
+  const now = performance.now();
+  const action = hand.score >= 0.6 && Object.hasOwn(SETTINGS.secretGestures, hand.gesture)
+    ? SETTINGS.secretGestures[hand.gesture] : null;
+  if (!action) { secretName = ""; return; }
+  if (hand.gesture !== secretName) { secretName = hand.gesture; secretSince = now; return; }
+  if (now - secretSince < 700 || now < secretRestUntil) return;
+  secretRestUntil = now + 5000;                       // rest 5 seconds before the next one
+  if (action.say) say(action.say);
+  if (action.dance) {
+    for (const robot of document.querySelectorAll(".screen.on .robot")) {
+      robot.classList.remove("dance");
+      void robot.offsetWidth;                         // restart the animation
+      robot.classList.add("dance");
+    }
+    tune(TUNES.win);
+  }
+}
+
+/* ---------- the Start tap: three jobs in one tap ---------- */
+async function startTapped() {
+  // 1. Speak and wake the sound RIGHT NOW, before any waiting. An iPhone only lets a page
+  //    talk if it first speaks during a tap.
+  unstickVoice();
+  say(SETTINGS.greeting);
+  wakeSound();
+
+  state = "LOADING";
+  show("LOADING");
+  const words = $("loading-words");
+  try {
+    // 2. Turn on the camera.
+    words.textContent = "Waking up the camera...";
+    await startCamera();
+  } catch (problem) {
+    showCameraError(problem);
+    return;
+  }
+  try {
+    // 3. Download the AI.
+    words.textContent = "Loading the robot's brain...";
+    await loadAI((percent) => { words.textContent = `Loading the robot's brain... ${percent}%`; });
+  } catch (problem) {
+    stopCamera();
+    showError("No brain yet!", "The robot needs internet the first time. Check Wi-Fi, then try again.");
+    return;
+  }
+  started = true;
+  startLooking();
+  keepScreenOn();
+  $("tech-line").textContent = `The AI is running on this phone's ${aiRunsOn === "GPU" ? "graphics chip (GPU)" : "main chip (CPU)"}.`;
+  go("PICK_PLAYER");
+}
+
+$("start-button").addEventListener("click", startTapped);
+$("retry-button").addEventListener("click", startTapped);
+$("again-button").addEventListener("click", () => { unstickVoice(); startMatch(); });
+$("change-button").addEventListener("click", () => { unstickVoice(); go("PICK_PLAYER"); });
+
+/* ---------- the settings panel: pick the voice, its speed and its pitch ---------- */
+function showVoiceNumbers() {
+  $("rate").value = voiceSettings.rate;
+  $("pitch").value = voiceSettings.pitch;
+  $("rate-number").textContent = voiceSettings.rate;
+  $("pitch-number").textContent = voiceSettings.pitch;
+}
+function saveVoice() {
+  voiceSettings = {
+    name: $("voice-select").value,
+    rate: Number($("rate").value),
+    pitch: Number($("pitch").value),
+  };
+  remember("phoneRobotVoice", voiceSettings);
+  showVoiceNumbers();
+}
+for (const control of ["voice-select", "rate", "pitch"]) $(control).addEventListener("input", saveVoice);
+$("gear").addEventListener("click", () => { showVoiceNumbers(); $("settings").classList.add("on"); });
+$("close-settings").addEventListener("click", () => $("settings").classList.remove("on"));
+$("test-voice").addEventListener("click", () => { unstickVoice(); say(SETTINGS.greeting); });
+showVoiceNumbers();
+
+/* A peek inside, for the curious. Type phoneRobot in the browser's console. */
+window.phoneRobot = {
+  get state() { return state; },
+  get match() { return match; },
+  get hand() { return hand; },
+  get aiRunsOn() { return aiRunsOn; },
+  get moves() { return MOVES; },
+  spoken, log,
+};
+</script>
+</body>
+</html>

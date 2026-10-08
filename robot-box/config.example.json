@@ -1,0 +1,15 @@
+{
+  "players": ["Kid 1", "Kid 2", "Guest"],
+
+  "rps": {
+    "wins_needed": 3,
+    "robot_cheats": false
+  },
+
+  "camera": { "number": 0, "width": 1280, "height": 720 },
+  "ai_picture_width": 640,
+
+  "buttons": { "A": 17, "B": 27 },
+
+  "voice": { "piper_voice": "en_US-lessac-medium", "mac_voice": "" }
+}

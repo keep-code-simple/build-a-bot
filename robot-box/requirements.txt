@@ -1,0 +1,8 @@
+# Robot Box. On the Mac:  uv pip install -r requirements.txt
+# On the Pi, setup/install.sh does this for you (and adds the Pi-only parts).
+mediapipe==1.1.0
+opencv-python          # mediapipe brings OpenCV too; this line just makes sure
+pygame
+pyserial
+numpy
+pytest

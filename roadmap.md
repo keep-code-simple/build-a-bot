@@ -12,11 +12,15 @@ Where the series is, and what's next. One chapter at a time, fun first, and no r
 | 4 | 🗣️ The Talking Robot | Speech, phone ↔ robot round trip, schedules, greeting by name | `chapter-4-talking-robot.md` + `chapter-4-code/` | `chapter-4-talking-robot.html` | Page and code ready, not built on hardware yet |
 | 5 | 🚪 The Auto Door | Moving things safely in the real world | this file, below | not yet | **Parked on purpose** |
 | 6 | 🦖 Dino Bot | A robot that uses a computer like a person; beating latency | `chapter-6-dino-bot.md` + `chapter-6-code/` | `chapter-6-dino-bot.html` | Page and code ready, not built on hardware yet |
+| 7 | 📦 The Robot Box | A robot with its own body; apps as folders, so the same box becomes new gadgets | `chapter-7-robot-box_v2.md` + `robot-box/` (app ideas: `robot-box-ideas.md`) | `chapter-7-robot-box.html` | Page and code ready and tested on the Mac; not built on a Raspberry Pi yet |
 | Bonus | 🔬 Inside the Robot | How boards, chips and silicon work | `inside-the-robot.md` | `inside-the-robot.html` | ✅ Built |
+| Bonus | 📱 The Phone Robot | A web page is a program too: the AI runs in the phone's browser | `phone-robot.md` + `phone-robot/` | `phone-robot.html` | Page and app ready and tested in a Mac browser; not tried on an iPhone yet |
 
 `chapter-2-remote-control.md` (Guard Mode) is an earlier draft of Chapter 2. Its remote piano and greeter modes could become a Chapter 2 bonus later.
 
-Order matters: Chapter 4 needs Chapter 3's Python setup, and its name-greeting finale reuses Chapter 3's camera skills.
+Order matters: Chapter 4 needs Chapter 3's Python setup, and its name-greeting finale reuses Chapter 3's camera skills. Chapter 7 moves Chapter 3's Rock Paper Scissors onto a Raspberry Pi.
+
+`chapter-7-robot-box.md` is the first draft of Chapter 7; `chapter-7-robot-box_v2.md` is the one that was built.
 
 ---
 
