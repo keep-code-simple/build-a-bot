@@ -6,7 +6,7 @@ This is a companion to the chapters. The chapters are about *building*. This pag
 
 | | |
 |---|---|
-| **For** | Two kids, ages 13 and 10, plus a parent |
+| **For** | Two kids, plus a parent |
 | **Time** | 30 to 45 minutes, or one level at a time |
 | **Best moment to use it** | After Chapter 1 works, while the real greeter sits on the table next to the screen |
 
@@ -20,7 +20,7 @@ Turn this file into **one self-contained interactive HTML page**, `inside-the-ro
 - **Reactive, not reading.** Every level has something to drag, tap, toggle or slide. Text stays short; the drawing does the explaining. If a level is just paragraphs, it's not done.
 - **Touch first.** The boys live on iPads. Everything must work by tapping and dragging on an iPad, with big targets (44 px or more) and no hover-only features.
 - **Offline, no libraries.** Hand-drawn inline SVG and plain JavaScript. No external scripts, fonts or images.
-- **Two depths.** A toggle at the top: 🐣 **Simple** (for the 10-year-old) and 🦉 **Deeper** (for the 13-year-old). Deeper mode reveals the extra lines marked **Deeper:** below. Simple mode hides them. Remember the choice.
+- **Two depths.** A toggle at the top: 🐣 **Simple** (for the younger builder) and 🦉 **Deeper** (for the older builder). Deeper mode reveals the extra lines marked **Deeper:** below. Simple mode hides them. Remember the choice.
 - **Motion with care.** Animate signals, electricity and bits as moving dots. Respect `prefers-reduced-motion`: show the end state instead of animating.
 - **Use the facts in "Facts to keep right"** at the bottom. Don't invent numbers.
 - **Mission map:** 5 levels plus the boss level. Each level ends with a "🏅 Badge earned" moment when its interaction is completed.

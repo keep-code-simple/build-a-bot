@@ -6,7 +6,7 @@ This chapter connects the real world (atoms) to the internet (bits) and back aga
 
 | | |
 |---|---|
-| **Builders** | Two kids, ages 13 (7th grade) and 10 (5th grade), plus a parent |
+| **Builders** | Two kids, plus a parent |
 | **Time** | About 3 hours. Best as two Sundays: Steps 1 to 3, then Steps 4 and 5. Step 6 is a bonus that needs a small purchase |
 | **Before this** | Chapter 1 built. Chapter 3, Step 1 (Python and uv set up on the Mac) done |
 | **Computer** | A Mac with Apple silicon. The Mac's built-in `say` command is the robot's voice |
@@ -249,7 +249,7 @@ This is EventBridge Scheduler or cron: time is just another event source that wa
   - Each person's score is the average of their top 3 cosine similarities.
   - Say the name only if the best score is **≥ 0.45** **and** beats the second-best person by **≥ 0.06**. Otherwise the answer is "friend".
   - The same answer must appear in **3 of the last 5 frames** before greeting.
-  - Why stricter than OpenCV's suggested 0.363: brothers look alike, and **saying "friend" is better than saying the wrong brother's name**. Put both numbers in the config so the 13-year-old can experiment.
+  - Why stricter than OpenCV's suggested 0.363: brothers look alike, and **saying "friend" is better than saying the wrong brother's name**. Put both numbers in the config so the older builder can experiment.
 - **Cooldowns:** 2 minutes per person, 1 minute for "friend".
 - **Greeting:** `SHOW Hi <name>!|<catchphrase>`, then `NOTES <tune>`, then say "<how to say it>. <catchphrase>".
 - **Privacy defaults:**

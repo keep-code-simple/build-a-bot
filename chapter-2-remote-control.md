@@ -19,7 +19,7 @@ This is project #2 in the series. It builds on Chapter 1, so keep that build wir
 
 | | |
 |---|---|
-| **Builders** | Two kids, ages 13 (7th grade) and 10 (5th grade) |
+| **Builders** | Two kids |
 | **Helper** | A parent, mostly asking "what do you think will happen?" |
 | **Time** | About 1½ to 2 hours |
 | **Before this** | Chapter 1 (Door Greeter Bot) finished and still wired |

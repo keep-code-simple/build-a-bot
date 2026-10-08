@@ -6,7 +6,7 @@ The robot doesn't hack the game. It sees and presses, exactly like you do.
 
 | | |
 |---|---|
-| **Builders** | Two kids, ages 13 (7th grade) and 10 (5th grade), plus a parent |
+| **Builders** | Two kids, plus a parent |
 | **Time** | About 2½ to 3 hours. Two Sundays: Steps 1 to 4 (first autopilot), then Steps 5 to 8 (make it unbeatable) |
 | **Before this** | Chapter 1 (LCD and buzzer wiring). Independent of Chapters 3 to 5 |
 | **Computer** | Any computer with Chrome. The game runs at `chrome://dino`, no need to unplug the internet |
