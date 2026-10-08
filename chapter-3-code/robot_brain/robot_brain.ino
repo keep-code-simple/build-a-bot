@@ -6,6 +6,9 @@
 //   F = I see a face          N = nobody there
 //   0 to 5 = number of fingers
 //   r = rock    p = paper    s = scissors
+//   Gestures: V = peace   U = thumbs up   D = thumbs down   H = open hand
+//             B = fist    O = pointing up   L = I love you
+//   Faces:    S = smile   W = mouth open   K = wink   E = eyebrows up
 #include <LiquidCrystal.h>
 
 LiquidCrystal lcd(12, 11, 5, 4, 3, 2);   // RS, E, D4, D5, D6, D7
@@ -34,7 +37,7 @@ void setup() {
   lcd.begin(16, 2);
   randomSeed(analogRead(A0));
   showIdle();
-  Serial.println("Robot brain ready! Type F, N, 0-5, r, p or s.");
+  Serial.println("Robot brain ready! Type F, N, 0-5, r, p, s, or a gesture or face letter.");
 }
 
 void loop() {
@@ -47,6 +50,19 @@ void loop() {
     else if (message == 'r') playRound(0);
     else if (message == 'p') playRound(1);
     else if (message == 's') playRound(2);
+    // Gestures: what you did, what the robot says back (max 16 characters each), and a sound
+    else if (message == 'V') showGesture("PEACE!",       "Peace, human!",  playWin);
+    else if (message == 'U') showGesture("THUMBS UP!",   "Awesome!",       playWin);
+    else if (message == 'D') showGesture("THUMBS DOWN!", "Oh no...",       playLose);
+    else if (message == 'H') showGesture("OPEN HAND!",   "High five!",     playHello);
+    else if (message == 'B') showGesture("FIST!",        "Fist bump!",     playTie);
+    else if (message == 'O') showGesture("POINTING UP!", "You are no. 1!", playHello);
+    else if (message == 'L') showGesture("I LOVE YOU!",  "Love you too!",  playWin);
+    // Faces you make
+    else if (message == 'S') showGesture("YOU SMILED!",  "Nice smile!",    playWin);
+    else if (message == 'W') showGesture("MOUTH OPEN!",  "Wow!",           playHello);
+    else if (message == 'K') showGesture("YOU WINKED!",  "I saw that!",    playTie);
+    else if (message == 'E') showGesture("EYEBROWS UP!", "Surprised?",     playHello);
     // anything else (like the Enter key) is ignored
   }
 }
@@ -84,6 +100,17 @@ void showFingers(int count) {
     tone(BUZZER_PIN, 880, 80);
     delay(150);
   }
+}
+
+void showGesture(const char* youDid, const char* robotSays, void (*playSound)()) {
+  Serial.print("Got gesture: ");
+  Serial.println(youDid);
+  digitalWrite(LED_PIN, HIGH);
+  lcd.clear();
+  lcd.print(youDid);
+  lcd.setCursor(0, 1);
+  lcd.print(robotSays);
+  playSound();
 }
 
 // Rock = 0, Paper = 1, Scissors = 2

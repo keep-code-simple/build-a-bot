@@ -20,7 +20,7 @@ This is project #3 in the series. It uses the Chapter 1 wiring and adds no new p
 
 | | |
 |---|---|
-| **Builders** | Two kids, ages 13 (7th grade) and 10 (5th grade) |
+| **Builders** | Two kids |
 | **Helper** | A parent. Step 1 (setup) is a parent job |
 | **Time** | About 2 to 2½ hours. Works well as two Sundays: Steps 1 to 4, then Steps 5 and 6 |
 | **Before this** | Chapter 1 finished. Chapter 2 is nice but not needed |
@@ -93,7 +93,7 @@ uv venv --python 3.12
 source .venv/bin/activate
 
 # 4. Install the add-ons: camera tools, the AI, and the USB messenger
-uv pip install "mediapipe==1.0.1" opencv-python pyserial
+uv pip install "mediapipe==1.1.0" opencv-python pyserial
 
 # 5. Download the two AI models (the "trained brains")
 curl -L -O https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite
@@ -893,7 +893,7 @@ Door Greeter Bot/
     └── .venv/                         (made in Step 1: the private Python)
 ```
 
-Tested with: Python 3.12, MediaPipe 1.0.1, OpenCV 5.0, pyserial 3.5, LiquidCrystal 1.0.7. The sketch compiles for the UNO, and each Python program was run against a simulated camera and Arduino to check it sends the right messages. The live camera part needs your Mac.
+Tested with: Python 3.12, MediaPipe 1.1.0, OpenCV 5.0, pyserial 3.5, LiquidCrystal 1.0.7. The sketch compiles for the UNO, and each Python program was run against a simulated camera and Arduino to check it sends the right messages. The live camera part needs your Mac.
 
 ## Where this goes next
 

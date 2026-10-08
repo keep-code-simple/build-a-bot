@@ -16,6 +16,8 @@ available-parts/
 .venv/
 *.tflite
 *.task
+*.onnx
+vosk-model-*/
 __pycache__/
 *.pyc
 
@@ -29,4 +31,10 @@ chapter-4-code/sd_card/
 chapter-4-code/robot_bridge/phrases.h
 **/.venv/
 *.onnx
+vosk-model-*/
 .pytest_cache/
+
+# Chapter 7: the Robot Box's private settings (real names), downloaded models, scores and logs
+robot-box/config.json
+robot-box/models/
+robot-box/data/
